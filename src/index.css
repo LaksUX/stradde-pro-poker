@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+/*
+  Design tokens sourced from DESIGN-airbnb.md — see REQUIREMENTS.md "Theme".
+  Update DESIGN-airbnb.md first if the visual language changes, then sync here.
+  No dark mode: this app has a single, permanently light canvas.
+*/
+@theme {
+  --color-canvas: #ffffff;
+  --color-ink: #222222;
+  --color-body: #3f3f3f;
+  --color-muted: #6a6a6a;
+  --color-muted-soft: #929292;
+  --color-hairline: #dddddd;
+  --color-hairline-soft: #ebebeb;
+  --color-border-strong: #c1c1c1;
+  --color-surface-soft: #f7f7f7;
+  --color-surface-strong: #f2f2f2;
+
+  --color-primary: #ff385c; /* Rausch */
+  --color-primary-active: #e00b41;
+  --color-primary-disabled: #ffd1da;
+  --color-on-primary: #ffffff;
+
+  --color-error: #c13515;
+  --color-error-hover: #b32505;
+
+  /* Minimal extensions not in DESIGN-airbnb.md — Airbnb has no win/loss
+     concept. Kept deliberately plain rather than inventing a louder palette. */
+  --color-win: #008a05;
+  --color-loss: var(--color-error);
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 32px;
+  --radius-full: 9999px;
+
+  --spacing-section: 64px;
+
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-surface-soft);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* One shadow tier, per DESIGN-airbnb.md — reserved for the bottom sheet /
+   modal surface and floating badges. Never used as a general card treatment. */
+.shadow-elevated {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.02),
+    0 2px 6px rgba(0, 0, 0, 0.04),
+    0 4px 8px rgba(0, 0, 0, 0.1);
+}
