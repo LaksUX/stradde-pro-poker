@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { toChips, type ChipRatio } from '../lib/chips'
 
@@ -22,6 +22,8 @@ type RosterRow = { profile_id: string; full_name: string; buyin_count: number }
 export function ShareTable() {
   const { gameId } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const displayMode = searchParams.get('display') === '1'
   const [game, setGame] = useState<GameSummary | null>(null)
   const [roster, setRoster] = useState<RosterRow[]>([])
 
@@ -104,6 +106,11 @@ export function ShareTable() {
 
   return (
     <div className="mx-auto max-w-sm p-6">
+      {displayMode && (
+        <p className="mb-3 text-center text-xs font-medium uppercase tracking-wide text-muted">
+          Table display
+        </p>
+      )}
       <div className="mx-auto mb-4 h-32 w-32 rounded-sm border-4 border-canvas bg-[repeating-conic-gradient(#222_0%_25%,#fff_0%_50%)] bg-[length:16px_16px] shadow-elevated" />
       <div className="rounded-md border border-hairline p-4">
         <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
@@ -120,12 +127,22 @@ export function ShareTable() {
         </span>
       </div>
 
-      <button
-        onClick={() => navigate(`/join/${gameId}`)}
-        className="mt-4 h-12 w-full rounded-sm bg-primary text-[16px] font-medium text-on-primary hover:bg-primary-active"
-      >
-        {full ? 'Request a seat anyway' : 'Join this game'}
-      </button>
+      {!displayMode && (
+        <>
+          <button
+            onClick={() => navigate(`/join/${gameId}`)}
+            className="mt-4 h-12 w-full rounded-sm bg-primary text-[16px] font-medium text-on-primary hover:bg-primary-active"
+          >
+            {full ? 'Request a seat anyway' : 'Join this game'}
+          </button>
+          <button
+            onClick={() => navigate(`/t/${gameId}?display=1`, { replace: true })}
+            className="mt-2 w-full text-center text-xs text-muted underline"
+          >
+            Put this device on table display
+          </button>
+        </>
+      )}
 
       {roster.length > 0 && (
         <div className="mt-5 rounded-md border border-hairline">
