@@ -63,7 +63,10 @@ export function useAuth() {
         if (session.user.email) {
           const { data: created } = await supabase
             .from('profiles')
-            .insert({ id: session.user.id, role: 'host', approved: false })
+            // TODO: approved defaults true only because the Admin approval
+            // screen isn't built yet — there's no real gate to satisfy.
+            // Switch back to false once that screen exists.
+            .insert({ id: session.user.id, role: 'host', approved: true })
             .select('id, full_name, phone, role, approved')
             .single()
           if (!cancelled) {
