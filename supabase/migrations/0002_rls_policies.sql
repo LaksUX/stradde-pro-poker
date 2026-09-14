@@ -36,13 +36,24 @@ $$ language sql stable security definer;
 -- directly — names surface through game_players, not profiles, everywhere
 -- else in the app.
 
+-- Helper: is the current user an admin? SECURITY DEFINER so this check does
+-- NOT go through profiles' own RLS policies again — a policy that queries
+-- its own table directly (like the two below used to) causes Postgres to
+-- recursively re-evaluate that same policy while checking it, which fails
+-- with a 500 rather than a permission error. This function breaks that loop
+-- the same way is_game_host / is_confirmed_player already do for games.
+create or replace function is_admin()
+returns boolean as $$
+  select exists (
+    select 1 from profiles where id = auth.uid() and role = 'admin'
+  );
+$$ language sql stable security definer;
+
 create policy "read own profile" on profiles
   for select using (id = auth.uid());
 
 create policy "admin reads all profiles" on profiles
-  for select using (
-    exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin')
-  );
+  for select using (is_admin());
 
 create policy "update own profile" on profiles
   for update using (id = auth.uid());
@@ -51,9 +62,7 @@ create policy "insert own profile on signup" on profiles
   for insert with check (id = auth.uid());
 
 create policy "admin updates approval" on profiles
-  for update using (
-    exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin')
-  );
+  for update using (is_admin());
 
 -- ============================================================================
 -- VENUES
