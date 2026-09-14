@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { joinAsPlayer } from '../hooks/useAuth'
+import { continueWithPhone } from '../hooks/useAuth'
 import { BuyinPicker } from '../components/ui/BuyinPicker'
 import { Button } from '../components/ui/Button'
 import { toChips, type ChipRatio } from '../lib/chips'
@@ -84,10 +84,10 @@ export function Join() {
     setSubmitting(true)
     setError(null)
     try {
-      const profileId = await joinAsPlayer(name.trim(), phone.trim())
+      const profile = await continueWithPhone(name.trim(), phone.trim())
       const { error: reqError } = await supabase.from('buyin_requests').insert({
         game_id: gameId,
-        profile_id: profileId,
+        profile_id: profile.id,
         requester_name: name.trim(),
         request_type: 'join',
         count,

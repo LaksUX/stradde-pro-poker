@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
-// See REQUIREMENTS.md "Access model" — two identity tracks on purpose.
-// Host: real Supabase Auth (email magic-link), admin-approved.
-// Player: Supabase Anonymous Sign-in, keyed by phone (E.164) — no email, no
-// password, no OTP. Both produce a Supabase `User`/`auth.uid()`, so RLS
-// doesn't need to know which track a given session came from; only the
-// `profiles.role` / `profiles.phone` columns do.
+// See REQUIREMENTS.md "Access model" (twelfth revision) — ONE identity
+// mechanism for everyone now, not two. Phone number, entered by the person
+// themself, no password, no email, no OTP. Hosting is not a different sign-in
+// method — it's a `role` / `approved` pair on the same kind of profile
+// everyone gets, reached by an explicit "Apply to host" action (see
+// applyToHost below), not inferred from how someone signed in.
 
 export type Profile = {
   id: string
@@ -49,32 +49,14 @@ export function useAuth() {
       .select('id, full_name, phone, role, approved')
       .eq('id', session.user.id)
       .maybeSingle()
-      .then(async ({ data }) => {
-        if (cancelled) return
-        if (data) {
-          setProfile(data as Profile)
-          setProfileLoading(false)
-          return
-        }
-        // No profile row yet. If this is a host-track session (has an
-        // email, not anonymous), create one now — nothing else in this
-        // build does this. approved starts false; run the SQL below once
-        // to approve yourself until the Admin screen is built.
-        if (session.user.email) {
-          const { data: created } = await supabase
-            .from('profiles')
-            // TODO: approved defaults true only because the Admin approval
-            // screen isn't built yet — there's no real gate to satisfy.
-            // Switch back to false once that screen exists.
-            .insert({ id: session.user.id, role: 'host', approved: true })
-            .select('id, full_name, phone, role, approved')
-            .single()
-          if (!cancelled) {
-            setProfile((created as Profile) ?? null)
-            setProfileLoading(false)
-          }
-        } else {
-          setProfile(null)
+      .then(({ data }) => {
+        // No auto-creation branch here anymore. Every profile now comes from
+        // an explicit continueWithPhone call (Continue or Join) before this
+        // effect ever sees the session — a session with no matching row is
+        // a real gap to investigate, not something to paper over by guessing
+        // a role.
+        if (!cancelled) {
+          setProfile(data as Profile | null)
           setProfileLoading(false)
         }
       })
@@ -86,30 +68,18 @@ export function useAuth() {
   return { session, user: session?.user ?? null, profile, loading: sessionLoading || profileLoading }
 }
 
-/** Host track: send a magic link. See pages/Login.tsx. */
-export async function sendHostMagicLink(email: string) {
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: window.location.origin },
-  })
-  if (error) throw error
-}
-
 /**
- * Player track: get-or-create an anonymous session, then link it to a
- * profile keyed by phone. See REQUIREMENTS.md "Joining a game": "no
- * verification code — a typed phone number is not proven to belong to the
- * person typing it. That's an accepted trade-off, not an oversight," and
- * "Rejoining from a new device: typing the same phone number again matches
- * the existing identity... without any separate claim step."
+ * The one entry mechanism for everyone — see pages/Continue.tsx (no game
+ * context) and pages/Join.tsx (in the context of a specific game link). Both
+ * call this same function.
  *
- * IMPORTANT — read before building on this: Supabase Anonymous Sign-in
- * mints a brand-new `auth.uid()` per device. A plain client-side upsert
- * keyed on that id, as a first draft of this function did, CANNOT satisfy
- * "same phone matches across devices" — it would either violate the
- * `profiles.phone` unique constraint or (if you loosened that constraint)
- * silently create a second, disconnected identity per device, quietly
- * breaking the cross-device history promise in REQUIREMENTS.md.
+ * IMPORTANT — read before building on this: Supabase Anonymous Sign-in mints
+ * a brand-new `auth.uid()` per device. A plain client-side upsert keyed on
+ * that id, as a first draft of this function did, CANNOT satisfy "same phone
+ * matches across devices" — it would either violate the `profiles.phone`
+ * unique constraint or (if you loosened that constraint) silently create a
+ * second, disconnected identity per device, quietly breaking the
+ * cross-device history promise in REQUIREMENTS.md.
  *
  * The correct fix needs a server-side Supabase Edge Function running with
  * the service-role key — never exposed to the client — that:
@@ -122,11 +92,14 @@ export async function sendHostMagicLink(email: string) {
  * Until then, this client-side path only correctly handles the first-time,
  * new-phone case, and will throw rather than silently mis-link an existing
  * phone to a new device's session.
+ *
+ * New profiles default to `role: 'player'` — hosting is never inferred here,
+ * only granted via applyToHost, below.
  */
-export async function joinAsPlayer(name: string, phoneE164: string): Promise<string> {
+export async function continueWithPhone(name: string, phoneE164: string): Promise<Profile> {
   const { data: existing } = await supabase
     .from('profiles')
-    .select('id')
+    .select('id, full_name, phone, role, approved')
     .eq('phone', phoneE164)
     .maybeSingle()
 
@@ -142,6 +115,7 @@ export async function joinAsPlayer(name: string, phoneE164: string): Promise<str
         'comment on this function — which is not implemented yet in this scaffold.'
     )
   }
+  if (existing) return existing as Profile
 
   let user: User | null = currentUser
   if (!user) {
@@ -151,13 +125,36 @@ export async function joinAsPlayer(name: string, phoneE164: string): Promise<str
   }
   if (!user) throw new Error('Anonymous sign-in did not return a user')
 
-  const { error: upsertError } = await supabase
+  const { data: created, error: upsertError } = await supabase
     .from('profiles')
     .upsert(
-      { id: user.id, full_name: name, phone: phoneE164, role: 'player' },
+      { id: user.id, full_name: name, phone: phoneE164, role: 'player', approved: false },
       { onConflict: 'id' }
     )
+    .select('id, full_name, phone, role, approved')
+    .single()
   if (upsertError) throw upsertError
 
-  return user.id
+  return created as Profile
+}
+
+/**
+ * The explicit action that requests the host role — see pages/ApplyToHost.tsx.
+ * Sets role/approved on the CURRENT session's own profile; relies on the
+ * existing "update own profile" RLS policy (id = auth.uid()), which is
+ * intentionally unrestricted on which columns a self-update can touch. Worth
+ * tightening to a specific allowed-column set before this leaves prototype
+ * status — flagged here rather than assumed safe.
+ */
+export async function applyToHost(): Promise<Profile> {
+  const user = (await supabase.auth.getSession()).data.session?.user
+  if (!user) throw new Error('Not signed in')
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ role: 'host', approved: false })
+    .eq('id', user.id)
+    .select('id, full_name, phone, role, approved')
+    .single()
+  if (error) throw error
+  return data as Profile
 }

@@ -1,0 +1,81 @@
+import { useState } from 'react'
+import { Navigate, useNavigate } from 'react-router-dom'
+import { continueWithPhone, useAuth } from '../hooks/useAuth'
+import { Button } from '../components/ui/Button'
+
+// See PAGE_PROMPTS.md "Continue" — replaces Login. One entry point for
+// everyone, whether they're about to host or just wanted to open the app
+// with no game link in hand. Join.tsx is the same mechanism in the context
+// of a specific game link.
+export function Continue() {
+  const { session, profile, loading } = useAuth()
+  const navigate = useNavigate()
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  if (loading) return <div className="p-6 text-center text-muted">Loading…</div>
+
+  // Already signed in — route by role/approval, never re-show the form.
+  if (session && profile) {
+    if (profile.role === 'host' && profile.approved) return <Navigate to="/games/new" replace />
+    if (profile.role === 'host' && !profile.approved)
+      return <Navigate to="/pending-approval" replace />
+    return <Navigate to="/home" replace />
+  }
+
+  async function handleContinue() {
+    if (!name.trim() || !phone.trim()) {
+      setError('Name and phone are both required')
+      return
+    }
+    setSubmitting(true)
+    setError(null)
+    try {
+      const p = await continueWithPhone(name.trim(), phone.trim())
+      if (p.role === 'host' && p.approved) navigate('/games/new')
+      else if (p.role === 'host' && !p.approved) navigate('/pending-approval')
+      else navigate('/home')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 p-6">
+      <div className="mb-4 flex flex-col items-center gap-2">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-on-primary">
+          ♠
+        </div>
+        <h1 className="text-xl font-semibold text-ink">Poker Night</h1>
+      </div>
+
+      <label className="text-sm font-medium text-muted">Name</label>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        className="h-14 rounded-sm border border-hairline px-3 text-ink"
+      />
+      <label className="text-sm font-medium text-muted">Phone</label>
+      <input
+        type="tel"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        className="h-14 rounded-sm border border-hairline px-3 text-ink"
+      />
+
+      {error && <p className="text-sm text-error">{error}</p>}
+
+      <Button block disabled={submitting} onClick={handleContinue}>
+        {submitting ? 'Continuing…' : 'Continue'}
+      </Button>
+      <p className="text-center text-xs text-muted">
+        No password, no code — just your name and phone. Want to host your own games? You can
+        apply once you're in.
+      </p>
+    </div>
+  )
+}

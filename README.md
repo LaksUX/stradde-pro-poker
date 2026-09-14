@@ -6,15 +6,18 @@ read both before extending this. `DESIGN-airbnb.md` is the visual token source.
 
 ## What's actually built in this pass
 
-**Real, wired to Supabase:** Login, Join, Create Game, Share Table, Live Game (the
-Pending requests queue + confirm/decline + player list specifically — the full bottom
-sheet with rake editing, the cash-out keypad, and the Replace-this-seat shortcut are
-stubbed with a plain `prompt()` for cash-out, not the real UI).
+**Real, wired to Supabase:** Continue, Apply to Host, Join, Create Game, Share
+Table, Live Game (the Pending requests queue + confirm/decline + player list
+specifically — the full bottom sheet with rake editing, the cash-out keypad, and
+the Replace-this-seat shortcut are stubbed with a plain `prompt()` for cash-out,
+not the real UI).
 
 **Stubbed, spec'd, not built:** Pending Approval, Admin, Home, Scheduled Game, My
 Game, My Settlements, Settlement, Game Detail, Venue Detail. Each has a complete
 behavioral spec in `PAGE_PROMPTS.md`. Follow the pattern in `ShareTable.tsx` /
-`LiveGame.tsx` (realtime + RLS) or `Login.tsx` / `Join.tsx` (the two auth tracks).
+`LiveGame.tsx` (realtime + RLS) or `Continue.tsx` / `Join.tsx` (the one auth
+mechanism, in its two entry contexts — no email track anymore, see the twelfth
+revision).
 
 **Deliberately incomplete, flagged in code, read before relying on it:**
 
@@ -57,11 +60,16 @@ top of them without addressing the comment first.
    npm run dev
    ```
 5. **Enable Anonymous Sign-ins** in your Supabase project (Authentication →
-   Providers → Anonymous) — the player track depends on it.
-6. **Approve yourself as a host.** Signing in via magic link now creates a
-   `profiles` row automatically, but `approved` starts `false` (the Admin
-   screen that would normally do this isn't built yet). Run this once in the
-   SQL Editor after your first sign-in:
+   Providers → Anonymous) — every identity in the app now depends on this,
+   host and player alike, per the twelfth revision. No SMTP setup needed
+   anymore; the earlier email magic-link flow (and the SMTP configuration it
+   required) is retired.
+6. **Sign in, then apply to host.** Go to `/continue`, enter any name and
+   phone — this creates your `profiles` row with `role: 'player'`. From
+   there, tap "Apply to host" (or run the SQL below once, faster for local
+   testing): `role` becomes `'host'`, `approved` starts `false` (the Admin
+   screen that would normally do the approving isn't built yet). Run this
+   once in the SQL Editor to approve yourself:
    ```sql
    update profiles set approved = true where role = 'host';
    ```
