@@ -134,8 +134,13 @@ create table buyin_requests (
   -- REQUIREMENTS.md's narrow "Replace this seat" exception; still a real,
   -- immediately-confirmed request, never a silent insert.
   requested_at timestamptz not null default now(),
-  confirmed_at timestamptz,
-  locks_at timestamptz generated always as (confirmed_at + interval '1 minute') stored
+  confirmed_at timestamptz
+  -- Deliberately no stored "locks_at" column: Postgres requires generated
+  -- columns to be IMMUTABLE, and `timestamptz + interval` is only STABLE in
+  -- Postgres's own catalog, even for a fixed offset like this. Compute lock
+  -- status at query/app time instead: `now() >= confirmed_at + interval '1 minute'`.
+  -- This also matches REQUIREMENTS.md more closely — the lock state was
+  -- always meant to fall out of the data, not be stored as its own fact.
 );
 
 create index buyin_requests_game_idx on buyin_requests (game_id);
