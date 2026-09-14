@@ -1,10 +1,17 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useAuth } from './hooks/useAuth'
 import { Login } from './pages/Login'
 import { Join } from './pages/Join'
 import { CreateGame } from './pages/CreateGame'
 import { ShareTable } from './pages/ShareTable'
 import { LiveGame } from './pages/LiveGame'
 import { StubScreen } from './pages/StubScreen'
+
+function RootRedirect() {
+  const { session, loading } = useAuth()
+  if (loading) return <div className="p-6 text-center text-muted">Loading…</div>
+  return <Navigate to={session ? '/games/new' : '/login'} replace />
+}
 
 // Route map mirrors PAGE_PROMPTS.md's screen list. Five are real (wired to
 // Supabase); the rest are stubs pointing back at their spec — see
@@ -13,7 +20,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<Login />} />
         <Route path="/join/:gameId" element={<Join />} />
         <Route path="/games/new" element={<CreateGame />} />

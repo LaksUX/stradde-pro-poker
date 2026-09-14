@@ -20,22 +20,30 @@ export type Profile = {
 export function useAuth() {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [sessionLoading, setSessionLoading] = useState(true)
+  const [profileLoading, setProfileLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s))
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+      setSessionLoading(false)
+    })
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s)
+      setSessionLoading(false)
+    })
     return () => sub.subscription.unsubscribe()
   }, [])
 
   useEffect(() => {
+    if (sessionLoading) return
     if (!session?.user) {
       setProfile(null)
-      setLoading(false)
+      setProfileLoading(false)
       return
     }
     let cancelled = false
-    setLoading(true)
+    setProfileLoading(true)
     supabase
       .from('profiles')
       .select('id, full_name, phone, role, approved')
@@ -44,15 +52,15 @@ export function useAuth() {
       .then(({ data }) => {
         if (!cancelled) {
           setProfile(data as Profile | null)
-          setLoading(false)
+          setProfileLoading(false)
         }
       })
     return () => {
       cancelled = true
     }
-  }, [session?.user?.id])
+  }, [sessionLoading, session?.user?.id])
 
-  return { session, user: session?.user ?? null, profile, loading }
+  return { session, user: session?.user ?? null, profile, loading: sessionLoading || profileLoading }
 }
 
 /** Host track: send a magic link. See pages/Login.tsx. */

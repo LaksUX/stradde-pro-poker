@@ -1,25 +1,30 @@
 import { useState } from 'react'
-import { sendHostMagicLink } from '../hooks/useAuth'
+import { Navigate } from 'react-router-dom'
+import { sendHostMagicLink, useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
 
 // See PAGE_PROMPTS.md "Login (host track only)". Players never see this
 // screen — see Join.tsx for the player track's entire "sign up."
 export function Login() {
+  const { session, loading } = useAuth()
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [sending, setSending] = useState(false)
+
+  if (loading) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (session) return <Navigate to="/games/new" replace />
 
   async function handleSend() {
     setError(null)
-    setLoading(true)
+    setSending(true)
     try {
       await sendHostMagicLink(email)
       setSent(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong')
     } finally {
-      setLoading(false)
+      setSending(false)
     }
   }
 
@@ -58,8 +63,8 @@ export function Login() {
             placeholder="you@example.com"
           />
           {error && <p className="text-sm text-error">{error}</p>}
-          <Button block disabled={!email || loading} onClick={handleSend}>
-            {loading ? 'Sending…' : 'Send magic link'}
+          <Button block disabled={!email || sending} onClick={handleSend}>
+            {sending ? 'Sending…' : 'Send magic link'}
           </Button>
           <p className="text-center text-xs text-muted">
             Only for hosting a game. Players join through a shared link — no account needed.
