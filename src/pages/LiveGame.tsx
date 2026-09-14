@@ -41,6 +41,7 @@ export function LiveGame() {
   const [game, setGame] = useState<Game | null>(null)
   const [pending, setPending] = useState<PendingRequest[]>([])
   const [players, setPlayers] = useState<PlayerRow[]>([])
+  const [rakeRevealed, setRakeRevealed] = useState(false)
 
   useEffect(() => {
     if (!gameId) return
@@ -165,6 +166,11 @@ export function LiveGame() {
     await supabase.from('game_players').update({ cashout: value }).eq('id', playerId)
   }
 
+  async function setRake(value: number) {
+    if (!gameId) return
+    await supabase.from('games').update({ rake: value }).eq('id', gameId)
+  }
+
   if (!game) return <div className="p-6 text-center text-muted">Loading…</div>
   if (!profile) return <div className="p-6 text-center text-muted">Sign in required.</div>
 
@@ -186,6 +192,31 @@ export function LiveGame() {
         >
           {full ? 'Full' : 'Open'} · {activeSeated}/{game.table_size}
         </span>
+      </div>
+
+      <div className="mt-3 rounded-md border border-hairline p-3">
+        <div className="flex items-center justify-between">
+          <span className="text-muted">Rake</span>
+          <button className="text-xs text-body underline" onClick={() => setRakeRevealed((v) => !v)}>
+            {rakeRevealed ? 'Hide' : 'Reveal'}
+          </button>
+        </div>
+        {rakeRevealed ? (
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-lg font-bold text-ink">
+              {toChips(game.rake, ratio)} chips
+              <span className="ml-1 text-xs font-normal text-muted">({game.rake} banks)</span>
+            </span>
+            <input
+              type="number"
+              defaultValue={game.rake}
+              onBlur={(e) => setRake(Number(e.target.value) || 0)}
+              className="h-9 w-20 rounded-sm border border-hairline px-2 text-sm"
+            />
+          </div>
+        ) : (
+          <p className="mt-1 text-xs text-muted">Masked — only you can see this.</p>
+        )}
       </div>
 
       {pending.length > 0 && (

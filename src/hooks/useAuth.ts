@@ -49,9 +49,29 @@ export function useAuth() {
       .select('id, full_name, phone, role, approved')
       .eq('id', session.user.id)
       .maybeSingle()
-      .then(({ data }) => {
-        if (!cancelled) {
-          setProfile(data as Profile | null)
+      .then(async ({ data }) => {
+        if (cancelled) return
+        if (data) {
+          setProfile(data as Profile)
+          setProfileLoading(false)
+          return
+        }
+        // No profile row yet. If this is a host-track session (has an
+        // email, not anonymous), create one now — nothing else in this
+        // build does this. approved starts false; run the SQL below once
+        // to approve yourself until the Admin screen is built.
+        if (session.user.email) {
+          const { data: created } = await supabase
+            .from('profiles')
+            .insert({ id: session.user.id, role: 'host', approved: false })
+            .select('id, full_name, phone, role, approved')
+            .single()
+          if (!cancelled) {
+            setProfile((created as Profile) ?? null)
+            setProfileLoading(false)
+          }
+        } else {
+          setProfile(null)
           setProfileLoading(false)
         }
       })

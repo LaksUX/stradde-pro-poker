@@ -58,6 +58,13 @@ top of them without addressing the comment first.
    ```
 5. **Enable Anonymous Sign-ins** in your Supabase project (Authentication →
    Providers → Anonymous) — the player track depends on it.
+6. **Approve yourself as a host.** Signing in via magic link now creates a
+   `profiles` row automatically, but `approved` starts `false` (the Admin
+   screen that would normally do this isn't built yet). Run this once in the
+   SQL Editor after your first sign-in:
+   ```sql
+   update profiles set approved = true where role = 'host';
+   ```
 
 ## Deploying
 

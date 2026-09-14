@@ -9,7 +9,7 @@ import type { ChipRatio } from '../lib/chips'
 // always-set fields now (not hidden/off-by-default) — see REQUIREMENTS.md's
 // ninth and tenth revisions for why.
 export function CreateGame() {
-  const { profile } = useAuth()
+  const { profile, loading } = useAuth()
   const navigate = useNavigate()
   const [name, setName] = useState('Tuesday night')
   const [venue, setVenue] = useState('')
@@ -20,6 +20,19 @@ export function CreateGame() {
   const [scheduledFor, setScheduledFor] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
+
+  if (loading) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (!profile?.approved) {
+    return (
+      <div className="mx-auto max-w-sm p-6 text-center">
+        <h1 className="text-lg font-semibold text-ink">Pending approval</h1>
+        <p className="mt-2 text-muted">
+          Your account exists but isn't approved as a host yet. See the project README for the
+          one-line SQL to approve yourself until the Admin screen is built.
+        </p>
+      </div>
+    )
+  }
 
   async function handleCreate() {
     if (!profile) return
