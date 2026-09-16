@@ -93,7 +93,7 @@ export function Join() {
         count,
       })
       if (reqError) throw reqError
-      navigate(`/games/${gameId}/my-game`)
+      navigate(`/t/${gameId}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong')
     } finally {

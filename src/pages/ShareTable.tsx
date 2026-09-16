@@ -39,6 +39,11 @@ export function ShareTable() {
   const [myTransfer, setMyTransfer] = useState<MyTransfer | null | 'none' | 'unresolved'>(
     'unresolved'
   )
+  const [myStatus, setMyStatus] = useState<'unknown' | 'not-joined' | 'pending' | 'confirmed'>(
+    'unknown'
+  )
+  const [myPendingCount, setMyPendingCount] = useState<number | null>(null)
+  const [myProfileId, setMyProfileId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!gameId) return
@@ -59,8 +64,41 @@ export function ShareTable() {
         .order('buyin_count', { ascending: false })
       setRoster((data ?? []) as RosterRow[])
     }
+    async function loadMyStatus() {
+      const { data: session } = await supabase.auth.getSession()
+      const userId = session.session?.user?.id
+      if (!userId) {
+        setMyStatus('not-joined')
+        return
+      }
+      setMyProfileId(userId)
+      const { data: confirmedRow } = await supabase
+        .from('game_players')
+        .select('id')
+        .eq('game_id', gameId)
+        .eq('profile_id', userId)
+        .maybeSingle()
+      if (confirmedRow) {
+        setMyStatus('confirmed')
+        return
+      }
+      const { data: pendingRow } = await supabase
+        .from('buyin_requests')
+        .select('count')
+        .eq('game_id', gameId)
+        .eq('profile_id', userId)
+        .eq('status', 'pending')
+        .maybeSingle()
+      if (pendingRow) {
+        setMyStatus('pending')
+        setMyPendingCount(pendingRow.count)
+        return
+      }
+      setMyStatus('not-joined')
+    }
     loadGame()
     loadRoster()
+    loadMyStatus()
 
     // Realtime: re-fetch on any change to this game's row or its buy-in
     // requests. Re-querying the views on each event is simple and correct;
@@ -76,12 +114,18 @@ export function ShareTable() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'buyin_requests', filter: `game_id=eq.${gameId}` },
-        loadRoster
+        () => {
+          loadRoster()
+          loadMyStatus()
+        }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` },
-        loadRoster
+        () => {
+          loadRoster()
+          loadMyStatus()
+        }
       )
       .subscribe()
 
@@ -242,7 +286,7 @@ export function ShareTable() {
         </span>
       </div>
 
-      {!displayMode && (
+      {!displayMode && myStatus === 'not-joined' && (
         <>
           <button
             onClick={() => navigate(`/join/${gameId}`)}
@@ -259,7 +303,17 @@ export function ShareTable() {
         </>
       )}
 
-      {roster.length > 0 && (
+      {!displayMode && myStatus === 'pending' && (
+        <div className="mt-4 rounded-md border border-hairline p-4 text-center">
+          <p className="text-sm text-ink">
+            Your request for {myPendingCount} buy-in{myPendingCount === 1 ? '' : 's'} is waiting
+            on the host.
+          </p>
+          <p className="mt-1 text-xs text-muted">This page updates on its own once confirmed.</p>
+        </div>
+      )}
+
+      {myStatus === 'confirmed' && roster.length > 0 && (
         <div className="mt-5 rounded-md border border-hairline">
           <p className="border-b border-hairline-soft p-3 text-center text-xs text-muted">
             Names only, ranked by buy-ins — no totals, no one else's numbers.
@@ -269,7 +323,13 @@ export function ShareTable() {
               key={r.profile_id}
               className="flex items-center justify-between border-b border-hairline-soft px-3 py-2.5 text-sm last:border-none"
             >
-              <span className="font-semibold text-ink">{r.full_name}</span>
+              <span className="font-semibold text-ink">
+                {r.full_name}
+                {r.profile_id === myProfileId ? ' (you)' : ''}
+              </span>
+              {r.profile_id === myProfileId && (
+                <span className="text-lg font-bold text-ink">{r.buyin_count}</span>
+              )}
             </div>
           ))}
         </div>
