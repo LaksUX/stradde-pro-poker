@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { Continue } from './pages/Continue'
 import { ApplyToHost } from './pages/ApplyToHost'
+import { Home } from './pages/Home'
 import { Join } from './pages/Join'
 import { CreateGame } from './pages/CreateGame'
 import { ShareTable } from './pages/ShareTable'
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/" element={<RootRedirect />} />
         <Route path="/continue" element={<Continue />} />
         <Route path="/apply-to-host" element={<ApplyToHost />} />
+        <Route path="/home" element={<Home />} />
         <Route path="/join/:gameId" element={<Join />} />
         <Route path="/games/new" element={<CreateGame />} />
         <Route path="/t/:gameId" element={<ShareTable />} />
@@ -37,7 +39,6 @@ export default function App() {
         {/* Stubs — real screens to build next, each spec'd in PAGE_PROMPTS.md */}
         <Route path="/pending-approval" element={<StubScreen name="Pending Approval" />} />
         <Route path="/admin" element={<StubScreen name="Admin" />} />
-        <Route path="/home" element={<StubScreen name="Home" />} />
         <Route path="/games/:gameId/scheduled" element={<StubScreen name="Scheduled Game" />} />
         <Route path="/games/:gameId/my-game" element={<StubScreen name="My Game" />} />
         <Route path="/my-settlements" element={<StubScreen name="My Settlements" />} />
