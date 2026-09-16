@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '../lib/supabase'
 import { toChips, type ChipRatio } from '../lib/chips'
 
@@ -212,7 +213,20 @@ export function ShareTable() {
           Table display
         </p>
       )}
-      <div className="mx-auto mb-4 h-32 w-32 rounded-sm border-4 border-canvas bg-[repeating-conic-gradient(#222_0%_25%,#fff_0%_50%)] bg-[length:16px_16px] shadow-elevated" />
+      <div className="mx-auto mb-4 w-fit rounded-sm border-4 border-canvas p-1 shadow-elevated">
+        <QRCodeSVG value={`${window.location.origin}/t/${gameId}`} size={120} />
+      </div>
+      {!displayMode && (
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(`${window.location.origin}/t/${gameId}`)
+            alert('Link copied')
+          }}
+          className="mx-auto mb-4 block text-center text-xs text-primary underline"
+        >
+          Copy link
+        </button>
+      )}
       <div className="rounded-md border border-hairline p-4">
         <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
         <p className="text-sm text-muted">{game.venue_freetext}</p>
