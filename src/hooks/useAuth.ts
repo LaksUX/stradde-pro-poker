@@ -73,25 +73,16 @@ export function useAuth() {
  * context) and pages/Join.tsx (in the context of a specific game link). Both
  * call this same function.
  *
- * IMPORTANT — read before building on this: Supabase Anonymous Sign-in mints
- * a brand-new `auth.uid()` per device. A plain client-side upsert keyed on
- * that id, as a first draft of this function did, CANNOT satisfy "same phone
- * matches across devices" — it would either violate the `profiles.phone`
- * unique constraint or (if you loosened that constraint) silently create a
- * second, disconnected identity per device, quietly breaking the
- * cross-device history promise in REQUIREMENTS.md.
- *
- * The correct fix needs a server-side Supabase Edge Function running with
- * the service-role key — never exposed to the client — that:
- *   1. Looks up `profiles` by phone.
- *   2. If found, mints a session for that EXISTING user id (via the Admin
- *      API), rather than creating a new anonymous user.
- *   3. If not found, creates a new anonymous user + profile as below.
- * That function is stubbed at supabase/functions/join-as-player/ with this
- * same explanation — implement it before relying on cross-device rejoin.
- * Until then, this client-side path only correctly handles the first-time,
- * new-phone case, and will throw rather than silently mis-link an existing
- * phone to a new device's session.
+ * Cross-device/cross-session rejoin: when the phone belongs to a different
+ * auth identity than the current session, this now calls the
+ * join-as-player Edge Function (supabase/functions/join-as-player/) to mint
+ * a real session for the EXISTING profile via a synthetic-email magic-link
+ * token — see that file for the full explanation. UNTESTED end to end: I
+ * have no network access to supabase.co from where this was built, so I
+ * could type-check and build the client side but never actually invoke the
+ * function against a live project. Deploy it and test the exact scenario
+ * (sign in with a phone that already has a profile, from a fresh
+ * session/incognito window) before trusting this works.
  *
  * New profiles default to `role: 'player'` — hosting is never inferred here,
  * only granted via applyToHost, below.
@@ -125,16 +116,51 @@ export async function continueWithPhone(name: string, phoneE164: string): Promis
 
   if (upsertError) {
     if (upsertError.code === '23505') {
-      // Postgres unique-violation code — this phone already belongs to a
-      // DIFFERENT auth identity than the current session. This is exactly
-      // the cross-device/cross-session case that needs the Edge Function
-      // described above — not implemented yet, so this fails loudly with a
-      // real explanation instead of a silent or generic crash.
-      throw new Error(
-        "This phone is already linked to a different device or browser session. " +
-          "Rejoining the same account from a new device/session isn't supported yet " +
-          '— see the comment on this function for what the real fix looks like.'
-      )
+      // This phone already belongs to a different auth identity than the
+      // current session. Try the Edge Function's session-minting path —
+      // see supabase/functions/join-as-player/index.ts. UNTESTED end to
+      // end (no network access to supabase.co from where this was built —
+      // see that file's header for exact test steps). If this also fails,
+      // fall through to a clear error rather than a silent/generic one.
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/join-as-player`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({ phone: phoneE164 }),
+          }
+        )
+        const json = await res.json()
+        if (!res.ok || json.error) {
+          throw new Error(json.error || `join-as-player returned ${res.status}`)
+        }
+        if (!json.exists || !json.hashed_token) {
+          throw new Error('join-as-player did not return a usable session token')
+        }
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: json.hashed_token,
+          type: 'magiclink',
+        })
+        if (verifyError) throw verifyError
+
+        const { data: reloaded, error: reloadError } = await supabase
+          .from('profiles')
+          .select('id, full_name, phone, role, approved')
+          .eq('phone', phoneE164)
+          .single()
+        if (reloadError) throw reloadError
+        return reloaded as Profile
+      } catch (edgeFnError) {
+        throw new Error(
+          "This phone is already linked to a different device or browser session, and the " +
+            'automatic reconnect failed: ' +
+            (edgeFnError instanceof Error ? edgeFnError.message : String(edgeFnError))
+        )
+      }
     }
     throw new Error(upsertError.message || 'Could not sign in — please try again.')
   }
