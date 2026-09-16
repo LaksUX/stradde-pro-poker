@@ -97,27 +97,16 @@ export function useAuth() {
  * only granted via applyToHost, below.
  */
 export async function continueWithPhone(name: string, phoneE164: string): Promise<Profile> {
-  const { data: existing } = await supabase
-    .from('profiles')
-    .select('id, full_name, phone, role, approved')
-    .eq('phone', phoneE164)
-    .maybeSingle()
-
-  const currentUser = (await supabase.auth.getSession()).data.session?.user ?? null
-
-  if (existing && existing.id !== currentUser?.id) {
-    // This phone belongs to a different auth identity than the current
-    // session — exactly the case that needs the Edge Function above. Fail
-    // loudly rather than guessing.
-    throw new Error(
-      'This phone number is already linked to another device/session. ' +
-        'Cross-device rejoin needs the join-as-player Edge Function — see the ' +
-        'comment on this function — which is not implemented yet in this scaffold.'
-    )
-  }
-  if (existing) return existing as Profile
-
-  let user: User | null = currentUser
+  // The phone lookup this function used to do BEFORE signing in was
+  // silently broken: profiles' RLS only allows reading a row where
+  // id = auth.uid(), so an unauthenticated client can never find someone
+  // else's row by phone number, regardless of whether it exists. That
+  // pre-check always returned nothing, making it theater — the database's
+  // own unique constraint on profiles.phone is the only thing that was
+  // ever actually enforcing "one profile per phone," and it was throwing a
+  // raw Postgrest error the UI never caught cleanly, showing a useless
+  // generic message instead of a real explanation.
+  let user: User | null = (await supabase.auth.getSession()).data.session?.user ?? null
   if (!user) {
     const { data, error } = await supabase.auth.signInAnonymously()
     if (error) throw error
@@ -133,7 +122,22 @@ export async function continueWithPhone(name: string, phoneE164: string): Promis
     )
     .select('id, full_name, phone, role, approved')
     .single()
-  if (upsertError) throw upsertError
+
+  if (upsertError) {
+    if (upsertError.code === '23505') {
+      // Postgres unique-violation code — this phone already belongs to a
+      // DIFFERENT auth identity than the current session. This is exactly
+      // the cross-device/cross-session case that needs the Edge Function
+      // described above — not implemented yet, so this fails loudly with a
+      // real explanation instead of a silent or generic crash.
+      throw new Error(
+        "This phone is already linked to a different device or browser session. " +
+          "Rejoining the same account from a new device/session isn't supported yet " +
+          '— see the comment on this function for what the real fix looks like.'
+      )
+    }
+    throw new Error(upsertError.message || 'Could not sign in — please try again.')
+  }
 
   return created as Profile
 }

@@ -95,7 +95,7 @@ export function Join() {
       if (reqError) throw reqError
       navigate(`/t/${gameId}`)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong')
+      setError(e instanceof Error ? e.message : (e as { message?: string })?.message ?? 'Something went wrong')
     } finally {
       setSubmitting(false)
     }

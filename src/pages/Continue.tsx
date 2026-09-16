@@ -50,7 +50,7 @@ export function Continue() {
       else if (p.role === 'host' && !p.approved) navigate('/pending-approval')
       else navigate('/home')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong')
+      setError(e instanceof Error ? e.message : (e as { message?: string })?.message ?? 'Something went wrong')
     } finally {
       setSubmitting(false)
     }
