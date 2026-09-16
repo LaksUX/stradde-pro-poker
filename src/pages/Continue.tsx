@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { continueWithPhone, useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
@@ -14,6 +14,18 @@ export function Continue() {
   const [phone, setPhone] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [linkExpired, setLinkExpired] = useState(false)
+
+  useEffect(() => {
+    // A dead/expired magic-link click (from before this app moved to
+    // phone-only auth) lands here with an error in the URL hash rather than
+    // a valid session — surface that plainly instead of silently showing
+    // the bare form with no explanation.
+    if (window.location.hash.includes('error=')) {
+      setLinkExpired(true)
+      window.history.replaceState(null, '', window.location.pathname)
+    }
+  }, [])
 
   if (loading) return <div className="p-6 text-center text-muted">Loading…</div>
 
@@ -52,6 +64,13 @@ export function Continue() {
         </div>
         <h1 className="text-xl font-semibold text-ink">Poker Night</h1>
       </div>
+
+      {linkExpired && (
+        <p className="rounded-md border border-hairline bg-surface-strong p-3 text-center text-sm text-muted">
+          That link has expired or already been used. Sign in below instead — no email needed
+          anymore, just your name and phone.
+        </p>
+      )}
 
       <label className="text-sm font-medium text-muted">Name</label>
       <input
