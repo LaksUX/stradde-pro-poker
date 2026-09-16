@@ -3,11 +3,16 @@ import { useAuth } from './hooks/useAuth'
 import { Continue } from './pages/Continue'
 import { ApplyToHost } from './pages/ApplyToHost'
 import { Home } from './pages/Home'
+import { PendingApproval } from './pages/PendingApproval'
+import { Admin } from './pages/Admin'
 import { Join } from './pages/Join'
 import { CreateGame } from './pages/CreateGame'
+import { ScheduledGame } from './pages/ScheduledGame'
 import { ShareTable } from './pages/ShareTable'
 import { LiveGame } from './pages/LiveGame'
 import { Settlement } from './pages/Settlement'
+import { GameDetail } from './pages/GameDetail'
+import { MySettlements } from './pages/MySettlements'
 import { StubScreen } from './pages/StubScreen'
 
 function RootRedirect() {
@@ -19,8 +24,8 @@ function RootRedirect() {
   return <Navigate to="/home" replace />
 }
 
-// Route map mirrors PAGE_PROMPTS.md's screen list. Six are real (wired to
-// Supabase); the rest are stubs pointing back at their spec — see
+// Route map mirrors PAGE_PROMPTS.md's screen list. Eleven are real (wired
+// to Supabase); My Game and Venue Detail are still stubs — see
 // pages/StubScreen.tsx and the project README for how to continue them.
 export default function App() {
   return (
@@ -30,19 +35,19 @@ export default function App() {
         <Route path="/continue" element={<Continue />} />
         <Route path="/apply-to-host" element={<ApplyToHost />} />
         <Route path="/home" element={<Home />} />
+        <Route path="/pending-approval" element={<PendingApproval />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="/join/:gameId" element={<Join />} />
         <Route path="/games/new" element={<CreateGame />} />
+        <Route path="/games/:gameId/scheduled" element={<ScheduledGame />} />
         <Route path="/t/:gameId" element={<ShareTable />} />
         <Route path="/games/:gameId/live" element={<LiveGame />} />
         <Route path="/games/:gameId/settlement" element={<Settlement />} />
+        <Route path="/my-settlements" element={<MySettlements />} />
+        <Route path="/games/:gameId" element={<GameDetail />} />
 
         {/* Stubs — real screens to build next, each spec'd in PAGE_PROMPTS.md */}
-        <Route path="/pending-approval" element={<StubScreen name="Pending Approval" />} />
-        <Route path="/admin" element={<StubScreen name="Admin" />} />
-        <Route path="/games/:gameId/scheduled" element={<StubScreen name="Scheduled Game" />} />
         <Route path="/games/:gameId/my-game" element={<StubScreen name="My Game" />} />
-        <Route path="/my-settlements" element={<StubScreen name="My Settlements" />} />
-        <Route path="/games/:gameId" element={<StubScreen name="Game Detail" />} />
         <Route path="/venues/:venueId" element={<StubScreen name="Venue Detail" />} />
       </Routes>
     </BrowserRouter>
