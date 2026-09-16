@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
+import { computeInitialSettlement, type PlayerForSettlement } from '../lib/settlement'
 import { Button } from '../components/ui/Button'
 
 type Game = {
@@ -37,6 +38,7 @@ type PlayerRow = {
 // query/mutation/realtime pattern and is the natural next slice to build.
 export function LiveGame() {
   const { gameId } = useParams()
+  const navigate = useNavigate()
   const { profile } = useAuth()
   const [game, setGame] = useState<Game | null>(null)
   const [pending, setPending] = useState<PendingRequest[]>([])
@@ -171,6 +173,64 @@ export function LiveGame() {
     await supabase.from('games').update({ rake: value }).eq('id', gameId)
   }
 
+  async function closeAndSettle() {
+    if (!gameId || !game) return
+    const totalIn = players.reduce((s, p) => s + p.confirmed_buyins * game.stake, 0)
+    const totalOut = players.reduce((s, p) => s + (p.cashout ?? 0), 0)
+    if (totalOut + game.rake > totalIn) {
+      alert("Can't close — cash-outs plus rake exceed total buy-ins. Resolve the overpay first.")
+      return
+    }
+    const unfinished = players.filter((p) => p.cashout == null)
+    if (
+      !confirm(
+        unfinished.length > 0
+          ? `${unfinished.length} player(s) have no cash-out — their buy-ins will count as a loss to the table. Close and settle?`
+          : 'Close this game and compute settlement?'
+      )
+    )
+      return
+
+    // Anyone still "in play" gets cashout = 0 — walked away, house absorbs it,
+    // per REQUIREMENTS.md's Game lifecycle.
+    for (const p of unfinished) {
+      await supabase.from('game_players').update({ cashout: 0 }).eq('id', p.id)
+    }
+
+    const settlementInput: PlayerForSettlement[] = players.map((p) => ({
+      gamePlayerId: p.id,
+      name: p.full_name,
+      netBanks: (unfinished.find((u) => u.id === p.id) ? 0 : (p.cashout ?? 0)) - p.confirmed_buyins * game.stake,
+    }))
+    const transfers = computeInitialSettlement(settlementInput)
+
+    if (transfers.length > 0) {
+      const { error: transferError } = await supabase.from('settlement_transfers').insert(
+        transfers.map((t) => ({
+          game_id: gameId,
+          from_player_id: t.fromPlayerId,
+          to_player_id: t.toPlayerId,
+          amount: t.amountBanks,
+        }))
+      )
+      if (transferError) {
+        alert(transferError.message)
+        return
+      }
+    }
+
+    const { error: closeError } = await supabase
+      .from('games')
+      .update({ status: 'closed', closed_at: new Date().toISOString() })
+      .eq('id', gameId)
+    if (closeError) {
+      alert(closeError.message)
+      return
+    }
+
+    navigate(`/games/${gameId}/settlement`)
+  }
+
   if (!game) return <div className="p-6 text-center text-muted">Loading…</div>
   if (!profile) return <div className="p-6 text-center text-muted">Sign in required.</div>
 
@@ -287,6 +347,10 @@ export function LiveGame() {
           </div>
         ))}
       </div>
+
+      <Button block className="mt-4" onClick={closeAndSettle}>
+        End game &amp; settle
+      </Button>
     </div>
   )
 }

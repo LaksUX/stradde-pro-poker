@@ -14,6 +14,15 @@ type GameSummary = {
   table_status_override: 'full' | 'open' | null
 }
 type RosterRow = { profile_id: string; full_name: string; buyin_count: number }
+type MyTransfer = {
+  id: string
+  from_player_id: string
+  to_player_id: string
+  from_name: string
+  to_name: string
+  amount: number
+  status: 'pending' | 'confirmed' | 'disputed'
+}
 
 // See PAGE_PROMPTS.md "Share Table / RSVP link" — one link, four states,
 // public and unauthenticated. This is the screen where Supabase Realtime
@@ -26,6 +35,9 @@ export function ShareTable() {
   const displayMode = searchParams.get('display') === '1'
   const [game, setGame] = useState<GameSummary | null>(null)
   const [roster, setRoster] = useState<RosterRow[]>([])
+  const [myTransfer, setMyTransfer] = useState<MyTransfer | null | 'none' | 'unresolved'>(
+    'unresolved'
+  )
 
   useEffect(() => {
     if (!gameId) return
@@ -77,6 +89,61 @@ export function ShareTable() {
     }
   }, [gameId])
 
+  useEffect(() => {
+    if (!gameId || game?.status !== 'closed') return
+    let cancelled = false
+    async function loadMyTransfer() {
+      const { data: session } = await supabase.auth.getSession()
+      const userId = session.session?.user?.id
+      if (!userId) {
+        if (!cancelled) setMyTransfer('none')
+        return
+      }
+      const { data: myPlayer } = await supabase
+        .from('game_players')
+        .select('id')
+        .eq('game_id', gameId)
+        .eq('profile_id', userId)
+        .maybeSingle()
+      if (!myPlayer) {
+        if (!cancelled) setMyTransfer('none')
+        return
+      }
+      const { data: t } = await supabase
+        .from('settlement_transfers')
+        .select('id, from_player_id, to_player_id, amount, status')
+        .eq('game_id', gameId)
+        .or(`from_player_id.eq.${myPlayer.id},to_player_id.eq.${myPlayer.id}`)
+        .maybeSingle()
+      if (!t) {
+        if (!cancelled) setMyTransfer('none')
+        return
+      }
+      const otherPlayerId = t.from_player_id === myPlayer.id ? t.to_player_id : t.from_player_id
+      const { data: otherPlayer } = await supabase
+        .from('game_players')
+        .select('id, profiles(full_name)')
+        .eq('id', otherPlayerId)
+        .maybeSingle()
+      const otherName = (otherPlayer as any)?.profiles?.full_name ?? '—'
+      if (!cancelled) {
+        setMyTransfer({
+          id: t.id,
+          from_player_id: t.from_player_id,
+          to_player_id: t.to_player_id,
+          from_name: t.from_player_id === myPlayer.id ? 'you' : otherName,
+          to_name: t.to_player_id === myPlayer.id ? 'you' : otherName,
+          amount: t.amount,
+          status: t.status,
+        })
+      }
+    }
+    loadMyTransfer()
+    return () => {
+      cancelled = true
+    }
+  }, [gameId, game?.status])
+
   if (!game) return <div className="p-6 text-center text-muted">Loading…</div>
 
   if (game.status === 'scheduled') {
@@ -91,9 +158,43 @@ export function ShareTable() {
   }
   if (game.status === 'closed') {
     return (
-      <div className="mx-auto max-w-sm p-6 text-center text-muted">
-        This game has ended. Settlement details go to whoever was in it — see My Settlements
-        (not built in this pass — see PAGE_PROMPTS.md).
+      <div className="mx-auto max-w-sm p-6">
+        <div className="rounded-md border border-hairline p-4">
+          <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
+          <p className="text-sm text-muted">{game.venue_freetext}</p>
+        </div>
+        {myTransfer === 'unresolved' && (
+          <p className="mt-4 text-center text-sm text-muted">Loading…</p>
+        )}
+        {myTransfer === 'none' && (
+          <p className="mt-4 text-center text-sm text-muted">
+            No settlement here for you — either it hasn't been published yet, you weren't in
+            this game, or there's nothing you owe or are owed.
+          </p>
+        )}
+        {myTransfer && myTransfer !== 'none' && myTransfer !== 'unresolved' && (
+          <div className="mt-4 rounded-md border border-hairline p-4">
+            <p className="text-ink">
+              <span className="capitalize">{myTransfer.from_name}</span> owes{' '}
+              <span className="capitalize">{myTransfer.to_name}</span>
+            </p>
+            <p className="mt-1 text-2xl font-bold text-primary">
+              {toChips(myTransfer.amount, '1:1')} chips
+              <span className="ml-2 text-sm font-normal text-muted">({myTransfer.amount} banks)</span>
+            </p>
+            <span
+              className={`mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                myTransfer.status === 'confirmed'
+                  ? 'bg-green-50 text-win'
+                  : myTransfer.status === 'disputed'
+                    ? 'bg-red-50 text-error'
+                    : 'bg-surface-strong text-muted'
+              }`}
+            >
+              {myTransfer.status}
+            </span>
+          </div>
+        )}
       </div>
     )
   }
