@@ -44,6 +44,8 @@ export function LiveGame() {
   const [pending, setPending] = useState<PendingRequest[]>([])
   const [players, setPlayers] = useState<PlayerRow[]>([])
   const [rakeRevealed, setRakeRevealed] = useState(false)
+  const [tableSizeEditing, setTableSizeEditing] = useState(false)
+  const [cashoutEditingId, setCashoutEditingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!gameId) return
@@ -173,6 +175,16 @@ export function LiveGame() {
     await supabase.from('games').update({ rake: value }).eq('id', gameId)
   }
 
+  async function setTableSize(value: number) {
+    if (!gameId) return
+    await supabase.from('games').update({ table_size: value }).eq('id', gameId)
+  }
+
+  async function setTableOverride(value: 'full' | 'open' | null) {
+    if (!gameId) return
+    await supabase.from('games').update({ table_status_override: value }).eq('id', gameId)
+  }
+
   async function closeAndSettle() {
     if (!gameId || !game) return
     const totalIn = players.reduce((s, p) => s + p.confirmed_buyins * game.stake, 0)
@@ -245,13 +257,40 @@ export function LiveGame() {
       <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
 
       <div className="mt-3 rounded-md border border-hairline p-3">
-        <span
-          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-            full ? 'bg-red-50 text-error' : 'bg-green-50 text-win'
-          }`}
-        >
-          {full ? 'Full' : 'Open'} · {activeSeated}/{game.table_size}
-        </span>
+        <div className="flex items-center justify-between">
+          <span
+            className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+              full ? 'bg-red-50 text-error' : 'bg-green-50 text-win'
+            }`}
+          >
+            {full ? 'Full' : 'Open'} · {activeSeated}/{game.table_size}
+          </span>
+          <button
+            className="text-xs text-muted underline"
+            onClick={() => setTableSizeEditing((v) => !v)}
+          >
+            {tableSizeEditing ? 'Done' : 'Edit'}
+          </button>
+        </div>
+        {tableSizeEditing && (
+          <div className="mt-2 flex items-center gap-2">
+            <label className="text-xs text-muted">Table size</label>
+            <input
+              type="number"
+              defaultValue={game.table_size}
+              onBlur={(e) => setTableSize(Number(e.target.value) || 9)}
+              className="h-9 w-16 rounded-sm border border-hairline px-2 text-sm"
+            />
+            <button
+              className="ml-auto text-xs text-muted underline"
+              onClick={() =>
+                setTableOverride(game.table_status_override ? null : full ? 'open' : 'full')
+              }
+            >
+              {game.table_status_override ? 'Clear override' : full ? 'Force open' : 'Force full'}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="mt-3 rounded-md border border-hairline p-3">
@@ -319,28 +358,47 @@ export function LiveGame() {
             key={p.id}
             className="flex items-center justify-between border-b border-hairline-soft p-3 last:border-none"
           >
-            <div>
+            <div className="flex-1">
               <div className="text-sm font-semibold text-ink">
                 {p.full_name}
                 {p.is_host ? ' (host)' : ''}
               </div>
-              <div className="text-xs text-muted">
-                {p.cashout == null
-                  ? 'In play'
-                  : `${toChips(p.cashout - p.confirmed_buyins * game.stake, ratio)} chips net`}
-              </div>
+              {cashoutEditingId === p.id ? (
+                <div className="mt-1 flex items-center gap-2">
+                  <input
+                    type="number"
+                    autoFocus
+                    defaultValue={p.cashout ?? ''}
+                    placeholder="Cash out (banks)"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        setCashout(p.id, Number((e.target as HTMLInputElement).value) || 0)
+                        setCashoutEditingId(null)
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (e.target.value) setCashout(p.id, Number(e.target.value) || 0)
+                      setCashoutEditingId(null)
+                    }}
+                    className="h-9 w-28 rounded-sm border border-hairline px-2 text-sm"
+                  />
+                </div>
+              ) : (
+                <div className="text-xs text-muted">
+                  {p.cashout == null
+                    ? 'In play'
+                    : `${toChips(p.cashout - p.confirmed_buyins * game.stake, ratio)} chips net`}
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xl font-bold text-ink">{p.confirmed_buyins}</span>
-              {p.cashout == null && (
+              {cashoutEditingId !== p.id && (
                 <button
                   className="text-xs text-muted underline"
-                  onClick={() => {
-                    const v = prompt('Cash out amount (banks)?')
-                    if (v) setCashout(p.id, Number(v))
-                  }}
+                  onClick={() => setCashoutEditingId(p.id)}
                 >
-                  Cash out
+                  {p.cashout == null ? 'Cash out' : 'Edit'}
                 </button>
               )}
             </div>

@@ -15,7 +15,6 @@ export function CreateGame() {
   const [venue, setVenue] = useState('')
   const [stake, setStake] = useState(5)
   const [chipRatio, setChipRatio] = useState<ChipRatio>('1:1')
-  const [tableSize, setTableSize] = useState(9)
   const [scheduleMode, setScheduleMode] = useState<'now' | 'later'>('now')
   const [scheduledFor, setScheduledFor] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -36,8 +35,8 @@ export function CreateGame() {
 
   async function handleCreate() {
     if (!profile) return
-    if (!name.trim() || !stake || !tableSize) {
-      setError('Name, stake, and table size are all required')
+    if (!name.trim() || !stake) {
+      setError('Name and stake are both required')
       return
     }
     if (scheduleMode === 'later' && !scheduledFor) {
@@ -55,7 +54,6 @@ export function CreateGame() {
           venue_freetext: venue.trim() || null,
           stake,
           chip_ratio: chipRatio,
-          table_size: tableSize,
           status: scheduleMode === 'now' ? 'live' : 'scheduled',
           scheduled_for: scheduleMode === 'later' ? scheduledFor : new Date().toISOString(),
         })
@@ -97,15 +95,6 @@ export function CreateGame() {
         onChange={(e) => setStake(Number(e.target.value) || 0)}
         className="h-14 w-full rounded-sm border border-hairline px-3 text-ink"
       />
-      <label className="mt-3 block text-sm font-medium text-muted">Table size</label>
-      <input
-        type="number"
-        value={tableSize}
-        onChange={(e) => setTableSize(Number(e.target.value) || 9)}
-        className="h-14 w-full rounded-sm border border-hairline px-3 text-ink"
-      />
-      <p className="mt-1 text-xs text-muted">Usual is 9 — stays editable all night.</p>
-
       <label className="mt-3 block text-sm font-medium text-muted">Chip ratio</label>
       <div className="flex gap-1.5">
         {(['1:1', '1:2'] as const).map((r) => (
