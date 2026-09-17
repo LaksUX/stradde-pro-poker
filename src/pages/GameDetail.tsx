@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
@@ -12,6 +12,7 @@ type Game = {
   stake: number
   chip_ratio: ChipRatio
   rake: number
+  venue_id: string | null
   venue_freetext: string | null
   closed_at: string | null
 }
@@ -89,7 +90,13 @@ export function GameDetail() {
   return (
     <div className="mx-auto max-w-sm p-6">
       <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
-      <p className="text-sm text-muted">{game.venue_freetext}</p>
+      {game.venue_id ? (
+        <Link to={`/venues/${game.venue_id}`} className="text-sm text-primary underline">
+          {game.venue_freetext}
+        </Link>
+      ) : (
+        <p className="text-sm text-muted">{game.venue_freetext}</p>
+      )}
 
       {isHost ? (
         <>

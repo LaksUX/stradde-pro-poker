@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { continueWithPhone } from '../hooks/useAuth'
+import { withTimeout } from '../lib/errors'
 import { BuyinPicker } from '../components/ui/BuyinPicker'
 import { Button } from '../components/ui/Button'
 import { toChips, type ChipRatio } from '../lib/chips'
@@ -84,7 +85,7 @@ export function Join() {
     setSubmitting(true)
     setError(null)
     try {
-      const profile = await continueWithPhone(name.trim(), phone.trim())
+      const profile = await withTimeout(continueWithPhone(name.trim(), phone.trim()))
       const { error: reqError } = await supabase.from('buyin_requests').insert({
         game_id: gameId,
         profile_id: profile.id,
@@ -95,7 +96,13 @@ export function Join() {
       if (reqError) throw reqError
       navigate(`/t/${gameId}`)
     } catch (e) {
-      setError(e instanceof Error ? e.message : (e as { message?: string })?.message ?? 'Something went wrong')
+      setError(
+        !navigator.onLine
+          ? "You're offline — reconnect and try again."
+          : e instanceof Error
+            ? e.message
+            : ((e as { message?: string })?.message ?? 'Something went wrong')
+      )
     } finally {
       setSubmitting(false)
     }

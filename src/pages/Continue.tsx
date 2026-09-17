@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { continueWithPhone, useAuth } from '../hooks/useAuth'
+import { withTimeout } from '../lib/errors'
 import { Button } from '../components/ui/Button'
 
 // See PAGE_PROMPTS.md "Continue" — replaces Login. One entry point for
@@ -45,12 +46,18 @@ export function Continue() {
     setSubmitting(true)
     setError(null)
     try {
-      const p = await continueWithPhone(name.trim(), phone.trim())
+      const p = await withTimeout(continueWithPhone(name.trim(), phone.trim()))
       if (p.role === 'host' && p.approved) navigate('/games/new')
       else if (p.role === 'host' && !p.approved) navigate('/pending-approval')
       else navigate('/home')
     } catch (e) {
-      setError(e instanceof Error ? e.message : (e as { message?: string })?.message ?? 'Something went wrong')
+      setError(
+        !navigator.onLine
+          ? "You're offline — reconnect and try again."
+          : e instanceof Error
+            ? e.message
+            : ((e as { message?: string })?.message ?? 'Something went wrong')
+      )
     } finally {
       setSubmitting(false)
     }

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { computeInitialSettlement, type PlayerForSettlement } from '../lib/settlement'
+import { runWrite } from '../lib/errors'
 import { Button } from '../components/ui/Button'
 
 type Game = {
@@ -127,25 +128,39 @@ export function LiveGame() {
     // pending list query light) — a Postgres function wrapping this in one
     // transaction is the right next step; this two-step client version is
     // fine for the "prove the pattern" scope of this pass.
-    const { data: fullReq } = await supabase
-      .from('buyin_requests')
-      .select('profile_id, request_type')
-      .eq('id', req.id)
-      .single()
+    let fullReq: { profile_id: string; request_type: 'join' | 'more_buyins' } | null = null
+    try {
+      const { data, error } = await supabase
+        .from('buyin_requests')
+        .select('profile_id, request_type')
+        .eq('id', req.id)
+        .single()
+      if (error) throw error
+      fullReq = data
+    } catch {
+      alert(
+        navigator.onLine
+          ? "Couldn't load that request — try again."
+          : "Couldn't load that request — you're offline. Reconnect and try again."
+      )
+      return
+    }
     if (!fullReq) return
 
     let gamePlayerId: string | null = null
     if (fullReq.request_type === 'join') {
-      const { data: gp, error: gpError } = await supabase
-        .from('game_players')
-        .insert({ game_id: gameId, profile_id: fullReq.profile_id })
-        .select('id')
-        .single()
-      if (gpError) {
-        alert(gpError.message)
+      try {
+        const { data: gp, error: gpError } = await supabase
+          .from('game_players')
+          .insert({ game_id: gameId, profile_id: fullReq.profile_id })
+          .select('id')
+          .single()
+        if (gpError) throw gpError
+        gamePlayerId = gp.id
+      } catch (e) {
+        alert(e instanceof Error && navigator.onLine ? e.message : "Couldn't confirm — you're offline. Reconnect and try again.")
         return
       }
-      gamePlayerId = gp.id
     } else {
       const { data: existing } = await supabase
         .from('game_players')
@@ -156,33 +171,49 @@ export function LiveGame() {
       gamePlayerId = existing?.id ?? null
     }
 
-    await supabase
-      .from('buyin_requests')
-      .update({ status: 'confirmed', confirmed_at: new Date().toISOString(), game_player_id: gamePlayerId })
-      .eq('id', req.id)
+    await runWrite(
+      () =>
+        supabase
+          .from('buyin_requests')
+          .update({ status: 'confirmed', confirmed_at: new Date().toISOString(), game_player_id: gamePlayerId })
+          .eq('id', req.id),
+      'Confirming buy-in'
+    )
   }
 
   async function declineRequest(id: string) {
-    await supabase.from('buyin_requests').update({ status: 'declined' }).eq('id', id)
+    await runWrite(
+      () => supabase.from('buyin_requests').update({ status: 'declined' }).eq('id', id),
+      'Declining request'
+    )
   }
 
   async function setCashout(playerId: string, value: number) {
-    await supabase.from('game_players').update({ cashout: value }).eq('id', playerId)
+    await runWrite(
+      () => supabase.from('game_players').update({ cashout: value }).eq('id', playerId),
+      'Cash-out'
+    )
   }
 
   async function setRake(value: number) {
     if (!gameId) return
-    await supabase.from('games').update({ rake: value }).eq('id', gameId)
+    await runWrite(() => supabase.from('games').update({ rake: value }).eq('id', gameId), 'Rake')
   }
 
   async function setTableSize(value: number) {
     if (!gameId) return
-    await supabase.from('games').update({ table_size: value }).eq('id', gameId)
+    await runWrite(
+      () => supabase.from('games').update({ table_size: value }).eq('id', gameId),
+      'Table size'
+    )
   }
 
   async function setTableOverride(value: 'full' | 'open' | null) {
     if (!gameId) return
-    await supabase.from('games').update({ table_status_override: value }).eq('id', gameId)
+    await runWrite(
+      () => supabase.from('games').update({ table_status_override: value }).eq('id', gameId),
+      'Table status'
+    )
   }
 
   async function closeAndSettle() {
@@ -204,9 +235,15 @@ export function LiveGame() {
       return
 
     // Anyone still "in play" gets cashout = 0 — walked away, house absorbs it,
-    // per REQUIREMENTS.md's Game lifecycle.
+    // per REQUIREMENTS.md's Game lifecycle. Fail fast on the first write
+    // that doesn't save (e.g. connection drops mid-close) rather than
+    // computing settlement against a mix of saved and unsaved cash-outs.
     for (const p of unfinished) {
-      await supabase.from('game_players').update({ cashout: 0 }).eq('id', p.id)
+      const ok = await runWrite(
+        () => supabase.from('game_players').update({ cashout: 0 }).eq('id', p.id),
+        `Closing out ${p.full_name}`
+      )
+      if (!ok) return
     }
 
     const settlementInput: PlayerForSettlement[] = players.map((p) => ({
@@ -217,28 +254,30 @@ export function LiveGame() {
     const transfers = computeInitialSettlement(settlementInput)
 
     if (transfers.length > 0) {
-      const { error: transferError } = await supabase.from('settlement_transfers').insert(
-        transfers.map((t) => ({
-          game_id: gameId,
-          from_player_id: t.fromPlayerId,
-          to_player_id: t.toPlayerId,
-          amount: t.amountBanks,
-        }))
+      const ok = await runWrite(
+        () =>
+          supabase.from('settlement_transfers').insert(
+            transfers.map((t) => ({
+              game_id: gameId,
+              from_player_id: t.fromPlayerId,
+              to_player_id: t.toPlayerId,
+              amount: t.amountBanks,
+            }))
+          ),
+        'Settlement'
       )
-      if (transferError) {
-        alert(transferError.message)
-        return
-      }
+      if (!ok) return
     }
 
-    const { error: closeError } = await supabase
-      .from('games')
-      .update({ status: 'closed', closed_at: new Date().toISOString() })
-      .eq('id', gameId)
-    if (closeError) {
-      alert(closeError.message)
-      return
-    }
+    const ok = await runWrite(
+      () =>
+        supabase
+          .from('games')
+          .update({ status: 'closed', closed_at: new Date().toISOString() })
+          .eq('id', gameId),
+      'Closing the game'
+    )
+    if (!ok) return
 
     navigate(`/games/${gameId}/settlement`)
   }

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { applyToHost, useAuth } from '../hooks/useAuth'
+import { withTimeout } from '../lib/errors'
 import { Button } from '../components/ui/Button'
 
 // See PAGE_PROMPTS.md "Apply to Host". Reached from Home. The explicit
@@ -20,10 +21,16 @@ export function ApplyToHost() {
     setSubmitting(true)
     setError(null)
     try {
-      await applyToHost()
+      await withTimeout(applyToHost())
       navigate('/pending-approval')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong')
+      setError(
+        !navigator.onLine
+          ? "You're offline — reconnect and try again."
+          : e instanceof Error
+            ? e.message
+            : 'Something went wrong'
+      )
     } finally {
       setSubmitting(false)
     }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { runWrite } from '../lib/errors'
 import { Button } from '../components/ui/Button'
 
 type ProfileRow = {
@@ -38,8 +39,11 @@ export function Admin() {
   if (profile?.role !== 'admin') return <Navigate to="/home" replace />
 
   async function setApproval(id: string, approved: boolean) {
-    await supabase.from('profiles').update({ approved }).eq('id', id)
-    load()
+    const ok = await runWrite(
+      () => supabase.from('profiles').update({ approved }).eq('id', id),
+      approved ? 'Approving host' : 'Revoking host'
+    )
+    if (ok) load()
   }
 
   return (

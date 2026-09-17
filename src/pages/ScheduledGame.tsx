@@ -39,7 +39,7 @@ export function ScheduledGame() {
     const { error } = await supabase.from('games').update({ status: 'live' }).eq('id', gameId)
     setStarting(false)
     if (error) {
-      alert(error.message)
+      alert(navigator.onLine ? error.message : "Couldn't start — you're offline. Reconnect and try again.")
       return
     }
     navigate(`/t/${gameId}`)

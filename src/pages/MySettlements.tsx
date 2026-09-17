@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
+import { runWrite } from '../lib/errors'
 import { Button } from '../components/ui/Button'
 
 type Row = {
@@ -83,10 +84,15 @@ export function MySettlements() {
   if (!session) return <Navigate to="/continue" replace />
 
   async function setStatus(id: string, status: 'confirmed' | 'disputed', note?: string) {
-    await supabase
-      .from('settlement_transfers')
-      .update({ status, ...(note ? { request_note: note } : {}) })
-      .eq('id', id)
+    const ok = await runWrite(
+      () =>
+        supabase
+          .from('settlement_transfers')
+          .update({ status, ...(note ? { request_note: note } : {}) })
+          .eq('id', id),
+      status === 'confirmed' ? 'Confirming' : 'Sending request'
+    )
+    if (!ok) return
     setNoteOpenId(null)
     setNoteText('')
     load()

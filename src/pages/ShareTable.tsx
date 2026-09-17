@@ -13,6 +13,7 @@ type GameSummary = {
   stake: number
   table_size: number
   table_status_override: 'full' | 'open' | null
+  host_id: string
 }
 type RosterRow = { profile_id: string; full_name: string; buyin_count: number }
 type MyTransfer = {
@@ -311,6 +312,19 @@ export function ShareTable() {
           </p>
           <p className="mt-1 text-xs text-muted">This page updates on its own once confirmed.</p>
         </div>
+      )}
+
+      {!displayMode && myStatus === 'confirmed' && (
+        <button
+          onClick={() =>
+            navigate(
+              myProfileId === game.host_id ? `/games/${gameId}/live` : `/games/${gameId}/my-game`
+            )
+          }
+          className="mt-4 h-12 w-full rounded-sm bg-primary text-[16px] font-medium text-on-primary hover:bg-primary-active"
+        >
+          {myProfileId === game.host_id ? 'Go to Live Game' : 'Go to my game'}
+        </button>
       )}
 
       {myStatus === 'confirmed' && roster.length > 0 && (

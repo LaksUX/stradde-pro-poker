@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { toChips, type ChipRatio } from '../lib/chips'
+import { runWrite } from '../lib/errors'
 import { Button } from '../components/ui/Button'
 
 type Game = { id: string; name: string; chip_ratio: ChipRatio; settlement_published_at: string | null }
@@ -56,15 +57,38 @@ export function Settlement() {
   const ratio = game.chip_ratio
 
   async function editTransfer(id: string, patch: Partial<Transfer>) {
+    // Optimistic update, but rolled back on failure — this money is real
+    // enough that "the screen said it saved" has to actually mean it did,
+    // not just that the local click handler ran. See PAGE_PROMPTS.md's
+    // Global offline edge case.
+    const previous = transfers.find((t) => t.id === id)
     setTransfers((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
     setDirty(true)
-    await supabase.from('settlement_transfers').update(patch).eq('id', id)
+    const ok = await runWrite(
+      () => supabase.from('settlement_transfers').update(patch).eq('id', id),
+      'Settlement change'
+    )
+    if (!ok && previous) {
+      setTransfers((prev) => prev.map((t) => (t.id === id ? previous : t)))
+    }
   }
 
   async function removeTransfer(id: string) {
+    const previous = transfers.find((t) => t.id === id)
+    const previousIndex = transfers.findIndex((t) => t.id === id)
     setTransfers((prev) => prev.filter((t) => t.id !== id))
     setDirty(true)
-    await supabase.from('settlement_transfers').delete().eq('id', id)
+    const ok = await runWrite(
+      () => supabase.from('settlement_transfers').delete().eq('id', id),
+      'Removing transfer'
+    )
+    if (!ok && previous) {
+      setTransfers((prev) => {
+        const next = [...prev]
+        next.splice(previousIndex, 0, previous)
+        return next
+      })
+    }
   }
 
   async function addCustomTransfer() {
@@ -81,7 +105,7 @@ export function Settlement() {
       .select('id, from_player_id, to_player_id, amount, status, request_note')
       .single()
     if (error) {
-      alert(error.message)
+      alert(navigator.onLine ? error.message : "Couldn't add — you're offline. Reconnect and try again.")
       return
     }
     setTransfers((prev) => [...prev, data as Transfer])
@@ -90,7 +114,15 @@ export function Settlement() {
 
   async function publish() {
     if (!gameId) return
-    await supabase.from('games').update({ settlement_published_at: new Date().toISOString() }).eq('id', gameId)
+    const ok = await runWrite(
+      () =>
+        supabase
+          .from('games')
+          .update({ settlement_published_at: new Date().toISOString() })
+          .eq('id', gameId),
+      'Publishing'
+    )
+    if (!ok) return
     setDirty(false)
     await loadAll()
   }

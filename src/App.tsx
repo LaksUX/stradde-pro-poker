@@ -13,7 +13,9 @@ import { LiveGame } from './pages/LiveGame'
 import { Settlement } from './pages/Settlement'
 import { GameDetail } from './pages/GameDetail'
 import { MySettlements } from './pages/MySettlements'
-import { StubScreen } from './pages/StubScreen'
+import { MyGame } from './pages/MyGame'
+import { VenueDetail } from './pages/VenueDetail'
+import { OfflineBanner } from './components/ui/OfflineBanner'
 
 function RootRedirect() {
   const { session, profile, loading } = useAuth()
@@ -24,12 +26,12 @@ function RootRedirect() {
   return <Navigate to="/home" replace />
 }
 
-// Route map mirrors PAGE_PROMPTS.md's screen list. Eleven are real (wired
-// to Supabase); My Game and Venue Detail are still stubs — see
-// pages/StubScreen.tsx and the project README for how to continue them.
+// Route map mirrors PAGE_PROMPTS.md's screen list — every screen is now
+// wired to Supabase.
 export default function App() {
   return (
     <BrowserRouter>
+      <OfflineBanner />
       <Routes>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/continue" element={<Continue />} />
@@ -45,10 +47,8 @@ export default function App() {
         <Route path="/games/:gameId/settlement" element={<Settlement />} />
         <Route path="/my-settlements" element={<MySettlements />} />
         <Route path="/games/:gameId" element={<GameDetail />} />
-
-        {/* Stubs — real screens to build next, each spec'd in PAGE_PROMPTS.md */}
-        <Route path="/games/:gameId/my-game" element={<StubScreen name="My Game" />} />
-        <Route path="/venues/:venueId" element={<StubScreen name="Venue Detail" />} />
+        <Route path="/games/:gameId/my-game" element={<MyGame />} />
+        <Route path="/venues/:venueId" element={<VenueDetail />} />
       </Routes>
     </BrowserRouter>
   )
