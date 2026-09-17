@@ -155,10 +155,18 @@ export async function continueWithPhone(name: string, phoneE164: string): Promis
         if (reloadError) throw reloadError
         return reloaded as Profile
       } catch (edgeFnError) {
+        // A raw "Failed to fetch" here almost always means the
+        // join-as-player Edge Function (supabase/functions/join-as-player/)
+        // hasn't been deployed to this project yet — `supabase functions
+        // deploy join-as-player` needs a Supabase access token, which isn't
+        // something the running app can do for itself. Surface that plainly
+        // instead of leaking the fetch error, so it reads as a known,
+        // fixable gap rather than a mystery failure.
+        console.error('join-as-player Edge Function call failed:', edgeFnError)
         throw new Error(
-          "This phone is already linked to a different device or browser session, and the " +
-            'automatic reconnect failed: ' +
-            (edgeFnError instanceof Error ? edgeFnError.message : String(edgeFnError))
+          "This phone is already signed in on another device or browser. Cross-device " +
+            "sign-in isn't set up on this deployment yet — sign in from the original " +
+            'device, or ask whoever manages this app to deploy the join-as-player function.'
         )
       }
     }

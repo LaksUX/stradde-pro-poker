@@ -45,6 +45,13 @@ export function ShareTable() {
   )
   const [myPendingCount, setMyPendingCount] = useState<number | null>(null)
   const [myProfileId, setMyProfileId] = useState<string | null>(null)
+  // public_game_summary deliberately doesn't expose chip_ratio pre-join
+  // (see 0002_rls_policies.sql's view comment) — but a closed-game viewer
+  // is always a confirmed game_players row by this point, so RLS already
+  // lets them read the real games row directly. Using that instead of
+  // hardcoding 1:1 here matters for correctness: a 1:2 game's settlement
+  // was rendering at half its real chip value.
+  const [closedGameRatio, setClosedGameRatio] = useState<ChipRatio>('1:1')
 
   useEffect(() => {
     if (!gameId) return
@@ -155,6 +162,12 @@ export function ShareTable() {
         if (!cancelled) setMyTransfer('none')
         return
       }
+      const { data: g } = await supabase
+        .from('games')
+        .select('chip_ratio')
+        .eq('id', gameId)
+        .maybeSingle()
+      if (g && !cancelled) setClosedGameRatio(g.chip_ratio as ChipRatio)
       const { data: t } = await supabase
         .from('settlement_transfers')
         .select('id, from_player_id, to_player_id, amount, status')
@@ -221,11 +234,12 @@ export function ShareTable() {
         {myTransfer && myTransfer !== 'none' && myTransfer !== 'unresolved' && (
           <div className="mt-4 rounded-md border border-hairline p-4">
             <p className="text-ink">
-              <span className="capitalize">{myTransfer.from_name}</span> owes{' '}
+              <span className="capitalize">{myTransfer.from_name}</span>{' '}
+              {myTransfer.from_name === 'you' ? 'owe' : 'owes'}{' '}
               <span className="capitalize">{myTransfer.to_name}</span>
             </p>
             <p className="mt-1 text-2xl font-bold text-primary">
-              {toChips(myTransfer.amount, '1:1')} chips
+              {toChips(myTransfer.amount, closedGameRatio)} chips
               <span className="ml-2 text-sm font-normal text-muted">({myTransfer.amount} banks)</span>
             </p>
             <span
