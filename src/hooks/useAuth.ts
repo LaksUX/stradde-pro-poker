@@ -118,52 +118,60 @@ export async function continueWithPhone(name: string, phoneE164: string): Promis
       // current session. Try the Edge Function's session-minting path —
       // see supabase/functions/join-as-player/index.ts. If this also
       // fails, fall through to a clear error rather than a silent one.
-      try {
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/join-as-player`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            },
-            body: JSON.stringify({ phone: phoneE164 }),
+      //
+      // [decision] Retries once after a short delay before giving up.
+      // Verified live: this call failed once with a 500 from Supabase's
+      // own admin.auth.admin.updateUserById ("Error updating user") and
+      // then succeeded on the very next attempt seconds later with no
+      // code change — a transient blip on Supabase's side, not a
+      // deterministic bug. A real user shouldn't eat a hard failure for
+      // that; one retry costs at most ~1s and should absorb it.
+      let lastError: unknown
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (attempt > 0) await new Promise((r) => setTimeout(r, 800))
+        try {
+          const res = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/join-as-player`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              },
+              body: JSON.stringify({ phone: phoneE164 }),
+            }
+          )
+          const json = await res.json()
+          if (!res.ok || json.error) {
+            throw new Error(json.error || `join-as-player returned ${res.status}`)
           }
-        )
-        const json = await res.json()
-        if (!res.ok || json.error) {
-          throw new Error(json.error || `join-as-player returned ${res.status}`)
-        }
-        if (!json.exists || !json.hashed_token) {
-          throw new Error('join-as-player did not return a usable session token')
-        }
-        const { error: verifyError } = await supabase.auth.verifyOtp({
-          token_hash: json.hashed_token,
-          type: 'magiclink',
-        })
-        if (verifyError) throw verifyError
+          if (!json.exists || !json.hashed_token) {
+            throw new Error('join-as-player did not return a usable session token')
+          }
+          const { error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: json.hashed_token,
+            type: 'magiclink',
+          })
+          if (verifyError) throw verifyError
 
-        const { data: reloaded, error: reloadError } = await supabase
-          .from('profiles')
-          .select('id, full_name, phone, role, approved')
-          .eq('phone', phoneE164)
-          .single()
-        if (reloadError) throw reloadError
-        return reloaded as Profile
-      } catch (edgeFnError) {
-        // A raw "Failed to fetch" here almost always means the
-        // join-as-player Edge Function (supabase/functions/join-as-player/)
-        // hasn't been deployed to this project, is missing CORS headers (a
-        // real bug this hit once — see the function's own corsHeaders
-        // comment), or some other server-side failure. Surface something
-        // useful without guessing at a specific cause the UI can't verify —
-        // check the browser console for the logged detail if this recurs.
-        console.error('join-as-player Edge Function call failed:', edgeFnError)
-        throw new Error(
-          'This phone is already signed in on another device or browser, and reconnecting ' +
-            'to it failed. Try again, or sign in from the original device instead.'
-        )
+          const { data: reloaded, error: reloadError } = await supabase
+            .from('profiles')
+            .select('id, full_name, phone, role, approved')
+            .eq('phone', phoneE164)
+            .single()
+          if (reloadError) throw reloadError
+          return reloaded as Profile
+        } catch (edgeFnError) {
+          lastError = edgeFnError
+          console.error(`join-as-player Edge Function call failed (attempt ${attempt + 1}):`, edgeFnError)
+        }
       }
+      throw new Error(
+        'This phone is already signed in on another device or browser, and reconnecting ' +
+          'to it failed twice in a row. Try again in a moment, or sign in from the ' +
+          'original device instead.' +
+          (lastError instanceof Error ? ` (${lastError.message})` : '')
+      )
     }
     throw new Error(upsertError.message || 'Could not sign in — please try again.')
   }
