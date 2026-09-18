@@ -106,14 +106,29 @@ Deno.serve(async (req: Request) => {
 
   const email = syntheticEmail(phone)
 
-  // Make sure this user's synthetic email is actually set — a profile
-  // created before this function existed won't have one yet.
-  const { error: updateError } = await admin.auth.admin.updateUserById(profile.id, {
-    email,
-    email_confirm: true,
-  })
-  if (updateError) {
-    return json({ error: updateError.message }, 500)
+  // Only write the synthetic email if it isn't already set — a profile
+  // created before this function existed won't have one yet, but every
+  // subsequent call for the same phone was unconditionally re-writing the
+  // same value. Verified live: this caused real, repeatable "Error
+  // updating user" 500s from admin.auth.admin.updateUserById, most likely
+  // concurrent writes to the same auth.users row racing each other (this
+  // function gets called on every sign-in attempt for an already-linked
+  // phone, including retries) — skipping the redundant write removes that
+  // contention entirely rather than papering over it with more retries.
+  const { data: existingUser, error: getUserError } = await admin.auth.admin.getUserById(
+    profile.id
+  )
+  if (getUserError) {
+    return json({ error: getUserError.message }, 500)
+  }
+  if (existingUser.user.email !== email) {
+    const { error: updateError } = await admin.auth.admin.updateUserById(profile.id, {
+      email,
+      email_confirm: true,
+    })
+    if (updateError) {
+      return json({ error: updateError.message }, 500)
+    }
   }
 
   const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
