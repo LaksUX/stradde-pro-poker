@@ -16,6 +16,7 @@ import { MySettlements } from './pages/MySettlements'
 import { MyGame } from './pages/MyGame'
 import { VenueDetail } from './pages/VenueDetail'
 import { OfflineBanner } from './components/ui/OfflineBanner'
+import { AppShell } from './components/layout/AppShell'
 
 function RootRedirect() {
   const { session, profile, loading } = useAuth()
@@ -35,20 +36,28 @@ export default function App() {
       <Routes>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/continue" element={<Continue />} />
-        <Route path="/apply-to-host" element={<ApplyToHost />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/pending-approval" element={<PendingApproval />} />
-        <Route path="/admin" element={<Admin />} />
         <Route path="/join/:gameId" element={<Join />} />
-        <Route path="/games/new" element={<CreateGame />} />
         <Route path="/games/:gameId/scheduled" element={<ScheduledGame />} />
         <Route path="/t/:gameId" element={<ShareTable />} />
-        <Route path="/games/:gameId/live" element={<LiveGame />} />
-        <Route path="/games/:gameId/settlement" element={<Settlement />} />
-        <Route path="/my-settlements" element={<MySettlements />} />
-        <Route path="/games/:gameId" element={<GameDetail />} />
-        <Route path="/games/:gameId/my-game" element={<MyGame />} />
-        <Route path="/venues/:venueId" element={<VenueDetail />} />
+
+        {/* Everything below is "inside the app" — signed-in screens that
+            share the persistent back button + Home/Live bottom nav. The
+            routes above stay bare: a stranger opening a shared game link
+            or joining shouldn't see navigation for an app they haven't
+            signed into. */}
+        <Route element={<AppShell />}>
+          <Route path="/apply-to-host" element={<ApplyToHost />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/pending-approval" element={<PendingApproval />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/games/new" element={<CreateGame />} />
+          <Route path="/games/:gameId/live" element={<LiveGame />} />
+          <Route path="/games/:gameId/settlement" element={<Settlement />} />
+          <Route path="/my-settlements" element={<MySettlements />} />
+          <Route path="/games/:gameId" element={<GameDetail />} />
+          <Route path="/games/:gameId/my-game" element={<MyGame />} />
+          <Route path="/venues/:venueId" element={<VenueDetail />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   )

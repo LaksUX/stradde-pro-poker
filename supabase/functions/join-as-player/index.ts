@@ -1,7 +1,10 @@
-// UNTESTED — I have no network access to supabase.co from where I built
-// this, so I cannot deploy or invoke it to verify it actually works. Test
-// this yourself (or with Claude Code, which has real network access)
-// before trusting it. See the bottom of this file for exact test steps.
+// Deployed and tested live against the real project. The phone-lookup +
+// magic-link-token generation below is confirmed working via curl; the
+// CORS bug that blocked it from an actual browser (no
+// Access-Control-Allow-Origin, so the preflight OPTIONS request failed
+// before this code ever ran) is fixed below. The client's
+// supabase.auth.verifyOtp step in useAuth.ts is the remaining piece to
+// confirm end-to-end after this redeploy.
 //
 // Problem this solves: Supabase Anonymous Sign-in mints a new auth.uid()
 // per browser/session. When someone "continues" with a phone number that
@@ -38,6 +41,26 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
+// Every browser call to a Supabase Edge Function is cross-origin (the app
+// runs on vercel.app, the function on supabase.co), so the browser sends a
+// CORS preflight OPTIONS request before the real POST — and without an
+// Access-Control-Allow-Origin header on both the preflight response and the
+// real one, the browser blocks the whole call before it ever reaches this
+// code. Verified live: this function worked fine over curl (no preflight)
+// but failed with a CORS error from an actual browser until this was added.
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
 function syntheticEmail(phoneE164: string): string {
   // Internal-only, never sent anywhere, never shown to a user. Just needs
   // to be a stable, valid-looking email unique per phone.
@@ -46,8 +69,11 @@ function syntheticEmail(phoneE164: string): string {
 }
 
 Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'POST only' }), { status: 405 })
+    return json({ error: 'POST only' }, 405)
   }
 
   let phone: string
@@ -56,7 +82,7 @@ Deno.serve(async (req: Request) => {
     phone = body.phone
     if (!phone || typeof phone !== 'string') throw new Error('bad phone')
   } catch {
-    return new Response(JSON.stringify({ error: 'Expected { phone: string }' }), { status: 400 })
+    return json({ error: 'Expected { phone: string }' }, 400)
   }
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
@@ -70,14 +96,12 @@ Deno.serve(async (req: Request) => {
     .maybeSingle()
 
   if (profileError) {
-    return new Response(JSON.stringify({ error: profileError.message }), { status: 500 })
+    return json({ error: profileError.message }, 500)
   }
   if (!profile) {
     // No existing profile for this phone — the caller should fall back to
     // the normal client-side signInAnonymously + upsert path instead.
-    return new Response(JSON.stringify({ exists: false }), {
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return json({ exists: false })
   }
 
   const email = syntheticEmail(phone)
@@ -89,7 +113,7 @@ Deno.serve(async (req: Request) => {
     email_confirm: true,
   })
   if (updateError) {
-    return new Response(JSON.stringify({ error: updateError.message }), { status: 500 })
+    return json({ error: updateError.message }, 500)
   }
 
   const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
@@ -97,16 +121,10 @@ Deno.serve(async (req: Request) => {
     email,
   })
   if (linkError || !linkData?.properties?.hashed_token) {
-    return new Response(
-      JSON.stringify({ error: linkError?.message ?? 'Could not generate a session token' }),
-      { status: 500 }
-    )
+    return json({ error: linkError?.message ?? 'Could not generate a session token' }, 500)
   }
 
-  return new Response(
-    JSON.stringify({ exists: true, hashed_token: linkData.properties.hashed_token }),
-    { headers: { 'Content-Type': 'application/json' } }
-  )
+  return json({ exists: true, hashed_token: linkData.properties.hashed_token })
 })
 
 // --- How to deploy and test this yourself ---

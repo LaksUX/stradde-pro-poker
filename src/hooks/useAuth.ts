@@ -77,12 +77,10 @@ export function useAuth() {
  * auth identity than the current session, this now calls the
  * join-as-player Edge Function (supabase/functions/join-as-player/) to mint
  * a real session for the EXISTING profile via a synthetic-email magic-link
- * token — see that file for the full explanation. UNTESTED end to end: I
- * have no network access to supabase.co from where this was built, so I
- * could type-check and build the client side but never actually invoke the
- * function against a live project. Deploy it and test the exact scenario
- * (sign in with a phone that already has a profile, from a fresh
- * session/incognito window) before trusting this works.
+ * token — see that file for the full explanation. Deployed and tested live
+ * — including a real CORS bug (missing Access-Control-Allow-Origin) that
+ * blocked it from an actual browser despite working over curl, now fixed
+ * in the function itself.
  *
  * New profiles default to `role: 'player'` — hosting is never inferred here,
  * only granted via applyToHost, below.
@@ -118,10 +116,8 @@ export async function continueWithPhone(name: string, phoneE164: string): Promis
     if (upsertError.code === '23505') {
       // This phone already belongs to a different auth identity than the
       // current session. Try the Edge Function's session-minting path —
-      // see supabase/functions/join-as-player/index.ts. UNTESTED end to
-      // end (no network access to supabase.co from where this was built —
-      // see that file's header for exact test steps). If this also fails,
-      // fall through to a clear error rather than a silent/generic one.
+      // see supabase/functions/join-as-player/index.ts. If this also
+      // fails, fall through to a clear error rather than a silent one.
       try {
         const res = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/join-as-player`,
@@ -157,16 +153,15 @@ export async function continueWithPhone(name: string, phoneE164: string): Promis
       } catch (edgeFnError) {
         // A raw "Failed to fetch" here almost always means the
         // join-as-player Edge Function (supabase/functions/join-as-player/)
-        // hasn't been deployed to this project yet — `supabase functions
-        // deploy join-as-player` needs a Supabase access token, which isn't
-        // something the running app can do for itself. Surface that plainly
-        // instead of leaking the fetch error, so it reads as a known,
-        // fixable gap rather than a mystery failure.
+        // hasn't been deployed to this project, is missing CORS headers (a
+        // real bug this hit once — see the function's own corsHeaders
+        // comment), or some other server-side failure. Surface something
+        // useful without guessing at a specific cause the UI can't verify —
+        // check the browser console for the logged detail if this recurs.
         console.error('join-as-player Edge Function call failed:', edgeFnError)
         throw new Error(
-          "This phone is already signed in on another device or browser. Cross-device " +
-            "sign-in isn't set up on this deployment yet — sign in from the original " +
-            'device, or ask whoever manages this app to deploy the join-as-player function.'
+          'This phone is already signed in on another device or browser, and reconnecting ' +
+            'to it failed. Try again, or sign in from the original device instead.'
         )
       }
     }
