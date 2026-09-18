@@ -118,8 +118,22 @@ Deno.serve(async (req: Request) => {
   const { data: existingUser, error: getUserError } = await admin.auth.admin.getUserById(
     profile.id
   )
+  // Temporary, verbose diagnostics — the generic "Error updating user"
+  // message this was throwing gave no way to tell "user doesn't exist
+  // anymore" from "email taken by someone else" from an actual outage.
+  // Trim this back down to plain messages once the real cause is
+  // confirmed from a live failure.
   if (getUserError) {
-    return json({ error: getUserError.message }, 500)
+    return json(
+      { error: `getUserById failed: ${getUserError.message}`, step: 'getUserById', detail: getUserError },
+      500
+    )
+  }
+  if (!existingUser?.user) {
+    return json(
+      { error: `No auth user exists for profile ${profile.id} (phone ${phone})`, step: 'getUserById-empty' },
+      500
+    )
   }
   if (existingUser.user.email !== email) {
     const { error: updateError } = await admin.auth.admin.updateUserById(profile.id, {
@@ -127,7 +141,16 @@ Deno.serve(async (req: Request) => {
       email_confirm: true,
     })
     if (updateError) {
-      return json({ error: updateError.message }, 500)
+      return json(
+        {
+          error: `updateUserById failed: ${updateError.message}`,
+          step: 'updateUserById',
+          detail: updateError,
+          currentEmail: existingUser.user.email,
+          targetEmail: email,
+        },
+        500
+      )
     }
   }
 
@@ -136,7 +159,14 @@ Deno.serve(async (req: Request) => {
     email,
   })
   if (linkError || !linkData?.properties?.hashed_token) {
-    return json({ error: linkError?.message ?? 'Could not generate a session token' }, 500)
+    return json(
+      {
+        error: `generateLink failed: ${linkError?.message ?? 'no hashed_token in response'}`,
+        step: 'generateLink',
+        detail: linkError,
+      },
+      500
+    )
   }
 
   return json({ exists: true, hashed_token: linkData.properties.hashed_token })
