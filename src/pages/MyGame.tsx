@@ -23,7 +23,7 @@ type MyPlayer = {
 }
 type Request = {
   id: string
-  request_type: 'join' | 'more_buyins'
+  request_type: 'join' | 'more_buyins' | 'host_added'
   count: number
   status: 'pending' | 'confirmed' | 'declined'
   player_confirm_status: 'confirmed' | 'disputed' | null
@@ -149,6 +149,24 @@ export function MyGame() {
     )
   }
 
+  // The reverse of requestMore/confirmedBy-host: the HOST started this one
+  // (for you), and it stays financially invisible until you act on it — see
+  // REQUIREMENTS.md's thirteenth revision note.
+  async function respondToHostAdded(reqId: string, decision: 'confirmed' | 'declined') {
+    await runWrite(
+      () =>
+        supabase
+          .from('buyin_requests')
+          .update(
+            decision === 'confirmed'
+              ? { status: 'confirmed', confirmed_at: new Date().toISOString() }
+              : { status: 'declined' }
+          )
+          .eq('id', reqId),
+      decision === 'confirmed' ? 'Confirming' : 'Declining'
+    )
+  }
+
   async function setCashoutConfirm(status: 'confirmed' | 'disputed') {
     if (!myPlayer) return
     await runWrite(
@@ -197,6 +215,28 @@ export function MyGame() {
         )}
       </StatCard>
 
+      {requests
+        .filter((r) => r.request_type === 'host_added' && r.status === 'pending')
+        .map((r) => (
+          <div key={r.id} className="mt-3 rounded-lg border border-primary/40 bg-canvas p-3">
+            <p className="text-sm text-ink">
+              Host added {r.count} buy-in{r.count > 1 ? 's' : ''} for you — does that look right?
+            </p>
+            <div className="mt-2 flex gap-2">
+              <Button className="h-9 flex-1 text-sm" onClick={() => respondToHostAdded(r.id, 'confirmed')}>
+                Confirm
+              </Button>
+              <Button
+                variant="danger"
+                className="h-9 flex-1 text-sm"
+                onClick={() => respondToHostAdded(r.id, 'declined')}
+              >
+                Decline
+              </Button>
+            </div>
+          </div>
+        ))}
+
       {myPlayer.cashout == null && (
         <div className="mt-3">
           {!pickerOpen ? (
@@ -237,7 +277,11 @@ export function MyGame() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-ink">
                     {r.count} buy-in{r.count > 1 ? 's' : ''}
-                    {r.request_type === 'more_buyins' ? ' requested' : ' — join request'}
+                    {r.request_type === 'more_buyins'
+                      ? ' requested'
+                      : r.request_type === 'host_added'
+                        ? ' added by host'
+                        : ' — join request'}
                   </span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
