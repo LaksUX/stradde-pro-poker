@@ -1,45 +1,49 @@
 @import "tailwindcss";
 
 /*
-  Design tokens sourced from DESIGN-mercury.md — see REQUIREMENTS.md "Theme".
-  Update DESIGN-mercury.md first if the visual language changes, then sync here.
-  No dark mode: this app has a single, permanently light canvas.
+  Design tokens sourced from DESIGN-dashboard.md — see REQUIREMENTS.md "Theme".
+  Update DESIGN-dashboard.md first if the visual language changes, then sync
+  here. Still no dark-mode toggle: this app has one permanent canvas — it's
+  just a dark one now instead of a light one.
 */
 @theme {
-  --color-canvas: #ffffff;
-  --color-ink: #0f1729;
-  --color-body: #3d4451;
-  --color-muted: #667085;
-  --color-muted-soft: #98a2b3;
-  --color-hairline: #e4e7ec;
-  --color-hairline-soft: #eef0f3;
-  --color-border-strong: #b8bfc9;
-  --color-surface-soft: #f6f7f9;
-  --color-surface-strong: #eef0f3;
+  /* canvas is the ELEVATED surface (cards, header/nav chrome, buttons,
+     dropdowns, toast, dialogs) — surface-soft is the page floor beneath it,
+     surface-strong is the brightest step, for nested pill/badge/track fills
+     that need to read as clearly interactive against a card. */
+  --color-canvas: #141a26;
+  --color-surface-soft: #0a0e17;
+  --color-surface-strong: #1b2233;
+  --color-ink: #f5f6f8;
+  --color-body: #c7ccd6;
+  --color-muted: #8a92a3;
+  --color-muted-soft: #5c6478;
+  --color-hairline: #232b3d;
+  --color-hairline-soft: #1c2230;
+  --color-border-strong: #384157;
 
-  --color-primary: #4f46e5; /* Indigo */
-  --color-primary-active: #4338ca;
-  --color-primary-disabled: #c7d2fe;
-  --color-on-primary: #ffffff;
+  --color-primary: #ff7a29; /* Orange */
+  --color-primary-active: #e8631a;
+  --color-primary-disabled: #7a4a2b;
+  --color-on-primary: #0a0e17;
 
-  --color-error: #dc2626;
-  --color-error-hover: #b91c1c;
+  --color-error: #f75466;
+  --color-error-hover: #e13b4d;
 
-  /* Minimal extensions not in DESIGN-mercury.md's fintech source apps —
-     kept deliberately plain rather than inventing a louder palette. */
-  --color-win: #16a34a;
+  --color-win: #34d399;
   --color-loss: var(--color-error);
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
   --radius-full: 9999px;
 
   --spacing-section: 64px;
 
   --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 html,
@@ -53,6 +57,7 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
   overflow-x: hidden;
+  color-scheme: dark;
   /* Installed as a fullscreen/standalone PWA (index.html's
      apple-mobile-web-app-* tags, viewport-fit=cover, and vite.config.ts's
      manifest display: 'fullscreen'), content draws under the notch/status
@@ -64,14 +69,15 @@ body {
   padding-top: env(safe-area-inset-top);
 }
 
-/* One shadow tier, per DESIGN-mercury.md — reserved for the bottom sheet /
-   modal surface and floating badges. Never used as a general card treatment;
-   everywhere else, the hairline border is the depth cue. */
+/* No shadow tier at all, per DESIGN-dashboard.md — a dark shadow barely
+   shows against a near-black canvas, so depth comes from the
+   canvas/surface-soft/surface-strong scale instead. The one surface that
+   still needs a visible edge beyond that scale (a floating toast, the
+   confirm dialog, a dropdown) gets a hairline ring here instead of a
+   shadow — kept under the old class name so call sites didn't need to
+   change, just what the class means. */
 .shadow-elevated {
-  box-shadow:
-    0 0 0 1px rgba(16, 24, 40, 0.04),
-    0 1px 2px rgba(16, 24, 40, 0.06),
-    0 2px 4px rgba(16, 24, 40, 0.04);
+  box-shadow: 0 0 0 1px var(--color-hairline);
 }
 
 @keyframes toast-in {

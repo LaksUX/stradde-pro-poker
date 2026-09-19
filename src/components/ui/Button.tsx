@@ -4,10 +4,10 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    'bg-primary text-on-primary hover:bg-primary-active disabled:bg-primary-disabled disabled:cursor-not-allowed',
-  secondary: 'bg-canvas text-ink border border-ink hover:bg-surface-soft',
-  ghost: 'bg-canvas text-ink border border-hairline hover:bg-surface-soft',
-  danger: 'bg-canvas text-error border border-error hover:bg-red-50',
+    'bg-primary text-on-primary hover:bg-primary-active disabled:bg-primary-disabled disabled:cursor-not-allowed disabled:text-ink/50',
+  secondary: 'bg-canvas text-ink border border-hairline hover:bg-surface-strong',
+  ghost: 'bg-transparent text-ink border border-hairline hover:bg-canvas',
+  danger: 'bg-canvas text-error border border-error/40 hover:bg-error/10',
 }
 
 export function Button({

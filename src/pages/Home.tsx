@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase'
 import { toChips } from '../lib/chips'
 import { Button } from '../components/ui/Button'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
+import { StatCard } from '../components/ui/StatCard'
+import { SegmentedControl } from '../components/ui/SegmentedControl'
 
 type HostedGame = { id: string; name: string; closed_at: string | null; pot: number; rake: number }
 type PlayedGame = { id: string; name: string; closed_at: string | null; net: number; chip_ratio: '1:1' | '1:2' }
@@ -128,39 +130,35 @@ export function Home() {
         </Button>
       )}
 
-      <div className="mt-5 flex rounded-full border border-hairline p-1">
-        <button
-          onClick={() => setTab('player')}
-          className={`flex-1 rounded-full py-1.5 text-sm ${tab === 'player' ? 'bg-ink text-white' : 'text-muted'}`}
-        >
-          Player
-        </button>
-        <button
-          onClick={() => setTab('host')}
-          className={`flex-1 rounded-full py-1.5 text-sm ${tab === 'host' ? 'bg-ink text-white' : 'text-muted'}`}
-          disabled={!isApprovedHost}
-        >
-          Host
-        </button>
+      <div className="mt-5">
+        <SegmentedControl
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: 'player', label: 'Player' },
+            ...(isApprovedHost ? [{ value: 'host' as const, label: 'Host' }] : []),
+          ]}
+        />
       </div>
 
       {loadingData && <InlineSpinner />}
 
       {!loadingData && tab === 'player' && (
         <div className="mt-4">
-          <div className="rounded-md border border-hairline p-4 text-center">
-            <p className={`text-2xl font-bold tabular-nums ${lifetimeNet >= 0 ? 'text-win' : 'text-error'}`}>
-              {lifetimeNet} chips
+          <StatCard
+            eyebrow="Lifetime net"
+            value={`${lifetimeNet} chips`}
+            valueClassName={lifetimeNet >= 0 ? 'text-win' : 'text-error'}
+          >
+            <p className="mt-3 border-t border-hairline-soft pt-3 text-xs text-muted">
+              {wins} win{wins === 1 ? '' : 's'} · {playedGames.length} game
+              {playedGames.length === 1 ? '' : 's'} played
             </p>
-            <p className="text-xs text-muted">
-              lifetime net · {wins} win{wins === 1 ? '' : 's'} · {playedGames.length} game
-              {playedGames.length === 1 ? '' : 's'}
-            </p>
-          </div>
+          </StatCard>
           <Link to="/my-settlements" className="mt-3 block text-center text-sm text-primary underline">
             My settlements
           </Link>
-          <div className="mt-4 rounded-md border border-hairline">
+          <div className="mt-4 rounded-lg border border-hairline bg-canvas">
             {playedGames.length === 0 && (
               <p className="p-4 text-center text-sm text-muted">No closed games yet.</p>
             )}
@@ -171,7 +169,7 @@ export function Home() {
                 className="flex items-center justify-between border-b border-hairline-soft p-3 text-sm last:border-none"
               >
                 <span className="text-ink">{g.name}</span>
-                <span className={g.net >= 0 ? 'text-win' : 'text-error'}>
+                <span className={`font-mono tabular-nums ${g.net >= 0 ? 'text-win' : 'text-error'}`}>
                   {toChips(g.net, g.chip_ratio)} chips
                 </span>
               </Link>
@@ -183,20 +181,20 @@ export function Home() {
       {!loadingData && tab === 'host' && isApprovedHost && (
         <div className="mt-4">
           <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-md border border-hairline p-3 text-center">
-              <p className="text-lg font-bold tabular-nums text-ink">{hostedGames.length}</p>
-              <p className="text-xs text-muted">games hosted</p>
+            <div className="rounded-lg border border-hairline bg-canvas p-3 text-center">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Games hosted</p>
+              <p className="mt-1 font-mono text-lg font-bold tabular-nums text-ink">{hostedGames.length}</p>
             </div>
-            <div className="rounded-md border border-hairline p-3 text-center">
-              <p className="text-lg font-bold tabular-nums text-ink">{totalRake} banks</p>
-              <p className="text-xs text-muted">rake collected</p>
+            <div className="rounded-lg border border-hairline bg-canvas p-3 text-center">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Rake collected</p>
+              <p className="mt-1 font-mono text-lg font-bold tabular-nums text-ink">{totalRake} banks</p>
             </div>
-            <div className="rounded-md border border-hairline p-3 text-center col-span-2">
-              <p className="text-lg font-bold tabular-nums text-ink">{avgPot} banks</p>
-              <p className="text-xs text-muted">average pot</p>
+            <div className="col-span-2 rounded-lg border border-hairline bg-canvas p-3 text-center">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Average pot</p>
+              <p className="mt-1 font-mono text-lg font-bold tabular-nums text-ink">{avgPot} banks</p>
             </div>
           </div>
-          <div className="mt-4 rounded-md border border-hairline">
+          <div className="mt-4 rounded-lg border border-hairline bg-canvas">
             {hostedGames.length === 0 && (
               <p className="p-4 text-center text-sm text-muted">No closed games yet.</p>
             )}
@@ -207,7 +205,7 @@ export function Home() {
                 className="flex items-center justify-between border-b border-hairline-soft p-3 text-sm last:border-none"
               >
                 <span className="text-ink">{g.name}</span>
-                <span className="text-muted">{g.pot} banks pot</span>
+                <span className="font-mono tabular-nums text-muted">{g.pot} banks pot</span>
               </Link>
             ))}
           </div>

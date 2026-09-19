@@ -14,7 +14,7 @@ export function ConfirmDialogHost() {
   if (!request) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center">
       <div
         role="alertdialog"
         aria-modal="true"

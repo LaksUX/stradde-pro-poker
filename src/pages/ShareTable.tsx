@@ -220,7 +220,7 @@ export function ShareTable() {
   if (game.status === 'closed') {
     return (
       <div className="mx-auto max-w-sm p-6">
-        <div className="rounded-md border border-hairline p-4">
+        <div className="rounded-lg border border-hairline bg-canvas p-4">
           <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
           <p className="text-sm text-muted">{game.venue_freetext}</p>
         </div>
@@ -232,22 +232,22 @@ export function ShareTable() {
           </p>
         )}
         {myTransfer && myTransfer !== 'none' && myTransfer !== 'unresolved' && (
-          <div className="mt-4 rounded-md border border-hairline p-4">
+          <div className="mt-4 rounded-lg border border-hairline bg-canvas p-4">
             <p className="text-ink">
               <span className="capitalize">{myTransfer.from_name}</span>{' '}
               {myTransfer.from_name === 'you' ? 'owe' : 'owes'}{' '}
               <span className="capitalize">{myTransfer.to_name}</span>
             </p>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
+            <p className="mt-1 text-2xl font-mono font-bold tabular-nums text-primary">
               {toChips(myTransfer.amount, closedGameRatio)} chips
               <span className="ml-2 text-sm font-normal text-muted">({myTransfer.amount} banks)</span>
             </p>
             <span
               className={`mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                 myTransfer.status === 'confirmed'
-                  ? 'bg-green-50 text-win'
+                  ? 'bg-win/10 text-win'
                   : myTransfer.status === 'disputed'
-                    ? 'bg-red-50 text-error'
+                    ? 'bg-error/10 text-error'
                     : 'bg-surface-strong text-muted'
               }`}
             >
@@ -272,7 +272,7 @@ export function ShareTable() {
           Table display
         </p>
       )}
-      <div className="mx-auto mb-4 w-fit rounded-sm border-4 border-canvas p-1 shadow-elevated">
+      <div className="mx-auto mb-4 w-fit rounded-sm border-4 border-white bg-white p-1 shadow-elevated">
         <QRCodeSVG value={`${window.location.origin}/t/${gameId}`} size={120} />
       </div>
       {!displayMode && (
@@ -286,7 +286,7 @@ export function ShareTable() {
           Copy link
         </button>
       )}
-      <div className="rounded-md border border-hairline p-4">
+      <div className="rounded-lg border border-hairline bg-canvas p-4">
         <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
         <p className="text-sm text-muted">{game.venue_freetext}</p>
         <p className="text-sm text-muted">
@@ -294,7 +294,7 @@ export function ShareTable() {
         </p>
         <span
           className={`mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-            full ? 'bg-red-50 text-error' : 'bg-green-50 text-win'
+            full ? 'bg-error/10 text-error' : 'bg-win/10 text-win'
           }`}
         >
           {full ? 'Table full' : 'Seats open'} · {seated}/{game.table_size}
@@ -319,7 +319,7 @@ export function ShareTable() {
       )}
 
       {!displayMode && myStatus === 'pending' && (
-        <div className="mt-4 rounded-md border border-hairline p-4 text-center">
+        <div className="mt-4 rounded-lg border border-hairline bg-canvas p-4 text-center">
           <p className="text-sm text-ink">
             Your request for {myPendingCount} buy-in{myPendingCount === 1 ? '' : 's'} is waiting
             on the host.
@@ -342,7 +342,7 @@ export function ShareTable() {
       )}
 
       {myStatus === 'confirmed' && roster.length > 0 && (
-        <div className="mt-5 rounded-md border border-hairline">
+        <div className="mt-5 rounded-lg border border-hairline bg-canvas">
           <p className="border-b border-hairline-soft p-3 text-center text-xs text-muted">
             Names only, ranked by buy-ins — no totals, no one else's numbers.
           </p>
@@ -356,7 +356,7 @@ export function ShareTable() {
                 {r.profile_id === myProfileId ? ' (you)' : ''}
               </span>
               {r.profile_id === myProfileId && (
-                <span className="text-lg font-bold tabular-nums text-ink">{r.buyin_count}</span>
+                <span className="text-lg font-mono font-bold tabular-nums text-ink">{r.buyin_count}</span>
               )}
             </div>
           ))}

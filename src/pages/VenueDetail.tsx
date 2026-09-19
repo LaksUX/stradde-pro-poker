@@ -165,13 +165,13 @@ export function VenueDetail() {
       ) : (
         <>
           <div className="mt-4 grid grid-cols-2 gap-2">
-            <div className="rounded-md border border-hairline p-3 text-center">
-              <p className="text-lg font-bold tabular-nums text-ink">{avgPot} chips</p>
-              <p className="text-xs text-muted">average pot</p>
+            <div className="rounded-lg border border-hairline bg-canvas p-3">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Average pot</p>
+              <p className="mt-1 font-mono text-lg font-bold tabular-nums text-ink">{avgPot} chips</p>
             </div>
-            <div className="rounded-md border border-hairline p-3 text-center">
-              <p className="text-lg font-bold tabular-nums text-ink">{avgRake} chips</p>
-              <p className="text-xs text-muted">average rake</p>
+            <div className="rounded-lg border border-hairline bg-canvas p-3">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Average rake</p>
+              <p className="mt-1 font-mono text-lg font-bold tabular-nums text-ink">{avgRake} chips</p>
             </div>
           </div>
           {ratios.size > 1 && (
@@ -213,7 +213,7 @@ export function VenueDetail() {
             Regulars
           </h2>
           {regulars.length === 0 && <p className="text-sm text-muted">Not enough games yet.</p>}
-          <div className="rounded-md border border-hairline">
+          <div className="rounded-lg border border-hairline bg-canvas">
             {regulars.map((r) => (
               <div
                 key={r.profile_id}
@@ -240,7 +240,7 @@ export function VenueDetail() {
               you.
             </p>
           )}
-          <div className="rounded-md border border-hairline">
+          <div className="rounded-lg border border-hairline bg-canvas">
             {myRows.map((g) => {
               const role = myRoles[g.game_id]
               return (

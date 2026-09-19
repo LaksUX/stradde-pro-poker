@@ -54,7 +54,7 @@ export function ScheduledGame() {
       <p className="text-sm text-muted">{new Date(game.scheduled_for).toLocaleString()}</p>
       <p className="mt-1 text-sm text-muted">{game.stake} banks buy-in</p>
 
-      <div className="mx-auto mt-6 w-fit rounded-sm border-4 border-canvas p-1 shadow-elevated">
+      <div className="mx-auto mt-6 w-fit rounded-sm border-4 border-white bg-white p-1 shadow-elevated">
         <QRCodeSVG value={`${window.location.origin}/t/${gameId}`} size={120} />
       </div>
       <p className="mt-2 text-xs text-muted">

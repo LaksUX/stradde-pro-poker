@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { PageSpinner } from '../components/ui/Spinner'
+import { StatCard } from '../components/ui/StatCard'
 
 type Game = {
   id: string
@@ -101,14 +102,14 @@ export function GameDetail() {
 
       {isHost ? (
         <>
-          <div className="mt-4 rounded-md border border-hairline">
+          <div className="mt-4 rounded-lg border border-hairline bg-canvas">
             {players.map((p) => (
               <div
                 key={p.id}
                 className="flex items-center justify-between border-b border-hairline-soft p-3 text-sm last:border-none"
               >
                 <span className="text-ink">{p.full_name}</span>
-                <span className="text-muted">
+                <span className="font-mono tabular-nums text-muted">
                   {p.buyins} buy-ins ·{' '}
                   {p.cashout == null ? (
                     'in play'
@@ -122,7 +123,7 @@ export function GameDetail() {
             ))}
           </div>
           {transfers.length > 0 && (
-            <div className="mt-4 rounded-md border border-hairline p-3">
+            <div className="mt-4 rounded-lg border border-hairline bg-canvas p-3">
               <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
                 Settlement
               </h2>
@@ -131,7 +132,7 @@ export function GameDetail() {
                   <span className="text-ink">
                     {t.from} → {t.to}
                   </span>
-                  <span className="text-muted">
+                  <span className="font-mono tabular-nums text-muted">
                     {toChips(t.amount, ratio)} chips · {t.status}
                   </span>
                 </div>
@@ -140,17 +141,20 @@ export function GameDetail() {
           )}
         </>
       ) : me ? (
-        <div className="mt-4 rounded-md border border-hairline p-4 text-center">
-          <p className="text-sm text-muted">Your buy-ins</p>
-          <p className="text-lg font-bold tabular-nums text-ink">{me.buyins}</p>
-          <p className="mt-3 text-sm text-muted">Your net</p>
-          <p
-            className={`text-2xl font-bold tabular-nums ${
-              me.cashout != null && me.cashout - me.buyins * game.stake >= 0 ? 'text-win' : 'text-error'
-            }`}
+        <div className="mt-4">
+          <StatCard
+            eyebrow="Your net"
+            value={me.cashout == null ? 'In play' : `${toChips(me.cashout - me.buyins * game.stake, ratio)} chips`}
+            valueClassName={
+              me.cashout == null
+                ? 'text-ink'
+                : me.cashout - me.buyins * game.stake >= 0
+                  ? 'text-win'
+                  : 'text-error'
+            }
           >
-            {me.cashout == null ? 'In play' : `${toChips(me.cashout - me.buyins * game.stake, ratio)} chips`}
-          </p>
+            <p className="mt-2 text-xs text-muted">{me.buyins} buy-in{me.buyins === 1 ? '' : 's'}</p>
+          </StatCard>
         </div>
       ) : (
         <p className="mt-4 text-center text-sm text-muted">You weren't in this game.</p>

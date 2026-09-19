@@ -137,12 +137,12 @@ export function Settlement() {
       </p>
 
       {transfers.map((t) => (
-        <div key={t.id} className="mt-3 rounded-md border border-hairline p-3">
+        <div key={t.id} className="mt-3 rounded-lg border border-hairline bg-canvas p-3">
           <div className="flex items-center gap-2">
             <select
               value={t.from_player_id}
               onChange={(e) => editTransfer(t.id, { from_player_id: e.target.value })}
-              className="h-9 flex-1 rounded-sm border border-hairline text-sm"
+              className="h-9 flex-1 rounded-sm border border-hairline bg-surface-strong text-sm"
             >
               {players.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -154,7 +154,7 @@ export function Settlement() {
             <select
               value={t.to_player_id}
               onChange={(e) => editTransfer(t.id, { to_player_id: e.target.value })}
-              className="h-9 flex-1 rounded-sm border border-hairline text-sm"
+              className="h-9 flex-1 rounded-sm border border-hairline bg-surface-strong text-sm"
             >
               {players.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -164,7 +164,7 @@ export function Settlement() {
             </select>
           </div>
           <div className="mt-2 flex items-center gap-2">
-            <span className="text-lg font-bold tabular-nums text-ink">
+            <span className="text-lg font-mono font-bold tabular-nums text-ink">
               {toChips(t.amount, ratio)} chips
               <span className="ml-1 text-xs font-normal text-muted">({t.amount} banks)</span>
             </span>
@@ -172,14 +172,14 @@ export function Settlement() {
               type="number"
               defaultValue={t.amount}
               onBlur={(e) => editTransfer(t.id, { amount: Number(e.target.value) || 0 })}
-              className="h-9 w-20 rounded-sm border border-hairline px-2 text-sm"
+              className="h-9 w-20 rounded-sm border border-hairline bg-surface-strong px-2 text-sm"
             />
             <span
               className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                 t.status === 'confirmed'
-                  ? 'bg-green-50 text-win'
+                  ? 'bg-win/10 text-win'
                   : t.status === 'disputed'
-                    ? 'bg-red-50 text-error'
+                    ? 'bg-error/10 text-error'
                     : 'bg-surface-strong text-muted'
               }`}
             >

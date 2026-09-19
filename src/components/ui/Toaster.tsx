@@ -30,7 +30,7 @@ export function Toaster() {
           <button
             onClick={() => dismissToast(t.id)}
             aria-label="Dismiss"
-            className="-m-1 rounded-full p-1 text-muted hover:bg-surface-soft hover:text-ink"
+            className="-m-1 rounded-full p-1 text-muted hover:bg-surface-strong hover:text-ink"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />

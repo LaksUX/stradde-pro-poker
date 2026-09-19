@@ -92,6 +92,21 @@ sync with whatever's decided here.
 > marketplace, since a ledger tracking real money between real people should read
 > like a tool a treasurer would trust. See the rewritten Theme section below. Visual
 > identity change only — no product behavior, data model, or prior decision changes.
+>
+> **Twelfth revision note.** Retires the light Mercury-sourced fintech theme in
+> favor of a dark analytics-dashboard look — sourced from `DESIGN-dashboard.md`
+> (the new token source of truth, replacing `DESIGN-mercury.md`) and pulled from a
+> dark-mode sales/ops dashboard reference rather than a light banking UI. The
+> canvas is near-black now, not white — still exactly one permanent theme, no
+> toggle, just a dark one this time. Adds two real reusable components used only
+> where a genuine either/or or multi-way state already existed in the product:
+> `SegmentedControl` (Home's Player/Host switch, Live Game's rake masked/revealed
+> and table status auto/open/full, Create Game's chip ratio and schedule-mode
+> choices) and `StatCard` (the one hero number a screen exists to show — net
+> chips on My Game and Game Detail, lifetime net on Home). Every money/count
+> figure across the app now renders in monospace, not just tabular-nums. See the
+> rewritten Theme section below. Visual/interaction identity change only — no
+> product behavior, data model, or prior decision changes.
 
 ## What this is
 
@@ -693,51 +708,60 @@ account.
 
 ## Theme
 
-**[decision, revised] Replaces the warm Airbnb-sourced consumer look** with a
-professional fintech look, sourced from `DESIGN-mercury.md` (now the token source
-of truth; update that file first if the visual language changes again, then sync
-here). Airbnb's warm, photography-led marketplace identity was a fine visual
-starting point but the wrong genre for a money ledger between real people — this
-revision moves the source references to business-banking dashboards (Mercury,
-Stripe, Ramp-class products) instead.
+**[decision, revised] Replaces the light Mercury-sourced fintech look** with a
+dark analytics-dashboard look, sourced from `DESIGN-dashboard.md` (now the token
+source of truth; update that file first if the visual language changes again,
+then sync here). The Mercury-era light theme was a legitimate fintech reference
+but read as a form; this revision moves the source reference to a dark-mode
+sales/ops dashboard instead, where a number rendering loud and monospace *is*
+the whole interface — the same thing a player wants the instant they open this
+app ("what's my net").
 
-- **Canvas is a cool neutral gray, always — no dark mode.** Cards render on white;
-  the page floor itself is a light cool gray (`#f6f7f9`), the same trick these
-  reference dashboards use to make white cards read as distinct surfaces without
-  leaning on a shadow. No `prefers-color-scheme` dark rendering, same as before —
-  there's still only one canvas.
-- **One accent color, used sparingly**: Indigo (`#4f46e5`) carries every primary
-  CTA (Start Game, Confirm, Request, End game & settle) — the fintech genre's de
-  facto accent family (Stripe, Ramp, Mercury, Brex all converge here), replacing
-  Rausch coral. Most of every screen stays white/gray and ink-colored, with indigo
-  appearing only where an action actually matters — same restraint as before, new
-  color.
-- **Text**: ink (`#0f1729`, a deeper navy-black than the retired theme's warmer
-  `#222222`) for headlines and primary content, body (`#3d4451`) for longer
-  running text, muted (`#667085`) for de-emphasized labels and captions.
-- **Shape language is tighter, not soft.** 6px radius on buttons/inputs, 10px on
-  cards, 20px on the bottom sheet — noticeably less rounded than the retired
-  theme's near-fully-pill system. Full pill radius (9999px) survives only on
-  status badges and avatars; a pill-shaped button or card reads "consumer app,"
-  which this revision is deliberately moving away from.
-- **Numbers get tabular alignment.** Any amount inside a list, table, or
-  row-vs-row comparison (buy-in counts, per-player net, settlement transfers) uses
-  Tailwind's `tabular-nums` utility so digit columns align — a detail the retired
-  theme's source (a travel marketplace, not a ledger) had no reason to specify.
-- **Elevation is capped at one shadow tier, retuned cooler and lighter** — flat by
-  default; reserved for the bottom sheet/modal surface and any floating badge,
-  same scoping as before. A 50%-black scrim sits behind modals, unchanged.
-- **Type**: stays **Inter** — it was already this app's substitute for Airbnb
-  Cereal, and it's also the de facto typeface of the fintech dashboard genre
-  itself, so no font change was needed. The shift is in weight and size
-  discipline: a genuine hero-figure size (32px/600, tabular-nums) now exists for
-  the one number per screen that matters most (net chips, a settlement amount),
-  where the retired theme had no equivalent to a "rating-display"-style number.
-- **[decision] Win/loss color stays a deliberate, minimal extension** — neither
-  source system (Airbnb nor the fintech dashboards) documents one — but the
-  specific greens/reds move to more standard financial-alert tones: `#16a34a` for
-  a positive net, `#dc2626` for a negative one, replacing the retired theme's
-  Airbnb-error-adjacent reds.
+- **Canvas is near-black navy, always — still no dark mode.** This isn't a
+  `prefers-color-scheme` toggle; it's the same "exactly one permanent canvas"
+  rule as both retired themes, just pointed dark this time. Cards render on a
+  lighter navy (`#141a26`) than the near-black page floor (`#0a0e17`) — depth
+  comes from that surface-color scale, not a border or shadow.
+- **One accent color, vivid orange (`#ff7a29`)**, replacing Mercury-era indigo.
+  Carries every primary CTA, the active segmented-tab state, and the live-game
+  "in progress" dot — same one-accent restraint as both retired themes, just
+  brighter, to suit a screen glanced at mid-hand rather than read at a desk.
+- **Text**: ink (`#f5f6f8`, near-white — never pure white) for headlines and
+  hero figures, body (`#c7ccd6`) for running text, muted (`#8a92a3`) for labels
+  and captions.
+- **Every number is monospace, not just tabular.** The Mercury-era theme applied
+  `tabular-nums` to money figures; this one goes further and sets them in the
+  system monospace stack (Tailwind's `font-mono`) everywhere they appear — buy-in
+  counts, per-player net, settlement amounts, the one hero figure a screen exists
+  to show. A new shared `StatCard` component (eyebrow label + monospace hero
+  figure + optional colored delta line) carries this pattern consistently on
+  Home, My Game, and Game Detail.
+- **Stadium-shaped segmented controls, used only where a real switch already
+  existed.** A new shared `SegmentedControl` component (filled orange on the
+  active option) replaced five different ad hoc toggle-button implementations
+  that already existed in the product — Home's Player/Host split, Live Game's
+  rake masked/revealed and table status auto/open/full, and Create Game's chip
+  ratio and schedule-mode choices. Nothing was added that wasn't already a real
+  either/or state; the visual pattern was only ever meant to replace existing
+  ad hoc toggles, never to invent decorative ones.
+- **No shadow tier at all.** Both retired themes kept one shadow tier for
+  floating surfaces; a dark shadow barely shows against a near-black canvas, so
+  this theme relies entirely on the canvas/surface-color scale for depth, plus a
+  hairline ring (not a shadow) on the one or two surfaces that still need a
+  visible edge (the confirm dialog, a toast). The modal scrim darkened from 50%
+  to 70% black to compensate for the darker canvas underneath it needing more
+  contrast to still read as "dimmed."
+- **Shape**: 10px radius on inputs/small buttons, 20px on cards, full pill only
+  on segmented controls, status pills, and avatars — a wider gap between "card"
+  and "pill" than either retired theme had.
+- **Type**: stays **Inter** for every label and headline — it was already both
+  retired themes' choice and is also the de facto typeface of the dashboard
+  genre itself, so no font change was needed there; the monospace stack above is
+  additive, for numbers only.
+- **[decision] Win/loss color stays a deliberate, minimal extension** — no
+  source system documents one — with brighter, minter tones (`#34d399` win,
+  `#f75466` error) than either retired theme's, to stay legible against
+  near-black rather than white or light gray.
 
 ## Stack
 

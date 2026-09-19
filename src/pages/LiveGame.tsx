@@ -10,6 +10,7 @@ import { toast } from '../lib/toast'
 import { confirmDialog } from '../lib/confirmDialog'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
+import { SegmentedControl } from '../components/ui/SegmentedControl'
 
 type Game = {
   id: string
@@ -299,7 +300,7 @@ export function LiveGame() {
     <div className="mx-auto max-w-md p-6">
       <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
 
-      <div className="mt-3 rounded-md border border-hairline p-3">
+      <div className="mt-3 rounded-lg border border-hairline bg-canvas p-3">
         <div className="flex items-center justify-between">
           <span className="text-muted">Invite walk-ins</span>
           <button
@@ -311,7 +312,7 @@ export function LiveGame() {
         </div>
         {inviteOpen && gameId && (
           <div className="mt-3 flex flex-col items-center">
-            <div className="w-fit rounded-sm border-4 border-canvas p-1 shadow-elevated">
+            <div className="w-fit rounded-sm border-4 border-white bg-white p-1 shadow-elevated">
               <QRCodeSVG value={`${window.location.origin}/t/${gameId}`} size={160} />
             </div>
             <button
@@ -327,11 +328,11 @@ export function LiveGame() {
         )}
       </div>
 
-      <div className="mt-3 rounded-md border border-hairline p-3">
+      <div className="mt-3 rounded-lg border border-hairline bg-canvas p-3">
         <div className="flex items-center justify-between">
           <span
             className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-              full ? 'bg-red-50 text-error' : 'bg-green-50 text-win'
+              full ? 'bg-error/10 text-error' : 'bg-win/10 text-win'
             }`}
           >
             {full ? 'Full' : 'Open'} · {activeSeated}/{game.table_size}
@@ -344,36 +345,44 @@ export function LiveGame() {
           </button>
         </div>
         {tableSizeEditing && (
-          <div className="mt-2 flex items-center gap-2">
-            <label className="text-xs text-muted">Table size</label>
-            <input
-              type="number"
-              defaultValue={game.table_size}
-              onBlur={(e) => setTableSize(Number(e.target.value) || 9)}
-              className="h-9 w-16 rounded-sm border border-hairline px-2 text-sm"
+          <div className="mt-3 space-y-3">
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-muted">Table size</label>
+              <input
+                type="number"
+                defaultValue={game.table_size}
+                onBlur={(e) => setTableSize(Number(e.target.value) || 9)}
+                className="h-9 w-16 rounded-sm border border-hairline bg-surface-strong px-2 text-sm"
+              />
+            </div>
+            <SegmentedControl
+              value={game.table_status_override ?? 'auto'}
+              onChange={(v) => setTableOverride(v === 'auto' ? null : v)}
+              options={[
+                { value: 'auto' as const, label: 'Auto' },
+                { value: 'open' as const, label: 'Open' },
+                { value: 'full' as const, label: 'Full' },
+              ]}
             />
-            <button
-              className="ml-auto text-xs text-muted underline"
-              onClick={() =>
-                setTableOverride(game.table_status_override ? null : full ? 'open' : 'full')
-              }
-            >
-              {game.table_status_override ? 'Clear override' : full ? 'Force open' : 'Force full'}
-            </button>
           </div>
         )}
       </div>
 
-      <div className="mt-3 rounded-md border border-hairline p-3">
+      <div className="mt-3 rounded-lg border border-hairline bg-canvas p-3">
         <div className="flex items-center justify-between">
           <span className="text-muted">Rake</span>
-          <button className="text-xs text-body underline" onClick={() => setRakeRevealed((v) => !v)}>
-            {rakeRevealed ? 'Hide' : 'Reveal'}
-          </button>
+          <SegmentedControl
+            value={rakeRevealed ? 'revealed' : 'masked'}
+            onChange={(v) => setRakeRevealed(v === 'revealed')}
+            options={[
+              { value: 'masked' as const, label: 'Masked' },
+              { value: 'revealed' as const, label: 'Revealed' },
+            ]}
+          />
         </div>
         {rakeRevealed ? (
           <div className="mt-2 flex items-center gap-2">
-            <span className="text-lg font-bold tabular-nums text-ink">
+            <span className="text-lg font-mono font-bold tabular-nums text-ink">
               {toChips(game.rake, ratio)} chips
               <span className="ml-1 text-xs font-normal text-muted">({game.rake} banks)</span>
             </span>
@@ -381,7 +390,7 @@ export function LiveGame() {
               type="number"
               defaultValue={game.rake}
               onBlur={(e) => setRake(Number(e.target.value) || 0)}
-              className="h-9 w-20 rounded-sm border border-hairline px-2 text-sm"
+              className="h-9 w-20 rounded-sm border border-hairline bg-surface-strong px-2 text-sm"
             />
           </div>
         ) : (
@@ -390,7 +399,7 @@ export function LiveGame() {
       </div>
 
       {pending.length > 0 && (
-        <div className="mt-4 rounded-md border border-hairline p-3">
+        <div className="mt-4 rounded-lg border border-hairline bg-canvas p-3">
           <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
             Pending requests ({pending.length})
           </h2>
@@ -418,7 +427,7 @@ export function LiveGame() {
         </div>
       )}
 
-      <div className="mt-4 rounded-md border border-hairline">
+      <div className="mt-4 rounded-lg border border-hairline bg-canvas">
         {players.length === 0 && (
           <p className="p-4 text-center text-sm text-muted">
             No one has joined yet — share the link.
@@ -451,11 +460,11 @@ export function LiveGame() {
                       if (e.target.value) setCashout(p.id, Number(e.target.value) || 0)
                       setCashoutEditingId(null)
                     }}
-                    className="h-9 w-28 rounded-sm border border-hairline px-2 text-sm"
+                    className="h-9 w-28 rounded-sm border border-hairline bg-surface-strong px-2 text-sm"
                   />
                 </div>
               ) : (
-                <div className="text-xs text-muted">
+                <div className="font-mono text-xs tabular-nums text-muted">
                   {p.cashout == null
                     ? 'In play'
                     : `${toChips(p.cashout - p.confirmed_buyins * game.stake, ratio)} chips net`}
@@ -463,7 +472,7 @@ export function LiveGame() {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xl font-bold tabular-nums text-ink">{p.confirmed_buyins}</span>
+              <span className="text-xl font-mono font-bold tabular-nums text-ink">{p.confirmed_buyins}</span>
               {cashoutEditingId !== p.id && (
                 <button
                   className="text-xs text-muted underline"
