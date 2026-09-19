@@ -238,7 +238,7 @@ export function ShareTable() {
               {myTransfer.from_name === 'you' ? 'owe' : 'owes'}{' '}
               <span className="capitalize">{myTransfer.to_name}</span>
             </p>
-            <p className="mt-1 text-2xl font-bold text-primary">
+            <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
               {toChips(myTransfer.amount, closedGameRatio)} chips
               <span className="ml-2 text-sm font-normal text-muted">({myTransfer.amount} banks)</span>
             </p>
@@ -356,7 +356,7 @@ export function ShareTable() {
                 {r.profile_id === myProfileId ? ' (you)' : ''}
               </span>
               {r.profile_id === myProfileId && (
-                <span className="text-lg font-bold text-ink">{r.buyin_count}</span>
+                <span className="text-lg font-bold tabular-nums text-ink">{r.buyin_count}</span>
               )}
             </div>
           ))}

@@ -107,11 +107,11 @@ export function MySettlements() {
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <div className="rounded-md border border-hairline p-3 text-center">
-          <p className="text-lg font-bold text-win">{totalOwed} chips</p>
+          <p className="text-lg font-bold tabular-nums text-win">{totalOwed} chips</p>
           <p className="text-xs text-muted">owed to you</p>
         </div>
         <div className="rounded-md border border-hairline p-3 text-center">
-          <p className="text-lg font-bold text-error">{totalOwe} chips</p>
+          <p className="text-lg font-bold tabular-nums text-error">{totalOwe} chips</p>
           <p className="text-xs text-muted">you owe</p>
         </div>
       </div>
@@ -130,7 +130,7 @@ export function MySettlements() {
             {r.direction === 'owe' ? `You owe ${r.otherName}` : `${r.otherName} owes you`}
           </p>
           <div className="mt-1 flex items-center gap-2">
-            <span className="text-lg font-bold text-ink">{toChips(r.amount, r.chip_ratio)} chips</span>
+            <span className="text-lg font-bold tabular-nums text-ink">{toChips(r.amount, r.chip_ratio)} chips</span>
             <span
               className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                 r.status === 'confirmed'

@@ -148,7 +148,7 @@ export function Home() {
       {!loadingData && tab === 'player' && (
         <div className="mt-4">
           <div className="rounded-md border border-hairline p-4 text-center">
-            <p className={`text-2xl font-bold ${lifetimeNet >= 0 ? 'text-win' : 'text-error'}`}>
+            <p className={`text-2xl font-bold tabular-nums ${lifetimeNet >= 0 ? 'text-win' : 'text-error'}`}>
               {lifetimeNet} chips
             </p>
             <p className="text-xs text-muted">
@@ -183,15 +183,15 @@ export function Home() {
         <div className="mt-4">
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-md border border-hairline p-3 text-center">
-              <p className="text-lg font-bold text-ink">{hostedGames.length}</p>
+              <p className="text-lg font-bold tabular-nums text-ink">{hostedGames.length}</p>
               <p className="text-xs text-muted">games hosted</p>
             </div>
             <div className="rounded-md border border-hairline p-3 text-center">
-              <p className="text-lg font-bold text-ink">{totalRake} banks</p>
+              <p className="text-lg font-bold tabular-nums text-ink">{totalRake} banks</p>
               <p className="text-xs text-muted">rake collected</p>
             </div>
             <div className="rounded-md border border-hairline p-3 text-center col-span-2">
-              <p className="text-lg font-bold text-ink">{avgPot} banks</p>
+              <p className="text-lg font-bold tabular-nums text-ink">{avgPot} banks</p>
               <p className="text-xs text-muted">average pot</p>
             </div>
           </div>

@@ -84,6 +84,14 @@ sync with whatever's decided here.
 > else. Also adds a fast path for replacing a player, including one narrow,
 > explicit exception to "host never types a player in" for a replacement who
 > isn't using the app — see the new Table capacity & seat turnover section.
+>
+> **Eleventh revision note.** Retires the Airbnb-sourced warm consumer theme in
+> favor of a professional fintech look — sourced from `DESIGN-mercury.md` (the new
+> token source of truth, replacing `DESIGN-airbnb.md`) and pulled from business-
+> banking dashboards (Mercury, Stripe, Ramp-class products) rather than a travel
+> marketplace, since a ledger tracking real money between real people should read
+> like a tool a treasurer would trust. See the rewritten Theme section below. Visual
+> identity change only — no product behavior, data model, or prior decision changes.
 
 ## What this is
 
@@ -685,40 +693,51 @@ account.
 
 ## Theme
 
-**[decision, revised] Replaces "Casino felt" entirely** — the dark emerald/gold
-identity is retired in favor of a warm, white-canvas consumer look, sourced from
-`DESIGN-airbnb.md` (kept alongside this file as the token source of truth; update
-that file first if the visual language changes again, then sync here).
+**[decision, revised] Replaces the warm Airbnb-sourced consumer look** with a
+professional fintech look, sourced from `DESIGN-mercury.md` (now the token source
+of truth; update that file first if the visual language changes again, then sync
+here). Airbnb's warm, photography-led marketplace identity was a fine visual
+starting point but the wrong genre for a money ledger between real people — this
+revision moves the source references to business-banking dashboards (Mercury,
+Stripe, Ramp-class products) instead.
 
-- **Canvas is white, always — no dark mode.** This is a direct reversal of the
-  previous "always dark, lock out `prefers-color-scheme`" rule: the new source
-  design has no dark variant at all, so the equivalent instruction now is the
-  opposite — don't let a system dark-mode preference leak a dark rendering in,
-  since none exists to fall back to.
-- **One accent color, used sparingly**: Rausch (`#ff385c`) carries every primary
-  CTA (Start Game, Confirm, Request), the same restrained way the source system
-  uses it for "Reserve" and its search orb — most of every screen stays white and
-  ink-colored, with Rausch appearing only where an action actually matters.
-- **Text**: ink (`#222222`) for headlines and primary content, body (`#3f3f3f`) for
-  longer running text, muted (`#6a6a6a`) for de-emphasized labels and captions.
-- **Shape language is soft**: 8px radius on buttons, ~14px on cards, fully pill
-  (9999px) on the share-link surface and status badges — no hard corners on any
-  interactive element, matching the source system's philosophy exactly.
-- **Elevation is capped at one shadow tier** — flat by default; the single shadow
-  (`0 0 0 1px rgba(0,0,0,.02), 0 2px 6px rgba(0,0,0,.04), 0 4px 8px rgba(0,0,0,.1)`)
-  is reserved for the bottom sheet/modal surface and any floating badge, exactly as
-  the source system reserves it for hover-floated cards and dropdowns. A 50%-black
-  scrim sits behind modals, per the source system's modal pattern.
-- **Type**: the source system's `Airbnb Cereal VF` / `Circular` aren't available
-  here — **Inter** substitutes, per `DESIGN-airbnb.md`'s own documented fallback
-  guidance. Scale carries over: display headlines modest (20–28px, weight 500–700),
-  body at 16px/400, captions and badges small and med-weight — this app doesn't
-  have a rating-display-style hero number, so that token doesn't get used.
-- **[decision] Win/loss color isn't part of the source system** (Airbnb has no
-  win/loss concept) — kept as a deliberate, minimal extension: a plain, low-key
-  green for a positive net, and the system's own documented error red
-  (`#c13515`) for a negative one, rather than inventing a louder palette that would
-  clash with the source system's restraint.
+- **Canvas is a cool neutral gray, always — no dark mode.** Cards render on white;
+  the page floor itself is a light cool gray (`#f6f7f9`), the same trick these
+  reference dashboards use to make white cards read as distinct surfaces without
+  leaning on a shadow. No `prefers-color-scheme` dark rendering, same as before —
+  there's still only one canvas.
+- **One accent color, used sparingly**: Indigo (`#4f46e5`) carries every primary
+  CTA (Start Game, Confirm, Request, End game & settle) — the fintech genre's de
+  facto accent family (Stripe, Ramp, Mercury, Brex all converge here), replacing
+  Rausch coral. Most of every screen stays white/gray and ink-colored, with indigo
+  appearing only where an action actually matters — same restraint as before, new
+  color.
+- **Text**: ink (`#0f1729`, a deeper navy-black than the retired theme's warmer
+  `#222222`) for headlines and primary content, body (`#3d4451`) for longer
+  running text, muted (`#667085`) for de-emphasized labels and captions.
+- **Shape language is tighter, not soft.** 6px radius on buttons/inputs, 10px on
+  cards, 20px on the bottom sheet — noticeably less rounded than the retired
+  theme's near-fully-pill system. Full pill radius (9999px) survives only on
+  status badges and avatars; a pill-shaped button or card reads "consumer app,"
+  which this revision is deliberately moving away from.
+- **Numbers get tabular alignment.** Any amount inside a list, table, or
+  row-vs-row comparison (buy-in counts, per-player net, settlement transfers) uses
+  Tailwind's `tabular-nums` utility so digit columns align — a detail the retired
+  theme's source (a travel marketplace, not a ledger) had no reason to specify.
+- **Elevation is capped at one shadow tier, retuned cooler and lighter** — flat by
+  default; reserved for the bottom sheet/modal surface and any floating badge,
+  same scoping as before. A 50%-black scrim sits behind modals, unchanged.
+- **Type**: stays **Inter** — it was already this app's substitute for Airbnb
+  Cereal, and it's also the de facto typeface of the fintech dashboard genre
+  itself, so no font change was needed. The shift is in weight and size
+  discipline: a genuine hero-figure size (32px/600, tabular-nums) now exists for
+  the one number per screen that matters most (net chips, a settlement amount),
+  where the retired theme had no equivalent to a "rating-display"-style number.
+- **[decision] Win/loss color stays a deliberate, minimal extension** — neither
+  source system (Airbnb nor the fintech dashboards) documents one — but the
+  specific greens/reds move to more standard financial-alert tones: `#16a34a` for
+  a positive net, `#dc2626` for a negative one, replacing the retired theme's
+  Airbnb-error-adjacent reds.
 
 ## Stack
 

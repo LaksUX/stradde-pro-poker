@@ -1,39 +1,39 @@
 @import "tailwindcss";
 
 /*
-  Design tokens sourced from DESIGN-airbnb.md — see REQUIREMENTS.md "Theme".
-  Update DESIGN-airbnb.md first if the visual language changes, then sync here.
+  Design tokens sourced from DESIGN-mercury.md — see REQUIREMENTS.md "Theme".
+  Update DESIGN-mercury.md first if the visual language changes, then sync here.
   No dark mode: this app has a single, permanently light canvas.
 */
 @theme {
   --color-canvas: #ffffff;
-  --color-ink: #222222;
-  --color-body: #3f3f3f;
-  --color-muted: #6a6a6a;
-  --color-muted-soft: #929292;
-  --color-hairline: #dddddd;
-  --color-hairline-soft: #ebebeb;
-  --color-border-strong: #c1c1c1;
-  --color-surface-soft: #f7f7f7;
-  --color-surface-strong: #f2f2f2;
+  --color-ink: #0f1729;
+  --color-body: #3d4451;
+  --color-muted: #667085;
+  --color-muted-soft: #98a2b3;
+  --color-hairline: #e4e7ec;
+  --color-hairline-soft: #eef0f3;
+  --color-border-strong: #b8bfc9;
+  --color-surface-soft: #f6f7f9;
+  --color-surface-strong: #eef0f3;
 
-  --color-primary: #ff385c; /* Rausch */
-  --color-primary-active: #e00b41;
-  --color-primary-disabled: #ffd1da;
+  --color-primary: #4f46e5; /* Indigo */
+  --color-primary-active: #4338ca;
+  --color-primary-disabled: #c7d2fe;
   --color-on-primary: #ffffff;
 
-  --color-error: #c13515;
-  --color-error-hover: #b32505;
+  --color-error: #dc2626;
+  --color-error-hover: #b91c1c;
 
-  /* Minimal extensions not in DESIGN-airbnb.md — Airbnb has no win/loss
-     concept. Kept deliberately plain rather than inventing a louder palette. */
-  --color-win: #008a05;
+  /* Minimal extensions not in DESIGN-mercury.md's fintech source apps —
+     kept deliberately plain rather than inventing a louder palette. */
+  --color-win: #16a34a;
   --color-loss: var(--color-error);
 
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --radius-xl: 32px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
   --radius-full: 9999px;
 
   --spacing-section: 64px;
@@ -64,11 +64,12 @@ body {
   padding-top: env(safe-area-inset-top);
 }
 
-/* One shadow tier, per DESIGN-airbnb.md — reserved for the bottom sheet /
-   modal surface and floating badges. Never used as a general card treatment. */
+/* One shadow tier, per DESIGN-mercury.md — reserved for the bottom sheet /
+   modal surface and floating badges. Never used as a general card treatment;
+   everywhere else, the hairline border is the depth cue. */
 .shadow-elevated {
   box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.02),
-    0 2px 6px rgba(0, 0, 0, 0.04),
-    0 4px 8px rgba(0, 0, 0, 0.1);
+    0 0 0 1px rgba(16, 24, 40, 0.04),
+    0 1px 2px rgba(16, 24, 40, 0.06),
+    0 2px 4px rgba(16, 24, 40, 0.04);
 }
