@@ -21,8 +21,8 @@ export default defineConfig({
         short_name: 'Straddle',
         description:
           'Live buy-in and settlement tracking for home poker games — join by link, no install required to watch.',
-        theme_color: '#ff385c', // Rausch — DESIGN-airbnb.md primary
-        background_color: '#ffffff', // canvas — no dark mode, per DESIGN-airbnb.md
+        theme_color: '#ff7a29', // primary — DESIGN-dashboard.md
+        background_color: '#0a0e17', // canvas — no dark-mode toggle, per DESIGN-dashboard.md
         // 'fullscreen' hides the OS status bar too, not just the browser
         // chrome that 'standalone' already removed — display_override lets
         // a browser that doesn't support fullscreen fall back to standalone
