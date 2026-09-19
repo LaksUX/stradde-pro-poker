@@ -11,6 +11,7 @@ import { confirmDialog } from '../lib/confirmDialog'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
 import { SegmentedControl } from '../components/ui/SegmentedControl'
+import { BuyinPicker } from '../components/ui/BuyinPicker'
 
 type Game = {
   id: string
@@ -36,6 +37,16 @@ type PlayerRow = {
   full_name: string
   confirmed_buyins: number
 }
+// A buy-in the host initiated on a player's behalf — pending until that
+// PLAYER confirms it (or, when the row is the host's own, the host confirms
+// it themself right here, since a host is also a game_players row). See
+// REQUIREMENTS.md's thirteenth revision note.
+type HostAddedRequest = {
+  id: string
+  game_player_id: string
+  profile_id: string
+  count: number
+}
 
 // See PAGE_PROMPTS.md "Live Game". This pass wires the core loop that
 // matters most to get right end to end: the Pending requests queue and
@@ -48,11 +59,14 @@ export function LiveGame() {
   const { profile } = useAuth()
   const [game, setGame] = useState<Game | null>(null)
   const [pending, setPending] = useState<PendingRequest[]>([])
+  const [hostAdded, setHostAdded] = useState<HostAddedRequest[]>([])
   const [players, setPlayers] = useState<PlayerRow[]>([])
   const [rakeRevealed, setRakeRevealed] = useState(false)
   const [tableSizeEditing, setTableSizeEditing] = useState(false)
   const [cashoutEditingId, setCashoutEditingId] = useState<string | null>(null)
   const [inviteOpen, setInviteOpen] = useState(false)
+  const [addBuyinRowId, setAddBuyinRowId] = useState<string | null>(null)
+  const [addBuyinCount, setAddBuyinCount] = useState(1)
 
   useEffect(() => {
     if (!gameId) return
@@ -67,8 +81,20 @@ export function LiveGame() {
         .select('id, requester_name, request_type, count, requested_at')
         .eq('game_id', gameId)
         .eq('status', 'pending')
+        // host_added requests wait on the PLAYER, not the host — they're
+        // rendered inline per player row below, never in this queue.
+        .in('request_type', ['join', 'more_buyins'])
         .order('requested_at', { ascending: true })
       setPending((data ?? []) as PendingRequest[])
+    }
+    async function loadHostAdded() {
+      const { data } = await supabase
+        .from('buyin_requests')
+        .select('id, game_player_id, profile_id, count')
+        .eq('game_id', gameId)
+        .eq('status', 'pending')
+        .eq('request_type', 'host_added')
+      setHostAdded((data ?? []) as HostAddedRequest[])
     }
     async function loadPlayers() {
       // Two queries kept separate and joined client-side for clarity — a
@@ -103,6 +129,7 @@ export function LiveGame() {
 
     loadGame()
     loadPending()
+    loadHostAdded()
     loadPlayers()
 
     const channel = supabase
@@ -112,6 +139,7 @@ export function LiveGame() {
         { event: '*', schema: 'public', table: 'buyin_requests', filter: `game_id=eq.${gameId}` },
         () => {
           loadPending()
+          loadHostAdded()
           loadPlayers()
         }
       )
@@ -191,6 +219,53 @@ export function LiveGame() {
     await runWrite(
       () => supabase.from('buyin_requests').update({ status: 'declined' }).eq('id', id),
       'Declining request'
+    )
+  }
+
+  // Host-initiated: the host can start a buy-in for any player, including
+  // themself, but it stays pending — financially invisible, per the money
+  // invariant — until that PLAYER confirms it. This is the reverse of the
+  // request/confirm above (player asks, host confirms), catching the host
+  // fat-fingering a count or crediting the wrong seat before it counts.
+  async function addBuyinFor(p: PlayerRow, count: number) {
+    if (!gameId) return
+    const ok = await runWrite(
+      () =>
+        supabase.from('buyin_requests').insert({
+          game_id: gameId,
+          profile_id: p.profile_id,
+          requester_name: p.full_name,
+          game_player_id: p.id,
+          request_type: 'host_added',
+          count,
+          status: 'pending',
+        }),
+      'Adding buy-in'
+    )
+    if (ok) {
+      setAddBuyinRowId(null)
+      setAddBuyinCount(1)
+    }
+  }
+
+  // Only reachable for the host's OWN row (see the render below) — a host
+  // confirming someone else's host-added request would defeat the point of
+  // routing it through that player instead.
+  async function confirmOwnHostAdded(id: string) {
+    await runWrite(
+      () =>
+        supabase
+          .from('buyin_requests')
+          .update({ status: 'confirmed', confirmed_at: new Date().toISOString() })
+          .eq('id', id),
+      'Confirming buy-in'
+    )
+  }
+
+  async function declineOwnHostAdded(id: string) {
+    await runWrite(
+      () => supabase.from('buyin_requests').update({ status: 'declined' }).eq('id', id),
+      'Declining buy-in'
     )
   }
 
@@ -433,57 +508,102 @@ export function LiveGame() {
             No one has joined yet — share the link.
           </p>
         )}
-        {players.map((p) => (
-          <div
-            key={p.id}
-            className="flex items-center justify-between border-b border-hairline-soft p-3 last:border-none"
-          >
-            <div className="flex-1">
-              <div className="text-sm font-semibold text-ink">
-                {p.full_name}
-                {p.is_host ? ' (host)' : ''}
+        {players.map((p) => {
+          const rowHostAdded = hostAdded.filter((h) => h.game_player_id === p.id)
+          const isSelf = p.profile_id === profile.id
+          return (
+            <div key={p.id} className="border-b border-hairline-soft p-3 last:border-none">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-ink">
+                    {p.full_name}
+                    {p.is_host ? ' (host)' : ''}
+                  </div>
+                  {cashoutEditingId === p.id ? (
+                    <div className="mt-1 flex items-center gap-2">
+                      <input
+                        type="number"
+                        autoFocus
+                        defaultValue={p.cashout ?? ''}
+                        placeholder="Cash out (banks)"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            setCashout(p.id, Number((e.target as HTMLInputElement).value) || 0)
+                            setCashoutEditingId(null)
+                          }
+                        }}
+                        onBlur={(e) => {
+                          if (e.target.value) setCashout(p.id, Number(e.target.value) || 0)
+                          setCashoutEditingId(null)
+                        }}
+                        className="h-9 w-28 rounded-sm border border-hairline bg-surface-strong px-2 text-sm"
+                      />
+                    </div>
+                  ) : (
+                    <div className="font-mono text-xs tabular-nums text-muted">
+                      {p.cashout == null
+                        ? 'In play'
+                        : `${toChips(p.cashout - p.confirmed_buyins * game.stake, ratio)} chips net`}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl font-mono font-bold tabular-nums text-ink">
+                    {p.confirmed_buyins}
+                  </span>
+                  {cashoutEditingId !== p.id && p.cashout == null && (
+                    <button
+                      className="text-xs text-primary underline"
+                      onClick={() => setAddBuyinRowId((v) => (v === p.id ? null : p.id))}
+                    >
+                      + Buy-in
+                    </button>
+                  )}
+                  {cashoutEditingId !== p.id && (
+                    <button
+                      className="text-xs text-muted underline"
+                      onClick={() => setCashoutEditingId(p.id)}
+                    >
+                      {p.cashout == null ? 'Cash out' : 'Edit'}
+                    </button>
+                  )}
+                </div>
               </div>
-              {cashoutEditingId === p.id ? (
-                <div className="mt-1 flex items-center gap-2">
-                  <input
-                    type="number"
-                    autoFocus
-                    defaultValue={p.cashout ?? ''}
-                    placeholder="Cash out (banks)"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        setCashout(p.id, Number((e.target as HTMLInputElement).value) || 0)
-                        setCashoutEditingId(null)
-                      }
-                    }}
-                    onBlur={(e) => {
-                      if (e.target.value) setCashout(p.id, Number(e.target.value) || 0)
-                      setCashoutEditingId(null)
-                    }}
-                    className="h-9 w-28 rounded-sm border border-hairline bg-surface-strong px-2 text-sm"
-                  />
-                </div>
-              ) : (
-                <div className="font-mono text-xs tabular-nums text-muted">
-                  {p.cashout == null
-                    ? 'In play'
-                    : `${toChips(p.cashout - p.confirmed_buyins * game.stake, ratio)} chips net`}
+
+              {addBuyinRowId === p.id && (
+                <div className="mt-2 flex items-center gap-2 rounded-sm bg-surface-strong p-2">
+                  <BuyinPicker value={addBuyinCount} onChange={setAddBuyinCount} />
+                  <Button className="h-9 px-3 text-xs" onClick={() => addBuyinFor(p, addBuyinCount)}>
+                    Send
+                  </Button>
                 </div>
               )}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-mono font-bold tabular-nums text-ink">{p.confirmed_buyins}</span>
-              {cashoutEditingId !== p.id && (
-                <button
-                  className="text-xs text-muted underline"
-                  onClick={() => setCashoutEditingId(p.id)}
-                >
-                  {p.cashout == null ? 'Cash out' : 'Edit'}
-                </button>
+
+              {rowHostAdded.map((h) =>
+                isSelf ? (
+                  <div
+                    key={h.id}
+                    className="mt-2 flex items-center justify-between rounded-sm bg-surface-strong px-2 py-1.5 text-xs"
+                  >
+                    <span className="text-muted">+{h.count} buy-in{h.count > 1 ? 's' : ''} you added — confirm?</span>
+                    <div className="flex gap-2">
+                      <button className="font-semibold text-primary underline" onClick={() => confirmOwnHostAdded(h.id)}>
+                        Confirm
+                      </button>
+                      <button className="font-semibold text-error underline" onClick={() => declineOwnHostAdded(h.id)}>
+                        Decline
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p key={h.id} className="mt-1 text-xs text-muted">
+                    +{h.count} pending — awaiting {p.full_name}'s confirmation
+                  </p>
+                )
               )}
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       <Button block className="mt-4" onClick={closeAndSettle}>
