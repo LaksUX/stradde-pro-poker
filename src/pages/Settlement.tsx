@@ -162,7 +162,7 @@ export function Settlement() {
             </select>
           </div>
           <div className="mt-2 flex items-center gap-2">
-            <span className="text-lg font-bold text-ink">
+            <span className="text-lg font-bold tabular-nums text-ink">
               {toChips(t.amount, ratio)} chips
               <span className="ml-1 text-xs font-normal text-muted">({t.amount} banks)</span>
             </span>

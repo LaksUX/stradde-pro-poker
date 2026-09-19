@@ -371,7 +371,7 @@ export function LiveGame() {
         </div>
         {rakeRevealed ? (
           <div className="mt-2 flex items-center gap-2">
-            <span className="text-lg font-bold text-ink">
+            <span className="text-lg font-bold tabular-nums text-ink">
               {toChips(game.rake, ratio)} chips
               <span className="ml-1 text-xs font-normal text-muted">({game.rake} banks)</span>
             </span>
@@ -461,7 +461,7 @@ export function LiveGame() {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xl font-bold text-ink">{p.confirmed_buyins}</span>
+              <span className="text-xl font-bold tabular-nums text-ink">{p.confirmed_buyins}</span>
               {cashoutEditingId !== p.id && (
                 <button
                   className="text-xs text-muted underline"

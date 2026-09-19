@@ -162,7 +162,7 @@ export function MyGame() {
       <div className="mt-3 rounded-md border border-hairline p-4 text-center">
         <p className="text-sm text-muted">Your net</p>
         <p
-          className={`text-2xl font-bold ${
+          className={`text-2xl font-bold tabular-nums ${
             netBanks == null ? 'text-ink' : netBanks >= 0 ? 'text-win' : 'text-error'
           }`}
         >

@@ -165,11 +165,11 @@ export function VenueDetail() {
         <>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <div className="rounded-md border border-hairline p-3 text-center">
-              <p className="text-lg font-bold text-ink">{avgPot} chips</p>
+              <p className="text-lg font-bold tabular-nums text-ink">{avgPot} chips</p>
               <p className="text-xs text-muted">average pot</p>
             </div>
             <div className="rounded-md border border-hairline p-3 text-center">
-              <p className="text-lg font-bold text-ink">{avgRake} chips</p>
+              <p className="text-lg font-bold tabular-nums text-ink">{avgRake} chips</p>
               <p className="text-xs text-muted">average rake</p>
             </div>
           </div>

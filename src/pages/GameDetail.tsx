@@ -141,10 +141,10 @@ export function GameDetail() {
       ) : me ? (
         <div className="mt-4 rounded-md border border-hairline p-4 text-center">
           <p className="text-sm text-muted">Your buy-ins</p>
-          <p className="text-lg font-bold text-ink">{me.buyins}</p>
+          <p className="text-lg font-bold tabular-nums text-ink">{me.buyins}</p>
           <p className="mt-3 text-sm text-muted">Your net</p>
           <p
-            className={`text-2xl font-bold ${
+            className={`text-2xl font-bold tabular-nums ${
               me.cashout != null && me.cashout - me.buyins * game.stake >= 0 ? 'text-win' : 'text-error'
             }`}
           >
