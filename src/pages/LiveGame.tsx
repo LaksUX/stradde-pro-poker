@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
@@ -47,6 +48,7 @@ export function LiveGame() {
   const [rakeRevealed, setRakeRevealed] = useState(false)
   const [tableSizeEditing, setTableSizeEditing] = useState(false)
   const [cashoutEditingId, setCashoutEditingId] = useState<string | null>(null)
+  const [inviteOpen, setInviteOpen] = useState(false)
 
   useEffect(() => {
     if (!gameId) return
@@ -294,6 +296,34 @@ export function LiveGame() {
   return (
     <div className="mx-auto max-w-md p-6">
       <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
+
+      <div className="mt-3 rounded-md border border-hairline p-3">
+        <div className="flex items-center justify-between">
+          <span className="text-muted">Invite walk-ins</span>
+          <button
+            className="text-xs text-primary underline"
+            onClick={() => setInviteOpen((v) => !v)}
+          >
+            {inviteOpen ? 'Hide' : 'Show QR'}
+          </button>
+        </div>
+        {inviteOpen && gameId && (
+          <div className="mt-3 flex flex-col items-center">
+            <div className="w-fit rounded-sm border-4 border-canvas p-1 shadow-elevated">
+              <QRCodeSVG value={`${window.location.origin}/t/${gameId}`} size={160} />
+            </div>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}/t/${gameId}`)
+                alert('Link copied')
+              }}
+              className="mt-2 text-xs text-primary underline"
+            >
+              Copy link
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="mt-3 rounded-md border border-hairline p-3">
         <div className="flex items-center justify-between">
