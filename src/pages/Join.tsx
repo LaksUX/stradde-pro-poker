@@ -111,7 +111,7 @@ export function Join() {
 
   return (
     <div className="mx-auto max-w-sm p-6">
-      <div className="rounded-md border border-hairline p-4">
+      <div className="rounded-lg border border-hairline bg-canvas p-4">
         <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
         <p className="text-sm text-muted">{game.venue_freetext}</p>
         <p className="text-sm text-muted">
@@ -119,7 +119,7 @@ export function Join() {
         </p>
         <span
           className={`mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-            full ? 'bg-red-50 text-error' : 'bg-green-50 text-win'
+            full ? 'bg-error/10 text-error' : 'bg-win/10 text-win'
           }`}
         >
           {full ? 'Table full' : 'Seats open'} · {seated}/{game.table_size}
@@ -136,14 +136,14 @@ export function Join() {
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className="h-14 w-full rounded-sm border border-hairline px-3 text-ink"
+        className="h-14 w-full rounded-sm border border-hairline bg-surface-strong px-3 text-ink"
       />
       <label className="mt-3 block text-sm font-medium text-muted">Phone</label>
       <input
         type="tel"
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
-        className="h-14 w-full rounded-sm border border-hairline px-3 text-ink"
+        className="h-14 w-full rounded-sm border border-hairline bg-surface-strong px-3 text-ink"
       />
 
       <p className="mt-4 text-sm font-medium text-muted">How many buy-ins?</p>

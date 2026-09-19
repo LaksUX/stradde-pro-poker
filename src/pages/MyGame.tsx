@@ -8,6 +8,7 @@ import { toast } from '../lib/toast'
 import { BuyinPicker } from '../components/ui/BuyinPicker'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
+import { StatCard } from '../components/ui/StatCard'
 
 type Game = {
   id: string
@@ -161,16 +162,14 @@ export function MyGame() {
     <div className="mx-auto max-w-sm p-6">
       <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
 
-      <div className="mt-3 rounded-md border border-hairline p-4 text-center">
-        <p className="text-sm text-muted">Your net</p>
-        <p
-          className={`text-2xl font-bold tabular-nums ${
-            netBanks == null ? 'text-ink' : netBanks >= 0 ? 'text-win' : 'text-error'
-          }`}
-        >
-          {netBanks == null ? 'In play' : `${toChips(netBanks, ratio)} chips`}
+      <StatCard
+        eyebrow="Your net"
+        value={netBanks == null ? 'In play' : `${toChips(netBanks, ratio)} chips`}
+        valueClassName={netBanks == null ? 'text-ink' : netBanks >= 0 ? 'text-win' : 'text-error'}
+      >
+        <p className="mt-2 text-xs text-muted">
+          {confirmedBuyins} confirmed buy-in{confirmedBuyins === 1 ? '' : 's'}
         </p>
-        <p className="mt-1 text-xs text-muted">{confirmedBuyins} confirmed buy-in{confirmedBuyins === 1 ? '' : 's'}</p>
 
         {myPlayer.cashout != null && (
           <div className="mt-3 border-t border-hairline-soft pt-3">
@@ -179,7 +178,7 @@ export function MyGame() {
               {myPlayer.cashout_confirm_status ? ` — ${myPlayer.cashout_confirm_status}` : ''}
             </p>
             {!myPlayer.cashout_confirm_status && (
-              <div className="mt-2 flex justify-center gap-2">
+              <div className="mt-2 flex gap-2">
                 <button
                   className="text-xs text-primary underline"
                   onClick={() => setCashoutConfirm('confirmed')}
@@ -196,7 +195,7 @@ export function MyGame() {
             )}
           </div>
         )}
-      </div>
+      </StatCard>
 
       {myPlayer.cashout == null && (
         <div className="mt-3">
@@ -205,7 +204,7 @@ export function MyGame() {
               Request more buy-ins
             </Button>
           ) : (
-            <div className="rounded-md border border-hairline p-3">
+            <div className="rounded-lg border border-hairline bg-canvas p-3">
               <BuyinPicker value={count} onChange={setCount} />
               <div className="flex gap-2">
                 <Button block disabled={submitting} onClick={requestMore}>
@@ -224,7 +223,7 @@ export function MyGame() {
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
           Your activity
         </h2>
-        <div className="rounded-md border border-hairline">
+        <div className="rounded-lg border border-hairline bg-canvas">
           {requests.length === 0 && (
             <p className="p-4 text-center text-sm text-muted">Nothing yet.</p>
           )}
@@ -243,9 +242,9 @@ export function MyGame() {
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                       r.status === 'confirmed'
-                        ? 'bg-green-50 text-win'
+                        ? 'bg-win/10 text-win'
                         : r.status === 'declined'
-                          ? 'bg-red-50 text-error'
+                          ? 'bg-error/10 text-error'
                           : 'bg-surface-strong text-muted'
                     }`}
                   >

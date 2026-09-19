@@ -107,13 +107,13 @@ export function MySettlements() {
       <h1 className="text-lg font-semibold text-ink">My settlements</h1>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <div className="rounded-md border border-hairline p-3 text-center">
-          <p className="text-lg font-bold tabular-nums text-win">{totalOwed} chips</p>
-          <p className="text-xs text-muted">owed to you</p>
+        <div className="rounded-lg border border-hairline bg-canvas p-3">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Owed to you</p>
+          <p className="mt-1 font-mono text-lg font-bold tabular-nums text-win">{totalOwed} chips</p>
         </div>
-        <div className="rounded-md border border-hairline p-3 text-center">
-          <p className="text-lg font-bold tabular-nums text-error">{totalOwe} chips</p>
-          <p className="text-xs text-muted">you owe</p>
+        <div className="rounded-lg border border-hairline bg-canvas p-3">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted">You owe</p>
+          <p className="mt-1 font-mono text-lg font-bold tabular-nums text-error">{totalOwe} chips</p>
         </div>
       </div>
 
@@ -123,7 +123,7 @@ export function MySettlements() {
       )}
 
       {rows.map((r) => (
-        <div key={r.id} className="mt-3 rounded-md border border-hairline p-3">
+        <div key={r.id} className="mt-3 rounded-lg border border-hairline bg-canvas p-3">
           <Link to={`/games/${r.gameId}`} className="text-xs text-primary underline">
             {r.gameName}
           </Link>
@@ -131,13 +131,13 @@ export function MySettlements() {
             {r.direction === 'owe' ? `You owe ${r.otherName}` : `${r.otherName} owes you`}
           </p>
           <div className="mt-1 flex items-center gap-2">
-            <span className="text-lg font-bold tabular-nums text-ink">{toChips(r.amount, r.chip_ratio)} chips</span>
+            <span className="text-lg font-mono font-bold tabular-nums text-ink">{toChips(r.amount, r.chip_ratio)} chips</span>
             <span
               className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                 r.status === 'confirmed'
-                  ? 'bg-green-50 text-win'
+                  ? 'bg-win/10 text-win'
                   : r.status === 'disputed'
-                    ? 'bg-red-50 text-error'
+                    ? 'bg-error/10 text-error'
                     : 'bg-surface-strong text-muted'
               }`}
             >
@@ -164,7 +164,7 @@ export function MySettlements() {
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
                 placeholder="e.g. I think this should be 20 banks"
-                className="h-9 w-full rounded-sm border border-hairline px-2 text-sm"
+                className="h-9 w-full rounded-sm border border-hairline bg-surface-strong px-2 text-sm"
               />
               <Button
                 variant="danger"

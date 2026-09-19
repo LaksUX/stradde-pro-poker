@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
+import { SegmentedControl } from '../components/ui/SegmentedControl'
 import type { ChipRatio } from '../lib/chips'
 
 type VenueOption = { id: string; name: string }
@@ -168,7 +169,7 @@ export function CreateGame() {
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className="h-14 w-full rounded-sm border border-hairline px-3 text-ink"
+        className="h-14 w-full rounded-sm border border-hairline bg-surface-strong px-3 text-ink"
       />
       <label className="mt-3 block text-sm font-medium text-muted">Venue</label>
       <div className="relative">
@@ -176,7 +177,7 @@ export function CreateGame() {
           value={venue}
           onChange={(e) => setVenue(e.target.value)}
           placeholder="Kumar's house"
-          className="h-14 w-full rounded-sm border border-hairline px-3 text-ink"
+          className="h-14 w-full rounded-sm border border-hairline bg-surface-strong px-3 text-ink"
         />
         {venueSuggestions.length > 0 && !selectedVenueId && (
           <div className="absolute z-10 mt-1 w-full rounded-sm border border-hairline bg-canvas shadow-elevated">
@@ -190,7 +191,7 @@ export function CreateGame() {
                   setSelectedVenueId(v.id)
                   setVenueSuggestions([])
                 }}
-                className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-surface-soft"
+                className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-surface-strong"
               >
                 {v.name}
               </button>
@@ -210,53 +211,36 @@ export function CreateGame() {
         type="number"
         value={stake}
         onChange={(e) => setStake(Number(e.target.value) || 0)}
-        className="h-14 w-full rounded-sm border border-hairline px-3 text-ink"
+        className="h-14 w-full rounded-sm border border-hairline bg-surface-strong px-3 text-ink"
       />
       <label className="mt-3 block text-sm font-medium text-muted">Chip ratio</label>
-      <div className="flex gap-1.5">
-        {(['1:1', '1:2'] as const).map((r) => (
-          <button
-            key={r}
-            onClick={() => setChipRatio(r)}
-            className={`flex-1 rounded-sm border py-2 text-sm ${
-              chipRatio === r ? 'border-ink bg-ink text-white' : 'border-hairline text-muted'
-            }`}
-          >
-            {r}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        value={chipRatio}
+        onChange={setChipRatio}
+        options={[
+          { value: '1:1' as const, label: '1:1' },
+          { value: '1:2' as const, label: '1:2' },
+        ]}
+      />
       <p className="mt-1 text-xs text-muted">
         1 bank = {chipRatio === '1:2' ? '2 chips' : '1 chip'} — locked once the game starts.
       </p>
 
       <label className="mt-3 block text-sm font-medium text-muted">When</label>
-      <div className="flex gap-1.5">
-        <button
-          onClick={() => setScheduleMode('now')}
-          className={`flex-1 rounded-sm border py-2 text-sm ${
-            scheduleMode === 'now' ? 'border-ink bg-ink text-white' : 'border-hairline text-muted'
-          }`}
-        >
-          Now
-        </button>
-        <button
-          onClick={() => setScheduleMode('later')}
-          className={`flex-1 rounded-sm border py-2 text-sm ${
-            scheduleMode === 'later'
-              ? 'border-ink bg-ink text-white'
-              : 'border-hairline text-muted'
-          }`}
-        >
-          Schedule for later
-        </button>
-      </div>
+      <SegmentedControl
+        value={scheduleMode}
+        onChange={setScheduleMode}
+        options={[
+          { value: 'now' as const, label: 'Now' },
+          { value: 'later' as const, label: 'Schedule for later' },
+        ]}
+      />
       {scheduleMode === 'later' && (
         <input
           type="datetime-local"
           value={scheduledFor}
           onChange={(e) => setScheduledFor(e.target.value)}
-          className="mt-2 h-14 w-full rounded-sm border border-hairline px-3 text-ink"
+          className="mt-2 h-14 w-full rounded-sm border border-hairline bg-surface-strong px-3 text-ink"
         />
       )}
 

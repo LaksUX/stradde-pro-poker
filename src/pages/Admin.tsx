@@ -54,7 +54,7 @@ export function Admin() {
       {!loadingRows && rows.length === 0 && (
         <p className="mt-4 text-center text-sm text-muted">No profiles yet.</p>
       )}
-      <div className="mt-4 rounded-md border border-hairline">
+      <div className="mt-4 rounded-lg border border-hairline bg-canvas">
         {rows.map((r) => (
           <div
             key={r.id}
