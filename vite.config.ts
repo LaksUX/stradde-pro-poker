@@ -11,15 +11,24 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      // apple-touch-icon.png was listed here but never actually existed in
+      // public/ — index.html now points iOS at pwa-192x192.png directly
+      // instead (see its apple-touch-icon link), so this only needs to
+      // precache assets that are real.
+      includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Poker Night',
-        short_name: 'Poker Night',
+        name: 'Straddle',
+        short_name: 'Straddle',
         description:
           'Live buy-in and settlement tracking for home poker games — join by link, no install required to watch.',
         theme_color: '#ff385c', // Rausch — DESIGN-airbnb.md primary
         background_color: '#ffffff', // canvas — no dark mode, per DESIGN-airbnb.md
-        display: 'standalone',
+        // 'fullscreen' hides the OS status bar too, not just the browser
+        // chrome that 'standalone' already removed — display_override lets
+        // a browser that doesn't support fullscreen fall back to standalone
+        // instead of ignoring the manifest's display mode entirely.
+        display: 'fullscreen',
+        display_override: ['fullscreen', 'standalone'],
         start_url: '/',
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },

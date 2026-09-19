@@ -35,7 +35,7 @@ export function AppShell() {
         ) : (
           <div className="w-9" />
         )}
-        <span className="flex-1 text-center text-sm font-semibold text-ink">Poker Night</span>
+        <span className="flex-1 text-center text-sm font-semibold text-ink">Straddle</span>
         <div className="w-9" />
       </header>
 

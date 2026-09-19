@@ -69,7 +69,7 @@ export function Continue() {
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-on-primary">
           ♠
         </div>
-        <h1 className="text-xl font-semibold text-ink">Poker Night</h1>
+        <h1 className="text-xl font-semibold text-ink">Straddle</h1>
       </div>
 
       {linkExpired && (

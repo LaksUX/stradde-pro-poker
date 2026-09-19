@@ -9,7 +9,7 @@ export function OfflineBanner() {
   if (online) return null
 
   return (
-    <div className="fixed inset-x-0 top-0 z-50 bg-error px-3 py-2 text-center text-sm font-medium text-white">
+    <div className="fixed inset-x-0 top-0 z-50 bg-error px-3 py-2 text-center text-sm font-medium text-white [padding-top:calc(env(safe-area-inset-top)+0.5rem)]">
       No connection — buy-ins, cash-outs, and other changes won't save until you're back online.
     </div>
   )

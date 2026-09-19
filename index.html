@@ -3,10 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Poker Night</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>Straddle</title>
     <meta name="theme-color" content="#ff385c" />
     <meta name="description" content="Live buy-in and settlement tracking for home poker games." />
+
+    <!-- iOS ignores the web manifest's display mode for "Add to Home
+         Screen" — these are the meta tags Safari actually reads to launch
+         without browser chrome (apple-mobile-web-app-capable) and to color
+         the status bar area rather than leaving a white bar across the top
+         of an edge-to-edge layout (black-translucent, paired with
+         viewport-fit=cover above so content draws under it). -->
+    <link rel="apple-touch-icon" href="/pwa-192x192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Straddle" />
+    <meta name="mobile-web-app-capable" content="yes" />
   </head>
   <body>
     <div id="root"></div>

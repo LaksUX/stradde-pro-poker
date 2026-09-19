@@ -53,6 +53,15 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
   overflow-x: hidden;
+  /* Installed as a fullscreen/standalone PWA (index.html's
+     apple-mobile-web-app-* tags, viewport-fit=cover, and vite.config.ts's
+     manifest display: 'fullscreen'), content draws under the notch/status
+     bar unless something reserves that space — applied globally, not just
+     inside AppShell, since the bare public screens (Share Table, Join,
+     Continue) need the same clearance and have no shared header of their
+     own to put it on. env() resolves to 0 on a browser tab, so this is a
+     no-op there. */
+  padding-top: env(safe-area-inset-top);
 }
 
 /* One shadow tier, per DESIGN-airbnb.md — reserved for the bottom sheet /
