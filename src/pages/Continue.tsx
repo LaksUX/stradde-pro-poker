@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { continueWithPhone, useAuth } from '../hooks/useAuth'
 import { withTimeout } from '../lib/errors'
 import { Button } from '../components/ui/Button'
+import { PageSpinner } from '../components/ui/Spinner'
 
 // See PAGE_PROMPTS.md "Continue" — replaces Login. One entry point for
 // everyone, whether they're about to host or just wanted to open the app
@@ -28,7 +29,7 @@ export function Continue() {
     }
   }, [])
 
-  if (loading) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (loading) return <PageSpinner />
 
   // Already signed in — route by role/approval, never re-show the form.
   if (session && profile) {

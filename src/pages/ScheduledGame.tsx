@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '../lib/supabase'
+import { toast } from '../lib/toast'
 import { Button } from '../components/ui/Button'
+import { PageSpinner } from '../components/ui/Spinner'
 
 type Game = {
   id: string
@@ -31,7 +33,7 @@ export function ScheduledGame() {
       .then(({ data }) => setGame(data as Game))
   }, [gameId])
 
-  if (!game) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (!game) return <PageSpinner />
 
   async function handleStart() {
     if (!gameId) return
@@ -39,7 +41,7 @@ export function ScheduledGame() {
     const { error } = await supabase.from('games').update({ status: 'live' }).eq('id', gameId)
     setStarting(false)
     if (error) {
-      alert(navigator.onLine ? error.message : "Couldn't start — you're offline. Reconnect and try again.")
+      toast.error(navigator.onLine ? error.message : "Couldn't start — you're offline. Reconnect and try again.")
       return
     }
     navigate(`/t/${gameId}`)

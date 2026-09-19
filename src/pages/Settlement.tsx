@@ -3,7 +3,9 @@ import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
+import { toast } from '../lib/toast'
 import { Button } from '../components/ui/Button'
+import { PageSpinner } from '../components/ui/Spinner'
 
 type Game = { id: string; name: string; chip_ratio: ChipRatio; settlement_published_at: string | null }
 type PlayerOpt = { id: string; name: string }
@@ -53,7 +55,7 @@ export function Settlement() {
     loadAll()
   }, [gameId])
 
-  if (!game) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (!game) return <PageSpinner />
   const ratio = game.chip_ratio
 
   async function editTransfer(id: string, patch: Partial<Transfer>) {
@@ -105,7 +107,7 @@ export function Settlement() {
       .select('id, from_player_id, to_player_id, amount, status, request_note')
       .single()
     if (error) {
-      alert(navigator.onLine ? error.message : "Couldn't add — you're offline. Reconnect and try again.")
+      toast.error(navigator.onLine ? error.message : "Couldn't add — you're offline. Reconnect and try again.")
       return
     }
     setTransfers((prev) => [...prev, data as Transfer])

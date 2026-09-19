@@ -16,11 +16,14 @@ import { MySettlements } from './pages/MySettlements'
 import { MyGame } from './pages/MyGame'
 import { VenueDetail } from './pages/VenueDetail'
 import { OfflineBanner } from './components/ui/OfflineBanner'
+import { Toaster } from './components/ui/Toaster'
+import { ConfirmDialogHost } from './components/ui/ConfirmDialogHost'
+import { PageSpinner } from './components/ui/Spinner'
 import { AppShell } from './components/layout/AppShell'
 
 function RootRedirect() {
   const { session, profile, loading } = useAuth()
-  if (loading) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (loading) return <PageSpinner />
   if (!session) return <Navigate to="/continue" replace />
   if (profile?.role === 'host' && profile.approved) return <Navigate to="/games/new" replace />
   if (profile?.role === 'host' && !profile.approved) return <Navigate to="/pending-approval" replace />
@@ -33,6 +36,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <OfflineBanner />
+      <Toaster />
+      <ConfirmDialogHost />
       <Routes>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/continue" element={<Continue />} />

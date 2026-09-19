@@ -6,7 +6,10 @@ import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { computeInitialSettlement, type PlayerForSettlement } from '../lib/settlement'
 import { runWrite } from '../lib/errors'
+import { toast } from '../lib/toast'
+import { confirmDialog } from '../lib/confirmDialog'
 import { Button } from '../components/ui/Button'
+import { PageSpinner } from '../components/ui/Spinner'
 
 type Game = {
   id: string
@@ -140,7 +143,7 @@ export function LiveGame() {
       if (error) throw error
       fullReq = data
     } catch {
-      alert(
+      toast.error(
         navigator.onLine
           ? "Couldn't load that request — try again."
           : "Couldn't load that request — you're offline. Reconnect and try again."
@@ -160,7 +163,7 @@ export function LiveGame() {
         if (gpError) throw gpError
         gamePlayerId = gp.id
       } catch (e) {
-        alert(e instanceof Error && navigator.onLine ? e.message : "Couldn't confirm — you're offline. Reconnect and try again.")
+        toast.error(e instanceof Error && navigator.onLine ? e.message : "Couldn't confirm — you're offline. Reconnect and try again.")
         return
       }
     } else {
@@ -223,18 +226,17 @@ export function LiveGame() {
     const totalIn = players.reduce((s, p) => s + p.confirmed_buyins * game.stake, 0)
     const totalOut = players.reduce((s, p) => s + (p.cashout ?? 0), 0)
     if (totalOut + game.rake > totalIn) {
-      alert("Can't close — cash-outs plus rake exceed total buy-ins. Resolve the overpay first.")
+      toast.error("Can't close — cash-outs plus rake exceed total buy-ins. Resolve the overpay first.")
       return
     }
     const unfinished = players.filter((p) => p.cashout == null)
-    if (
-      !confirm(
-        unfinished.length > 0
-          ? `${unfinished.length} player(s) have no cash-out — their buy-ins will count as a loss to the table. Close and settle?`
-          : 'Close this game and compute settlement?'
-      )
+    const confirmed = await confirmDialog(
+      unfinished.length > 0
+        ? `${unfinished.length} player(s) have no cash-out — their buy-ins will count as a loss to the table. Close and settle?`
+        : 'Close this game and compute settlement?',
+      { confirmLabel: 'Close & settle', danger: unfinished.length > 0 }
     )
-      return
+    if (!confirmed) return
 
     // Anyone still "in play" gets cashout = 0 — walked away, house absorbs it,
     // per REQUIREMENTS.md's Game lifecycle. Fail fast on the first write
@@ -284,7 +286,7 @@ export function LiveGame() {
     navigate(`/games/${gameId}/settlement`)
   }
 
-  if (!game) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (!game) return <PageSpinner />
   if (!profile) return <div className="p-6 text-center text-muted">Sign in required.</div>
 
   const ratio = game.chip_ratio
@@ -315,7 +317,7 @@ export function LiveGame() {
             <button
               onClick={() => {
                 navigator.clipboard.writeText(`${window.location.origin}/t/${gameId}`)
-                alert('Link copied')
+                toast.success('Link copied')
               }}
               className="mt-2 text-xs text-primary underline"
             >

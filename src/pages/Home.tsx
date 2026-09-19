@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { toChips } from '../lib/chips'
 import { Button } from '../components/ui/Button'
+import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
 
 type HostedGame = { id: string; name: string; closed_at: string | null; pot: number; rake: number }
 type PlayedGame = { id: string; name: string; closed_at: string | null; net: number; chip_ratio: '1:1' | '1:2' }
@@ -80,7 +81,7 @@ export function Home() {
     }
   }, [profile])
 
-  if (loading) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (loading) return <PageSpinner />
   if (!session) return <Navigate to="/continue" replace />
 
   async function handleLogout() {
@@ -143,7 +144,7 @@ export function Home() {
         </button>
       </div>
 
-      {loadingData && <p className="mt-4 text-center text-sm text-muted">Loading…</p>}
+      {loadingData && <InlineSpinner />}
 
       {!loadingData && tab === 'player' && (
         <div className="mt-4">

@@ -3,6 +3,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '../lib/supabase'
 import { toChips, type ChipRatio } from '../lib/chips'
+import { toast } from '../lib/toast'
+import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
 
 type GameSummary = {
   id: string
@@ -203,7 +205,7 @@ export function ShareTable() {
     }
   }, [gameId, game?.status])
 
-  if (!game) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (!game) return <PageSpinner />
 
   if (game.status === 'scheduled') {
     return (
@@ -222,9 +224,7 @@ export function ShareTable() {
           <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
           <p className="text-sm text-muted">{game.venue_freetext}</p>
         </div>
-        {myTransfer === 'unresolved' && (
-          <p className="mt-4 text-center text-sm text-muted">Loading…</p>
-        )}
+        {myTransfer === 'unresolved' && <InlineSpinner />}
         {myTransfer === 'none' && (
           <p className="mt-4 text-center text-sm text-muted">
             No settlement here for you — either it hasn't been published yet, you weren't in
@@ -279,7 +279,7 @@ export function ShareTable() {
         <button
           onClick={() => {
             navigator.clipboard.writeText(`${window.location.origin}/t/${gameId}`)
-            alert('Link copied')
+            toast.success('Link copied')
           }}
           className="mx-auto mb-4 block text-center text-xs text-primary underline"
         >

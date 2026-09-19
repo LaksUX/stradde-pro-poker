@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { applyToHost, useAuth } from '../hooks/useAuth'
 import { withTimeout } from '../lib/errors'
 import { Button } from '../components/ui/Button'
+import { PageSpinner } from '../components/ui/Spinner'
 
 // See PAGE_PROMPTS.md "Apply to Host". Reached from Home. The explicit
 // action that requests the host role — hosting is never inferred from how
@@ -13,7 +14,7 @@ export function ApplyToHost() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  if (loading) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (loading) return <PageSpinner />
   if (!session) return <Navigate to="/continue" replace />
   if (profile?.role === 'host') return <Navigate to="/pending-approval" replace />
 

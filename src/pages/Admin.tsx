@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { runWrite } from '../lib/errors'
 import { Button } from '../components/ui/Button'
+import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
 
 type ProfileRow = {
   id: string
@@ -34,7 +35,7 @@ export function Admin() {
     if (profile?.role === 'admin') load()
   }, [profile])
 
-  if (loading) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (loading) return <PageSpinner />
   if (!session) return <Navigate to="/continue" replace />
   if (profile?.role !== 'admin') return <Navigate to="/home" replace />
 
@@ -49,7 +50,7 @@ export function Admin() {
   return (
     <div className="mx-auto max-w-sm p-6">
       <h1 className="text-lg font-semibold text-ink">Admin</h1>
-      {loadingRows && <p className="mt-4 text-center text-sm text-muted">Loading…</p>}
+      {loadingRows && <InlineSpinner />}
       {!loadingRows && rows.length === 0 && (
         <p className="mt-4 text-center text-sm text-muted">No profiles yet.</p>
       )}

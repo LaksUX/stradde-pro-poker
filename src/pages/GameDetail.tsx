@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
+import { PageSpinner } from '../components/ui/Spinner'
 
 type Game = {
   id: string
@@ -82,7 +83,7 @@ export function GameDetail() {
     load()
   }, [gameId, profile])
 
-  if (!game || !profile) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (!game || !profile) return <PageSpinner />
   const ratio = game.chip_ratio
   const isHost = game.host_id === profile.id
   const me = players.find((p) => p.profile_id === profile.id)
