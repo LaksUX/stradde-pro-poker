@@ -107,30 +107,6 @@ sync with whatever's decided here.
 > figure across the app now renders in monospace, not just tabular-nums. See the
 > rewritten Theme section below. Visual/interaction identity change only — no
 > product behavior, data model, or prior decision changes.
->
-> **Thirteenth revision note — reverses a prior decision.** The ninth
-> revision's "a host adding buy-ins directly to a player's row is auto-confirmed
-> immediately" is retired: **a host-initiated buy-in (for themself or any other
-> player) now stays pending, financially invisible, until that PLAYER confirms
-> it** — the exact mirror of self-join's host-confirm step, just initiated from
-> the other side. The reasoning for auto-confirm ("the confirm step exists to
-> check the host's word, not the other way around") undersold the actual risk:
-> a host can fat-finger a count or credit the wrong seat exactly as easily as a
-> player can overclaim one, and the paper-sheet-beating promise this app makes
-> is about catching exactly that kind of entry error before it's load-bearing.
-> See the rewritten "Joining a game" and Money model sections below. A new
-> `request_type` value, `host_added`, carries this — same `buyin_requests`
-> table, same pending → confirmed/declined state machine as `join`/
-> `more_buyins`, just with the confirm direction flipped. Closes a
-> previously-documented-but-open RLS gap as part of landing this: a player's
-> update policy on `buyin_requests` was row-level only with no column
-> restriction, so nothing at the database layer (only app-layer discipline)
-> stopped a player from setting `status`/`count`/`confirmed_at` on their own
-> `join`/`more_buyins` request — dormant before since no legitimate flow
-> needed a player to touch `status`, but no longer dormant once one exists. A
-> trigger now enforces it: a non-host update may only flip a `host_added`
-> request from pending to confirmed/declined (setting nothing else), or set
-> `player_confirm_status` on an already-decided request — never anything else.
 
 ## What this is
 
@@ -181,9 +157,9 @@ friction question.
   confirmed in, it goes straight to their live view. A visible "Not you? Switch"
   option always sits alongside the one-tap button.
 - **The host sees pending requests on Live Game and confirms or declines each one
-  inline, in the Pending requests list** (see Live-capture experience — this
-  replaces the never-built "bottom sheet" the seventh revision speced, per the
-  correction in the Live-capture section below). Confirming turns the
+  — from the bottom sheet, the same surface used for every other buy-in action**
+  (see Live-capture experience). Opening a pending request pre-fills the requested
+  count on the same picker, adjustable before confirming. Confirming turns the
   request into a real, counted buy-in event and (for a join request) admits the
   player to the roster; declining removes it with no trace in the money model —
   nothing was ever counted, so there's nothing to unwind. **[decision] This
@@ -193,20 +169,10 @@ friction question.
   the normal 1-minute lock applies exactly as it does to any other buy-in.
 - **Requesting more buy-ins mid-game** works the same way, same count picker: a
   joined player can tap "Request more buy-ins" from their own view; it shows as
-  pending on the host's screen until confirmed or declined.
-- **[decision, revised — reverses the ninth revision] A host can also initiate a
-  buy-in for any player, including themself** — from a "+ Buy-in" action on that
-  player's row on Live Game. This is the *reverse* handshake: it stays pending,
-  financially invisible, until the **player** confirms or declines it, not the
-  host. For any player other than the host, that confirm/decline lives on their
-  own My Game screen, alongside their own "Your activity" feed. For the host's
-  own row — a host is also a `game_players` row in their own game — the same
-  confirm/decline appears inline on Live Game itself, since a host has no
-  separate My Game screen to route it through. **[decision] A host can never
-  confirm a host-added request on someone else's behalf** — doing so would
-  recreate exactly the money-integrity gap this exists to close, just from the
-  other direction; Live Game shows other players' pending host-added buy-ins as
-  a read-only "awaiting their confirmation" line, never an actionable button.
+  pending on the host's screen until confirmed or declined via the bottom sheet.
+  **A host adding buy-ins directly to a player's row, from that same bottom sheet,
+  is auto-confirmed immediately** — the confirm step exists specifically for
+  player-initiated requests, not for the host's own actions.
 - **Only confirmed buy-ins count toward any total** — the rake/settlement invariant,
   the overpay check, and every dashboard figure are computed from confirmed buy-in
   events only. A pending request is visible (so nobody wonders where it went) but
@@ -490,17 +456,16 @@ single person's phone doesn't: everyone at the table can see it.
     softens the *money* consequence of that gap even though the *identity* exposure
     is unchanged: a stranger can still see themselves added, but they can't credit
     themselves a buy-in the host never actually received.
-- **Live capture is tap-only.** **[decision, revised] Voice entry is removed** —
-  it added transcription-accuracy risk (names, background noise) without a clear
-  enough win over tapping to justify it. **[decision, revised — corrects the
-  previous revision] There is no shared "one bottom sheet" surface** — that was
-  speced before any of this screen was built, and every buy-in surface actually
-  built since (Join, My Game's "Request more buy-ins") uses the same lighter
-  pattern instead: an inline count picker that expands in place, right where the
-  action was tapped, with its own Send/Confirm button. Live Game's "+ Buy-in" per
-  player row (see "Joining a game" above) and its Pending requests queue both
-  follow that same established pattern rather than introducing a new one.
-  Declining a request needs no picker at all, since nothing is being added.
+- **Live capture is tap-only, and every buy-in/cash-out action routes through one
+  bottom sheet.** **[decision, revised] Voice entry is removed** — it added
+  transcription-accuracy risk (names, background noise) without a clear enough win
+  over tapping to justify it. **[decision] There is exactly one surface for adding
+  a buy-in or cash-out: the bottom sheet.** This applies whether the host is adding
+  to an existing player directly (auto-confirmed) or reviewing a pending request
+  (opens the same sheet, pre-filled with the requested count, adjustable before
+  confirming) — there's no separate inline "+" anywhere else on Live Game.
+  Declining a request is the one exception that doesn't require the sheet, since
+  nothing is being added.
 - **Photo-of-the-sheet import — a true last resort, not a featured fallback.**
   **[decision, revised]** This stays available for a host who's reverted to paper
   entirely for a night, but it's demoted further than the previous revision: no
