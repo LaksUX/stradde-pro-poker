@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
 import { Button } from '../components/ui/Button'
+import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
 
 type Row = {
   id: string
@@ -80,7 +81,7 @@ export function MySettlements() {
     load()
   }, [profile])
 
-  if (loading) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (loading) return <PageSpinner />
   if (!session) return <Navigate to="/continue" replace />
 
   async function setStatus(id: string, status: 'confirmed' | 'disputed', note?: string) {
@@ -116,7 +117,7 @@ export function MySettlements() {
         </div>
       </div>
 
-      {loadingRows && <p className="mt-4 text-center text-sm text-muted">Loading…</p>}
+      {loadingRows && <InlineSpinner />}
       {!loadingRows && rows.length === 0 && (
         <p className="mt-4 text-center text-sm text-muted">No settlements yet.</p>
       )}

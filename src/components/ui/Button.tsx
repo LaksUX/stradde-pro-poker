@@ -18,7 +18,7 @@ export function Button({
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; block?: boolean }) {
   return (
     <button
-      className={`h-12 rounded-sm px-6 text-[16px] font-medium transition-colors ${
+      className={`h-12 rounded-sm px-6 text-[16px] font-medium transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:active:scale-100 ${
         block ? 'w-full' : ''
       } ${variantClasses[variant]} ${className}`}
       {...props}

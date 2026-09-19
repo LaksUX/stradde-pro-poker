@@ -1,3 +1,5 @@
+import { toast } from './toast'
+
 // See PAGE_PROMPTS.md's Global "Offline / connection loss mid-entry" edge
 // case — silent data loss on a money-tracking app is the worst-case failure
 // mode. [decision] The app blocks with a clear "didn't save" message rather
@@ -37,12 +39,12 @@ export async function runWrite(
   try {
     const { error } = await withTimeout(Promise.resolve(action()))
     if (error) {
-      alert(`${label} didn't save: ${error.message}`)
+      toast.error(`${label} didn't save: ${error.message}`)
       return false
     }
     return true
   } catch {
-    alert(
+    toast.error(
       navigator.onLine
         ? `${label} didn't save — something went wrong. Try again.`
         : `${label} didn't save — you're offline. Reconnect and try again.`

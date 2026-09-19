@@ -4,8 +4,10 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
+import { toast } from '../lib/toast'
 import { BuyinPicker } from '../components/ui/BuyinPicker'
 import { Button } from '../components/ui/Button'
+import { PageSpinner } from '../components/ui/Spinner'
 
 type Game = {
   id: string
@@ -103,9 +105,9 @@ export function MyGame() {
     }
   }, [gameId, profile])
 
-  if (loading) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (loading) return <PageSpinner />
   if (!session) return <Navigate to="/continue" replace />
-  if (!game || !myPlayer) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (!game || !myPlayer) return <PageSpinner />
 
   const ratio = game.chip_ratio
   const confirmedBuyins = requests
@@ -129,7 +131,7 @@ export function MyGame() {
       setPickerOpen(false)
       setCount(1)
     } catch (e) {
-      alert(
+      toast.error(
         e instanceof Error && navigator.onLine
           ? e.message
           : "Request didn't send — you're offline. Reconnect and try again."

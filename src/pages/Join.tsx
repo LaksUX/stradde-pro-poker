@@ -6,6 +6,7 @@ import { withTimeout } from '../lib/errors'
 import { BuyinPicker } from '../components/ui/BuyinPicker'
 import { Button } from '../components/ui/Button'
 import { toChips, type ChipRatio } from '../lib/chips'
+import { PageSpinner } from '../components/ui/Spinner'
 
 type GameSummary = {
   id: string
@@ -49,7 +50,7 @@ export function Join() {
   }, [gameId])
 
   if (!game) {
-    return <div className="p-6 text-center text-muted">Loading…</div>
+    return <PageSpinner />
   }
 
   if (game.status === 'scheduled') {

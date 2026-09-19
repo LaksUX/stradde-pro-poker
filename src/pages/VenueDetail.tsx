@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
+import { PageSpinner } from '../components/ui/Spinner'
 
 type GameRow = {
   game_id: string
@@ -116,9 +117,9 @@ export function VenueDetail() {
     }
   }, [venueId, profile])
 
-  if (loading) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (loading) return <PageSpinner />
   if (!session) return <Navigate to="/continue" replace />
-  if (!ready) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (!ready) return <PageSpinner />
 
   const myRows = rows.filter((g) => myRoles[g.game_id]?.kind !== 'none')
 

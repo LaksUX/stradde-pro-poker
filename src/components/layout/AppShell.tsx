@@ -26,7 +26,7 @@ export function AppShell() {
           <button
             onClick={() => navigate(-1)}
             aria-label="Back"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-ink hover:bg-surface-soft"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-ink transition-colors active:scale-95 hover:bg-surface-soft"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -46,7 +46,7 @@ export function AppShell() {
       <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-hairline-soft bg-canvas/95 backdrop-blur [padding-bottom:env(safe-area-inset-bottom)]">
         <button
           onClick={() => navigate('/home')}
-          className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs font-medium ${
+          className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs font-medium transition-colors active:scale-95 ${
             isHome ? 'text-primary' : 'text-muted'
           }`}
         >
@@ -59,7 +59,7 @@ export function AppShell() {
         {active && (
           <button
             onClick={() => navigate(liveHref!)}
-            className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs font-medium ${
+            className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs font-medium transition-colors active:scale-95 ${
               onLiveTab ? 'text-primary' : 'text-muted'
             }`}
           >

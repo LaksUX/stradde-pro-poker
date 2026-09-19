@@ -1,6 +1,7 @@
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
+import { PageSpinner } from '../components/ui/Spinner'
 
 // See PAGE_PROMPTS.md "Pending Approval". Shown to a signed-in phone
 // identity with role: 'host' and approved: false — reached only via Apply
@@ -9,7 +10,7 @@ export function PendingApproval() {
   const { session, profile, loading } = useAuth()
   const navigate = useNavigate()
 
-  if (loading) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (loading) return <PageSpinner />
   if (!session) return <Navigate to="/continue" replace />
   if (profile?.role === 'host' && profile.approved) return <Navigate to="/games/new" replace />
 

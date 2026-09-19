@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
+import { PageSpinner } from '../components/ui/Spinner'
 import type { ChipRatio } from '../lib/chips'
 
 type VenueOption = { id: string; name: string }
@@ -89,7 +90,7 @@ export function CreateGame() {
     return created.id
   }
 
-  if (loading) return <div className="p-6 text-center text-muted">Loading…</div>
+  if (loading) return <PageSpinner />
   if (!profile?.approved) {
     return (
       <div className="mx-auto max-w-sm p-6 text-center">
