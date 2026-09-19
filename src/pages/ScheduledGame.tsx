@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '../lib/supabase'
 import { toast } from '../lib/toast'
+import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
 
@@ -13,6 +14,7 @@ type Game = {
   scheduled_for: string
   stake: number
   host_id: string
+  status: string
 }
 
 // See PAGE_PROMPTS.md "Scheduled Game". A `scheduled` game accepts no
@@ -20,18 +22,44 @@ type Game = {
 export function ScheduledGame() {
   const { gameId } = useParams()
   const navigate = useNavigate()
+  const { profile } = useAuth()
   const [game, setGame] = useState<Game | null>(null)
   const [starting, setStarting] = useState(false)
 
   useEffect(() => {
     if (!gameId) return
-    supabase
-      .from('games')
-      .select('id, name, venue_freetext, scheduled_for, stake, host_id')
-      .eq('id', gameId)
-      .single()
-      .then(({ data }) => setGame(data as Game))
-  }, [gameId])
+    let cancelled = false
+
+    async function load() {
+      const { data } = await supabase
+        .from('games')
+        .select('id, name, venue_freetext, scheduled_for, stake, host_id, status')
+        .eq('id', gameId)
+        .single()
+      if (cancelled || !data) return
+      setGame(data as Game)
+      // The host is already routed to /t/:gameId by handleStart below; this
+      // covers everyone ELSE waiting on this screen — without it, a player
+      // who opened the link before the host started has no way to know the
+      // game went live except manually reloading.
+      if (data.status === 'live') navigate(`/t/${gameId}`, { replace: true })
+    }
+    load()
+
+    const channel = supabase
+      .channel(`scheduled-game-${gameId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` },
+        load
+      )
+      .subscribe()
+
+    return () => {
+      cancelled = true
+      supabase.removeChannel(channel)
+    }
+  }, [gameId, navigate])
 
   if (!game) return <PageSpinner />
 
@@ -47,6 +75,14 @@ export function ScheduledGame() {
     navigate(`/t/${gameId}`)
   }
 
+  // Anyone with this link lands here, not just the host — the "Start game"
+  // action stayed host-only at the database layer (RLS's "host updates own
+  // games") but was shown to every viewer, so a player opening a shared
+  // pre-game link saw a button that would just fail for them with a
+  // confusing error. Gate it in the UI too, and give non-hosts their own
+  // waiting state instead.
+  const isHost = profile?.id === game.host_id
+
   return (
     <div className="mx-auto max-w-sm p-6 text-center">
       <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
@@ -54,16 +90,24 @@ export function ScheduledGame() {
       <p className="text-sm text-muted">{new Date(game.scheduled_for).toLocaleString()}</p>
       <p className="mt-1 text-sm text-muted">{game.stake} banks buy-in</p>
 
-      <div className="mx-auto mt-6 w-fit rounded-sm border-4 border-white bg-white p-1 shadow-elevated">
-        <QRCodeSVG value={`${window.location.origin}/t/${gameId}`} size={120} />
-      </div>
-      <p className="mt-2 text-xs text-muted">
-        Share this link ahead of time — it shows "not started yet" until you start it.
-      </p>
+      {isHost ? (
+        <>
+          <div className="mx-auto mt-6 w-fit rounded-sm border-4 border-white bg-white p-1 shadow-elevated">
+            <QRCodeSVG value={`${window.location.origin}/t/${gameId}`} size={120} />
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            Share this link ahead of time — it shows "not started yet" until you start it.
+          </p>
 
-      <Button block className="mt-6" disabled={starting} onClick={handleStart}>
-        {starting ? 'Starting…' : 'Start game'}
-      </Button>
+          <Button block className="mt-6" disabled={starting} onClick={handleStart}>
+            {starting ? 'Starting…' : 'Start game'}
+          </Button>
+        </>
+      ) : (
+        <p className="mt-8 text-sm text-muted">
+          Waiting on the host to start the game — this page updates on its own once it's live.
+        </p>
+      )}
     </div>
   )
 }

@@ -300,6 +300,38 @@ export function LiveGame() {
     <div className="mx-auto max-w-md p-6">
       <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
 
+      {/* Pending requests need action now — they lead the screen, ahead of
+          the always-there utility cards below (invite, table status, rake),
+          so a host opening mid-game sees what's waiting on them first. */}
+      {pending.length > 0 && (
+        <div className="mt-3 rounded-lg border border-primary/40 bg-canvas p-3">
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-primary">
+            Pending requests ({pending.length})
+          </h2>
+          {pending.map((r) => (
+            <div key={r.id} className="mb-2 flex items-center justify-between last:mb-0">
+              <div>
+                <div className="text-sm font-semibold text-ink">
+                  {r.requester_name}
+                  {r.request_type === 'more_buyins' ? ' — more buy-ins' : ''}
+                </div>
+                <div className="text-xs text-muted">
+                  {r.count} buy-in{r.count > 1 ? 's' : ''}
+                </div>
+              </div>
+              <div className="flex gap-1.5">
+                <Button variant="primary" className="h-8 px-3 text-xs" onClick={() => confirmRequest(r)}>
+                  Confirm
+                </Button>
+                <Button variant="danger" className="h-8 px-3 text-xs" onClick={() => declineRequest(r.id)}>
+                  Decline
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="mt-3 rounded-lg border border-hairline bg-canvas p-3">
         <div className="flex items-center justify-between">
           <span className="text-muted">Invite walk-ins</span>
@@ -397,35 +429,6 @@ export function LiveGame() {
           <p className="mt-1 text-xs text-muted">Masked — only you can see this.</p>
         )}
       </div>
-
-      {pending.length > 0 && (
-        <div className="mt-4 rounded-lg border border-hairline bg-canvas p-3">
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
-            Pending requests ({pending.length})
-          </h2>
-          {pending.map((r) => (
-            <div key={r.id} className="mb-2 flex items-center justify-between last:mb-0">
-              <div>
-                <div className="text-sm font-semibold text-ink">
-                  {r.requester_name}
-                  {r.request_type === 'more_buyins' ? ' — more buy-ins' : ''}
-                </div>
-                <div className="text-xs text-muted">
-                  {r.count} buy-in{r.count > 1 ? 's' : ''}
-                </div>
-              </div>
-              <div className="flex gap-1.5">
-                <Button variant="primary" className="h-8 px-3 text-xs" onClick={() => confirmRequest(r)}>
-                  Confirm
-                </Button>
-                <Button variant="danger" className="h-8 px-3 text-xs" onClick={() => declineRequest(r.id)}>
-                  Decline
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       <div className="mt-4 rounded-lg border border-hairline bg-canvas">
         {players.length === 0 && (

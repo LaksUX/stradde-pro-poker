@@ -138,44 +138,9 @@ export function Settlement() {
 
       {transfers.map((t) => (
         <div key={t.id} className="mt-3 rounded-lg border border-hairline bg-canvas p-3">
-          <div className="flex items-center gap-2">
-            <select
-              value={t.from_player_id}
-              onChange={(e) => editTransfer(t.id, { from_player_id: e.target.value })}
-              className="h-9 flex-1 rounded-sm border border-hairline bg-surface-strong text-sm"
-            >
-              {players.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            <span className="text-xs text-muted">owes</span>
-            <select
-              value={t.to_player_id}
-              onChange={(e) => editTransfer(t.id, { to_player_id: e.target.value })}
-              className="h-9 flex-1 rounded-sm border border-hairline bg-surface-strong text-sm"
-            >
-              {players.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="mt-2 flex items-center gap-2">
-            <span className="text-lg font-mono font-bold tabular-nums text-ink">
-              {toChips(t.amount, ratio)} chips
-              <span className="ml-1 text-xs font-normal text-muted">({t.amount} banks)</span>
-            </span>
-            <input
-              type="number"
-              defaultValue={t.amount}
-              onBlur={(e) => editTransfer(t.id, { amount: Number(e.target.value) || 0 })}
-              className="h-9 w-20 rounded-sm border border-hairline bg-surface-strong px-2 text-sm"
-            />
+          <div className="flex items-center justify-between gap-2">
             <span
-              className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+              className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
                 t.status === 'confirmed'
                   ? 'bg-win/10 text-win'
                   : t.status === 'disputed'
@@ -185,12 +150,54 @@ export function Settlement() {
             >
               {t.status}
             </span>
-            <button
-              className="ml-auto text-xs text-error underline"
-              onClick={() => removeTransfer(t.id)}
-            >
+            <button className="text-xs text-error underline" onClick={() => removeTransfer(t.id)}>
               Remove
             </button>
+          </div>
+
+          <div className="mt-2 flex items-center gap-2">
+            <div className="flex-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wide text-muted">From</label>
+              <select
+                value={t.from_player_id}
+                onChange={(e) => editTransfer(t.id, { from_player_id: e.target.value })}
+                className="h-9 w-full rounded-sm border border-hairline bg-surface-strong text-sm"
+              >
+                {players.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <span className="mt-4 shrink-0 text-xs text-muted">owes</span>
+            <div className="flex-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wide text-muted">To</label>
+              <select
+                value={t.to_player_id}
+                onChange={(e) => editTransfer(t.id, { to_player_id: e.target.value })}
+                className="h-9 w-full rounded-sm border border-hairline bg-surface-strong text-sm"
+              >
+                {players.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center gap-2">
+            <span className="font-mono text-lg font-bold tabular-nums text-ink">
+              {toChips(t.amount, ratio)} chips
+            </span>
+            <span className="font-mono text-xs tabular-nums text-muted">({t.amount} banks)</span>
+            <input
+              type="number"
+              defaultValue={t.amount}
+              onBlur={(e) => editTransfer(t.id, { amount: Number(e.target.value) || 0 })}
+              className="ml-auto h-9 w-20 rounded-sm border border-hairline bg-surface-strong px-2 text-sm"
+            />
           </div>
           {t.request_note && (
             <p className="mt-2 text-xs text-muted">Player's proposed change: "{t.request_note}"</p>

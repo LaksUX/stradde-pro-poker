@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { toast } from '../lib/toast'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
+import { Button } from '../components/ui/Button'
 
 type GameSummary = {
   id: string
@@ -264,6 +265,13 @@ export function ShareTable() {
     ? game.table_status_override === 'full'
     : seated >= game.table_size
   const ratio: ChipRatio = '1:1' // not exposed pre-join — see Join.tsx's comment
+  // A fresh visitor deciding whether to join needs the QR/link front and
+  // center — it's the entire content of their decision. Someone already
+  // seated cares about their own status and the roster first; showing the
+  // same big QR to them pushed that below the fold for no reason, so it
+  // collapses for anyone past "not-joined" (table-display mode is the one
+  // exception — its whole job is being a static invite screen).
+  const showQrByDefault = displayMode || myStatus === 'not-joined'
 
   return (
     <div className="mx-auto max-w-sm p-6">
@@ -272,18 +280,32 @@ export function ShareTable() {
           Table display
         </p>
       )}
-      <div className="mx-auto mb-4 w-fit rounded-sm border-4 border-white bg-white p-1 shadow-elevated">
-        <QRCodeSVG value={`${window.location.origin}/t/${gameId}`} size={120} />
-      </div>
-      {!displayMode && (
+      {showQrByDefault ? (
+        <>
+          <div className="mx-auto mb-4 w-fit rounded-sm border-4 border-white bg-white p-1 shadow-elevated">
+            <QRCodeSVG value={`${window.location.origin}/t/${gameId}`} size={120} />
+          </div>
+          {!displayMode && (
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}/t/${gameId}`)
+                toast.success('Link copied')
+              }}
+              className="mx-auto mb-4 block text-center text-xs text-primary underline"
+            >
+              Copy link
+            </button>
+          )}
+        </>
+      ) : (
         <button
           onClick={() => {
             navigator.clipboard.writeText(`${window.location.origin}/t/${gameId}`)
             toast.success('Link copied')
           }}
-          className="mx-auto mb-4 block text-center text-xs text-primary underline"
+          className="mb-4 block text-center text-xs text-primary underline"
         >
-          Copy link
+          Copy invite link
         </button>
       )}
       <div className="rounded-lg border border-hairline bg-canvas p-4">
@@ -303,12 +325,9 @@ export function ShareTable() {
 
       {!displayMode && myStatus === 'not-joined' && (
         <>
-          <button
-            onClick={() => navigate(`/join/${gameId}`)}
-            className="mt-4 h-12 w-full rounded-sm bg-primary text-[16px] font-medium text-on-primary hover:bg-primary-active"
-          >
+          <Button block className="mt-4" onClick={() => navigate(`/join/${gameId}`)}>
             {full ? 'Request a seat anyway' : 'Join this game'}
-          </button>
+          </Button>
           <button
             onClick={() => navigate(`/t/${gameId}?display=1`, { replace: true })}
             className="mt-2 w-full text-center text-xs text-muted underline"
@@ -329,16 +348,17 @@ export function ShareTable() {
       )}
 
       {!displayMode && myStatus === 'confirmed' && (
-        <button
+        <Button
+          block
+          className="mt-4"
           onClick={() =>
             navigate(
               myProfileId === game.host_id ? `/games/${gameId}/live` : `/games/${gameId}/my-game`
             )
           }
-          className="mt-4 h-12 w-full rounded-sm bg-primary text-[16px] font-medium text-on-primary hover:bg-primary-active"
         >
           {myProfileId === game.host_id ? 'Go to Live Game' : 'Go to my game'}
-        </button>
+        </Button>
       )}
 
       {myStatus === 'confirmed' && roster.length > 0 && (
