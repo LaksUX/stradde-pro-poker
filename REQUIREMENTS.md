@@ -107,6 +107,22 @@ sync with whatever's decided here.
 > figure across the app now renders in monospace, not just tabular-nums. See the
 > rewritten Theme section below. Visual/interaction identity change only — no
 > product behavior, data model, or prior decision changes.
+>
+> **Thirteenth revision note.** Adds **hosting entities** — the foundation for
+> many different hosting organizations sharing one ecosystem (an individual
+> host today, a multi-staff club later), not just a single host_id per game.
+> Deliberately additive and deliberately scoped down: every existing game's
+> `host_id` stays the sole authority for every permission check in the app,
+> unchanged; a new `hosting_entities` table and `games.hosting_entity_id`
+> column sit alongside it as a parallel identity layer, tested first on
+> today's ordinary solo hosts (auto-migrated into a `house`-type entity) before
+> any club-only behavior is built. The one real feature shipped on this layer
+> so far: a hosting entity's **permanent link** (`/e/:slug`) — unlike a game's
+> one-off `/t/:gameId` link, reminted every night, this one never changes and
+> always resolves to whichever game is live or scheduled for that entity right
+> now. See the new Hosting entities section below. `club` as a type, staff
+> rosters, club-level approval, and any paid tier are designed but explicitly
+> not built yet — this revision is the foundation, not the club itself.
 
 ## What this is
 
@@ -654,6 +670,51 @@ account.
   hosts running games (at the same venue or different ones) is already handled by
   this section's aggregation plus each host's own Home tab — nothing further was
   requested beyond that already working correctly.
+
+## Hosting entities
+
+*(New section — thirteenth revision.)* Every game so far has assumed one
+individual host account. That stops holding once a player's actual
+relationship is with a **place**, not a person — a club with rotating
+dealers, where a player has no reason to ever "add" any one of them as a
+trusted host. This section adds a **hosting entity** as a first-class concept:
+today, every entity is a `house` (one person, exactly today's model); a
+`club` (multiple staff, its own approval flow) is real schema but no
+behavior yet — deliberately not built until a house entity has proven out in
+production, per this revision's own instruction to "test with house games
+first."
+
+- **[decision] `games.host_id` stays the sole authority for every permission
+  check in the app** — `is_game_host()`, every RLS policy, every UI role
+  branch. Nothing about who can confirm a buy-in, edit rake, or close a game
+  changes here. `hosting_entities` is a new, parallel identity layer a game
+  *also* points to (`games.hosting_entity_id`), additive only.
+- **[decision] A house entity is created lazily**, the same pattern as venue
+  find-or-create: the first time an approved host creates a game and doesn't
+  have one yet, one is silently provisioned — named `"{their name}'s games"`,
+  editable after the fact from their Home Host tab. No setup step, no new
+  thing for an existing host to learn.
+- **[decision] The first real feature riding on this layer: a permanent
+  link.** Unlike a game's `/t/:gameId` link — reminted every single night —
+  a hosting entity has one link (`/e/:slug`) that never changes: printed
+  once, always resolves to whichever game is live or scheduled for that
+  entity right now, with no active game showing a plain "check back" state
+  that resolves itself the moment one starts (same realtime-driven pattern
+  as Scheduled Game's own fix). This is the one thing a *house* entity
+  can't actually make much use of yet (a solo host still reprints a QR
+  rarely) but a club obviously needs on day one — proving it on house games
+  first means the schema and the page are already validated before a club's
+  multi-staff roster is the thing being tested.
+- **[decision] Every existing game was backfilled onto an auto-created house
+  entity** for its existing host, one entity per distinct host, at migration
+  time (`0008_hosting_entities.sql`) — no game is left pointing at nothing.
+- **Known gap, deliberately deferred**: no `hosting_entity_staff` table yet —
+  a club's multi-person roster, its own owner/dealer permission tiers, and
+  the "app-admin approves the club once, the club manages its own staff
+  after that" approval flow are real, designed (see the Club Pro discussion
+  this revision followed from), and explicitly not built until a house
+  entity has been live for a while. Monetization (a paid Club Pro tier) is
+  the same story — designed, not gated into the code anywhere yet.
 
 ## Invites (superseded by self-join — see Access model)
 

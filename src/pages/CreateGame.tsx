@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
 import { SegmentedControl } from '../components/ui/SegmentedControl'
+import { getOrCreateOwnEntity } from '../lib/entities'
 import type { ChipRatio } from '../lib/chips'
 
 type VenueOption = { id: string; name: string }
@@ -121,11 +122,13 @@ export function CreateGame() {
       const venueId = trimmedVenue
         ? selectedVenueId ?? (await resolveVenueId(trimmedVenue))
         : null
+      const entity = await getOrCreateOwnEntity(profile)
 
       const { data, error: insertError } = await supabase
         .from('games')
         .insert({
           host_id: profile.id,
+          hosting_entity_id: entity.id,
           name: name.trim(),
           venue_id: venueId,
           venue_freetext: trimmedVenue || null,

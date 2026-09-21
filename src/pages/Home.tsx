@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { QRCodeSVG } from 'qrcode.react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { toChips } from '../lib/chips'
+import { runWrite } from '../lib/errors'
+import { toast } from '../lib/toast'
+import { type HostingEntity } from '../lib/entities'
 import { Button } from '../components/ui/Button'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
 import { StatCard } from '../components/ui/StatCard'
@@ -22,6 +26,9 @@ export function Home() {
   const [hostedGames, setHostedGames] = useState<HostedGame[]>([])
   const [playedGames, setPlayedGames] = useState<PlayedGame[]>([])
   const [loadingData, setLoadingData] = useState(true)
+  const [entity, setEntity] = useState<HostingEntity | null>(null)
+  const [entityQrOpen, setEntityQrOpen] = useState(false)
+  const [nameEditing, setNameEditing] = useState(false)
 
   useEffect(() => {
     if (!profile) return
@@ -74,8 +81,22 @@ export function Home() {
       if (!cancelled) setPlayedGames(results)
     }
 
+    async function loadEntity() {
+      if (profile!.role !== 'host' || !profile!.approved) return
+      // Read-only here — the entity is only ever created lazily by
+      // getOrCreateOwnEntity, the first time this host actually creates a
+      // game (see CreateGame.tsx). A brand-new approved host with no games
+      // yet legitimately has none — the card below just doesn't render.
+      const { data } = await supabase
+        .from('hosting_entities')
+        .select('id, name, slug')
+        .eq('owner_profile_id', profile!.id)
+        .maybeSingle()
+      if (!cancelled) setEntity((data as HostingEntity) ?? null)
+    }
+
     setLoadingData(true)
-    Promise.all([loadHostTab(), loadPlayerTab()]).then(() => {
+    Promise.all([loadHostTab(), loadPlayerTab(), loadEntity()]).then(() => {
       if (!cancelled) setLoadingData(false)
     })
     return () => {
@@ -89,6 +110,16 @@ export function Home() {
   async function handleLogout() {
     await supabase.auth.signOut()
     navigate('/continue')
+  }
+
+  async function renameEntity(name: string) {
+    if (!entity || !name.trim()) return
+    const ok = await runWrite(
+      () => supabase.from('hosting_entities').update({ name: name.trim() }).eq('id', entity.id),
+      'Renaming'
+    )
+    if (ok) setEntity({ ...entity, name: name.trim() })
+    setNameEditing(false)
   }
 
   const isApprovedHost = profile?.role === 'host' && profile.approved
@@ -180,6 +211,57 @@ export function Home() {
 
       {!loadingData && tab === 'host' && isApprovedHost && (
         <div className="mt-4">
+          {entity && (
+            <div className="mb-4 rounded-lg border border-hairline bg-canvas p-3">
+              <div className="flex items-center justify-between">
+                {nameEditing ? (
+                  <input
+                    autoFocus
+                    defaultValue={entity.name}
+                    onBlur={(e) => renameEntity(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') renameEntity((e.target as HTMLInputElement).value)
+                    }}
+                    className="h-8 flex-1 rounded-sm border border-hairline bg-surface-strong px-2 text-sm text-ink"
+                  />
+                ) : (
+                  <span className="text-sm font-semibold text-ink">{entity.name}</span>
+                )}
+                <button
+                  className="ml-2 shrink-0 text-xs text-muted underline"
+                  onClick={() => setNameEditing((v) => !v)}
+                >
+                  {nameEditing ? 'Done' : 'Rename'}
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-muted">
+                Your permanent link — always opens whatever game's live right now, never changes
+                night to night.
+              </p>
+              <button
+                className="mt-2 text-xs text-primary underline"
+                onClick={() => setEntityQrOpen((v) => !v)}
+              >
+                {entityQrOpen ? 'Hide' : 'Show QR'}
+              </button>
+              {entityQrOpen && (
+                <div className="mt-3 flex flex-col items-center">
+                  <div className="w-fit rounded-sm border-4 border-white bg-white p-1 shadow-elevated">
+                    <QRCodeSVG value={`${window.location.origin}/e/${entity.slug}`} size={160} />
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/e/${entity.slug}`)
+                      toast.success('Link copied')
+                    }}
+                    className="mt-2 text-xs text-primary underline"
+                  >
+                    Copy link
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-lg border border-hairline bg-canvas p-3 text-center">
               <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Games hosted</p>

@@ -9,6 +9,7 @@ import { Join } from './pages/Join'
 import { CreateGame } from './pages/CreateGame'
 import { ScheduledGame } from './pages/ScheduledGame'
 import { ShareTable } from './pages/ShareTable'
+import { EntityLink } from './pages/EntityLink'
 import { LiveGame } from './pages/LiveGame'
 import { Settlement } from './pages/Settlement'
 import { GameDetail } from './pages/GameDetail'
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="/join/:gameId" element={<Join />} />
         <Route path="/games/:gameId/scheduled" element={<ScheduledGame />} />
         <Route path="/t/:gameId" element={<ShareTable />} />
+        <Route path="/e/:slug" element={<EntityLink />} />
 
         {/* Everything below is "inside the app" — signed-in screens that
             share the persistent back button + Home/Live bottom nav. The
