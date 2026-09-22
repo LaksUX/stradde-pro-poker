@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth, type Profile } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { toChips } from '../lib/chips'
 import { runWrite } from '../lib/errors'
@@ -14,6 +14,13 @@ import { SegmentedControl } from '../components/ui/SegmentedControl'
 
 type HostedGame = { id: string; name: string; closed_at: string | null; pot: number; rake: number }
 type PlayedGame = { id: string; name: string; closed_at: string | null; net: number; chip_ratio: '1:1' | '1:2' }
+
+// An admin can also act as a host (0009_admin_can_host.sql widens the
+// matching RLS insert policies to match) — kept as one helper so every
+// place on this screen that gates on "can this profile host" agrees.
+function isApprovedHostRole(profile: Profile): boolean {
+  return profile.role === 'host' || profile.role === 'admin'
+}
 
 // See PAGE_PROMPTS.md "Home". Simplified from the full spec: no net-trend
 // chart split by stake yet (that needs a charting approach this pass
@@ -35,7 +42,7 @@ export function Home() {
     let cancelled = false
 
     async function loadHostTab() {
-      if (profile!.role !== 'host' || !profile!.approved) return
+      if (!isApprovedHostRole(profile!) || !profile!.approved) return
       const { data: games } = await supabase
         .from('games')
         .select('id, name, closed_at, rake, stake')
@@ -82,7 +89,7 @@ export function Home() {
     }
 
     async function loadEntity() {
-      if (profile!.role !== 'host' || !profile!.approved) return
+      if (!isApprovedHostRole(profile!) || !profile!.approved) return
       // Read-only here — the entity is only ever created lazily by
       // getOrCreateOwnEntity, the first time this host actually creates a
       // game (see CreateGame.tsx). A brand-new approved host with no games
@@ -122,7 +129,7 @@ export function Home() {
     setNameEditing(false)
   }
 
-  const isApprovedHost = profile?.role === 'host' && profile.approved
+  const isApprovedHost = !!profile && isApprovedHostRole(profile) && profile.approved
   const lifetimeNet = playedGames.reduce((s, g) => s + toChips(g.net, g.chip_ratio), 0)
   const wins = playedGames.filter((g) => g.net > 0).length
   const totalRake = hostedGames.reduce((s, g) => s + g.rake, 0)
