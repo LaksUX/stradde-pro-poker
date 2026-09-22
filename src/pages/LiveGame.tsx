@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
@@ -11,6 +10,7 @@ import { confirmDialog } from '../lib/confirmDialog'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
 import { SegmentedControl } from '../components/ui/SegmentedControl'
+import { InviteQrCard } from '../components/ui/InviteQrCard'
 
 type Game = {
   id: string
@@ -309,21 +309,23 @@ export function LiveGame() {
             Pending requests ({pending.length})
           </h2>
           {pending.map((r) => (
-            <div key={r.id} className="mb-2 flex items-center justify-between last:mb-0">
-              <div>
-                <div className="text-sm font-semibold text-ink">
-                  {r.requester_name}
-                  {r.request_type === 'more_buyins' ? ' — more buy-ins' : ''}
-                </div>
-                <div className="text-xs text-muted">
-                  {r.count} buy-in{r.count > 1 ? 's' : ''}
-                </div>
+            <div
+              key={r.id}
+              className="mb-3 rounded-sm border border-hairline-soft bg-surface-strong p-3 last:mb-0"
+            >
+              <div className="text-sm font-semibold text-ink">
+                {r.requester_name}
+                {r.request_type === 'more_buyins' ? ' — more buy-ins' : ''}
               </div>
-              <div className="flex gap-1.5">
-                <Button variant="primary" className="h-8 px-3 text-xs" onClick={() => confirmRequest(r)}>
+              <div className="mt-0.5 text-xs text-muted">
+                {r.count} buy-in{r.count > 1 ? 's' : ''} · requested{' '}
+                {new Date(r.requested_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+              </div>
+              <div className="mt-3 flex flex-col gap-2">
+                <Button variant="primary" block className="h-10" onClick={() => confirmRequest(r)}>
                   Confirm
                 </Button>
-                <Button variant="danger" className="h-8 px-3 text-xs" onClick={() => declineRequest(r.id)}>
+                <Button variant="danger" block className="h-10" onClick={() => declineRequest(r.id)}>
                   Decline
                 </Button>
               </div>
@@ -343,19 +345,8 @@ export function LiveGame() {
           </button>
         </div>
         {inviteOpen && gameId && (
-          <div className="mt-3 flex flex-col items-center">
-            <div className="w-fit rounded-sm border-4 border-white bg-white p-1 shadow-elevated">
-              <QRCodeSVG value={`${window.location.origin}/t/${gameId}`} size={160} />
-            </div>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(`${window.location.origin}/t/${gameId}`)
-                toast.success('Link copied')
-              }}
-              className="mt-2 text-xs text-primary underline"
-            >
-              Copy link
-            </button>
+          <div className="mt-3">
+            <InviteQrCard eyebrow="Live table" title={game.name} url={`${window.location.origin}/t/${gameId}`} />
           </div>
         )}
       </div>
