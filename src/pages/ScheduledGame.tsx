@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '../lib/supabase'
 import { toast } from '../lib/toast'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
+import { InviteQrCard } from '../components/ui/InviteQrCard'
 
 type Game = {
   id: string
@@ -92,8 +92,13 @@ export function ScheduledGame() {
 
       {isHost ? (
         <>
-          <div className="mx-auto mt-6 w-fit rounded-sm border-4 border-white bg-white p-1 shadow-elevated">
-            <QRCodeSVG value={`${window.location.origin}/t/${gameId}`} size={120} />
+          <div className="mt-6">
+            <InviteQrCard
+              eyebrow="Starts"
+              title={new Date(game.scheduled_for).toLocaleString()}
+              subtitle={game.venue_freetext ?? undefined}
+              url={`${window.location.origin}/t/${gameId}`}
+            />
           </div>
           <p className="mt-2 text-xs text-muted">
             Share this link ahead of time — it shows "not started yet" until you start it.

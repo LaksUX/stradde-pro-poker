@@ -1,16 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { QRCodeSVG } from 'qrcode.react'
 import { useAuth, type Profile } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { toChips } from '../lib/chips'
 import { runWrite } from '../lib/errors'
-import { toast } from '../lib/toast'
 import { type HostingEntity } from '../lib/entities'
 import { Button } from '../components/ui/Button'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
 import { StatCard } from '../components/ui/StatCard'
 import { SegmentedControl } from '../components/ui/SegmentedControl'
+import { InviteQrCard } from '../components/ui/InviteQrCard'
 
 type HostedGame = { id: string; name: string; closed_at: string | null; pot: number; rake: number }
 type PlayedGame = { id: string; name: string; closed_at: string | null; net: number; chip_ratio: '1:1' | '1:2' }
@@ -193,9 +192,20 @@ export function Home() {
               {playedGames.length === 1 ? '' : 's'} played
             </p>
           </StatCard>
-          <Link to="/my-settlements" className="mt-3 block text-center text-sm text-primary underline">
-            My settlements
-          </Link>
+          <div className="mt-4 flex gap-4">
+            <Link to="/my-settlements" className="flex flex-col items-center gap-1.5">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-strong text-primary">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 7h6m-6 4h6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+              <span className="text-xs text-muted">Settlements</span>
+            </Link>
+          </div>
           <div className="mt-4 rounded-lg border border-hairline bg-canvas">
             {playedGames.length === 0 && (
               <p className="p-4 text-center text-sm text-muted">No closed games yet.</p>
@@ -252,19 +262,12 @@ export function Home() {
                 {entityQrOpen ? 'Hide' : 'Show QR'}
               </button>
               {entityQrOpen && (
-                <div className="mt-3 flex flex-col items-center">
-                  <div className="w-fit rounded-sm border-4 border-white bg-white p-1 shadow-elevated">
-                    <QRCodeSVG value={`${window.location.origin}/e/${entity.slug}`} size={160} />
-                  </div>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/e/${entity.slug}`)
-                      toast.success('Link copied')
-                    }}
-                    className="mt-2 text-xs text-primary underline"
-                  >
-                    Copy link
-                  </button>
+                <div className="mt-3">
+                  <InviteQrCard
+                    eyebrow="Permanent link"
+                    title={entity.name}
+                    url={`${window.location.origin}/e/${entity.slug}`}
+                  />
                 </div>
               )}
             </div>
