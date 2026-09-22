@@ -26,7 +26,10 @@ function RootRedirect() {
   const { session, profile, loading } = useAuth()
   if (loading) return <PageSpinner />
   if (!session) return <Navigate to="/continue" replace />
-  if (profile?.role === 'host' && profile.approved) return <Navigate to="/games/new" replace />
+  // An admin can also act as a host (0009_admin_can_host.sql) — route them
+  // straight to game creation too, same as an approved host.
+  if ((profile?.role === 'host' || profile?.role === 'admin') && profile.approved)
+    return <Navigate to="/games/new" replace />
   if (profile?.role === 'host' && !profile.approved) return <Navigate to="/pending-approval" replace />
   return <Navigate to="/home" replace />
 }
