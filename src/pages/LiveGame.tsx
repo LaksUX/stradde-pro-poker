@@ -303,7 +303,7 @@ export function LiveGame() {
     : activeSeated >= game.table_size
 
   return (
-    <div className="mx-auto max-w-md p-6">
+    <div className="mx-auto w-full max-w-md p-4 sm:p-6">
       <h1 className="type-page-title text-ink">{game.name}</h1>
 
       {/* Pending requests need action now — they lead the screen, ahead of
@@ -320,9 +320,9 @@ export function LiveGame() {
                 key={r.id}
                 className="mb-3 rounded-sm border border-hairline-soft bg-surface-strong p-3 last:mb-0"
               >
-                <div className="flex items-center gap-2 text-sm font-semibold text-ink">
-                  <NamedAvatar name={r.requester_name} className="h-6 w-6" />
-                  <span>
+                <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-ink">
+                  <NamedAvatar name={r.requester_name} className="h-6 w-6 shrink-0" />
+                  <span className="truncate">
                     {r.requester_name}
                     {r.request_type === 'more_buyins' ? ' — more buy-ins' : ''}
                   </span>
@@ -446,9 +446,9 @@ export function LiveGame() {
               {players.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>
-                    <div className="flex items-center gap-2 text-sm font-semibold text-ink">
-                      <NamedAvatar name={p.full_name} className="h-6 w-6" />
-                      <span>
+                    <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-ink">
+                      <NamedAvatar name={p.full_name} className="h-6 w-6 shrink-0" />
+                      <span className="truncate">
                         {p.full_name}
                         {p.is_host ? ' (host)' : ''}
                       </span>
@@ -479,12 +479,12 @@ export function LiveGame() {
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="w-24 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <span className="type-figure-md text-lg text-ink">{p.confirmed_buyins}</span>
                       {cashoutEditingId !== p.id && (
                         <button
-                          className="text-xs text-muted underline"
+                          className="shrink-0 text-xs text-muted underline"
                           onClick={() => setCashoutEditingId(p.id)}
                         >
                           {p.cashout == null ? 'Cash out' : 'Edit'}

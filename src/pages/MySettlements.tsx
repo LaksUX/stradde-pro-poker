@@ -107,7 +107,7 @@ export function MySettlements() {
   const totalOwe = rows.filter((r) => r.direction === 'owe').reduce((s, r) => s + toChips(r.amount, r.chip_ratio), 0)
 
   return (
-    <div className="mx-auto max-w-sm p-6">
+    <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
       <h1 className="type-page-title text-ink">My settlements</h1>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
@@ -141,8 +141,8 @@ export function MySettlements() {
               {r.gameName}
             </Link>
             <div className="mt-1 flex items-center gap-2">
-              <NamedAvatar name={r.otherName} className="h-6 w-6" />
-              <p className="text-ink">
+              <NamedAvatar name={r.otherName} className="h-6 w-6 shrink-0" />
+              <p className="min-w-0 text-ink">
                 {r.direction === 'owe' ? `You owe ${r.otherName}` : `${r.otherName} owes you`}
               </p>
             </div>

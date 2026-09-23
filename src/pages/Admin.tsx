@@ -51,7 +51,7 @@ export function Admin() {
   }
 
   return (
-    <div className="mx-auto max-w-sm p-6">
+    <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
       <h1 className="type-page-title text-ink">Admin</h1>
       {loadingRows && <InlineSpinner />}
       {!loadingRows && rows.length === 0 && (
@@ -62,24 +62,24 @@ export function Admin() {
           <TableHeader>
             <TableRow>
               <TableHead>Person</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Action</TableHead>
+              <TableHead className="w-28">Status</TableHead>
+              <TableHead className="w-24 text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.map((r) => (
               <TableRow key={r.id}>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <NamedAvatar name={r.full_name ?? '—'} />
-                    <div>
-                      <p className="text-ink">{r.full_name ?? '—'}</p>
-                      <p className="text-xs text-muted">{r.phone}</p>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <NamedAvatar name={r.full_name ?? '—'} className="shrink-0" />
+                    <div className="min-w-0">
+                      <p className="truncate text-ink">{r.full_name ?? '—'}</p>
+                      <p className="truncate text-xs text-muted">{r.phone}</p>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={r.role === 'host' && r.approved ? 'win' : 'muted'}>
+                  <Badge variant={r.role === 'host' && r.approved ? 'win' : 'muted'} className="max-w-full truncate">
                     {r.role}
                     {r.role === 'host' ? (r.approved ? ' · approved' : ' · pending') : ''}
                   </Badge>

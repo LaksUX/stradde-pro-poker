@@ -141,7 +141,7 @@ export function Home() {
     : 0
 
   return (
-    <div className="mx-auto max-w-sm p-6">
+    <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
       <header className="flex items-center justify-between">
         <h1 className="type-page-title text-ink">
           Hey{profile?.full_name ? ` ${profile.full_name}` : ''}
@@ -224,7 +224,7 @@ export function Home() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Game</TableHead>
-                      <TableHead className="text-right">Net</TableHead>
+                      <TableHead className="w-28 text-right">Net</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -235,13 +235,13 @@ export function Home() {
                         onClick={() => navigate(`/games/${g.id}`)}
                       >
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <NamedAvatar name={g.name} />
-                            <span>{g.name}</span>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <NamedAvatar name={g.name} className="shrink-0" />
+                            <span className="truncate">{g.name}</span>
                           </div>
                         </TableCell>
                         <TableCell
-                          className={`type-figure-md text-right ${
+                          className={`type-figure-md w-28 whitespace-nowrap text-right ${
                             g.net >= 0 ? 'text-win' : 'text-error'
                           }`}
                         >
@@ -342,7 +342,7 @@ export function Home() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Game</TableHead>
-                      <TableHead className="text-right">Pot</TableHead>
+                      <TableHead className="w-28 text-right">Pot</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -353,12 +353,12 @@ export function Home() {
                         onClick={() => navigate(`/games/${g.id}`)}
                       >
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <NamedAvatar name={g.name} />
-                            <span>{g.name}</span>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <NamedAvatar name={g.name} className="shrink-0" />
+                            <span className="truncate">{g.name}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="type-figure-md text-right text-muted">
+                        <TableCell className="type-figure-md w-28 whitespace-nowrap text-right text-muted">
                           {g.pot} banks
                         </TableCell>
                       </TableRow>

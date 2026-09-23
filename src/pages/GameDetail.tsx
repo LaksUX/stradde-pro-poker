@@ -93,7 +93,7 @@ export function GameDetail() {
   const me = players.find((p) => p.profile_id === profile.id)
 
   return (
-    <div className="mx-auto max-w-sm p-6">
+    <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
       <h1 className="type-page-title text-ink">{game.name}</h1>
       {game.venue_id ? (
         <Link to={`/venues/${game.venue_id}`} className="text-sm text-primary underline">
@@ -109,16 +109,16 @@ export function GameDetail() {
             <TableHeader>
               <TableRow>
                 <TableHead>Player</TableHead>
-                <TableHead className="text-right">Net</TableHead>
+                <TableHead className="w-28 text-right">Net</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {players.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <NamedAvatar name={p.full_name} />
-                      <span>{p.full_name}</span>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <NamedAvatar name={p.full_name} className="shrink-0" />
+                      <span className="truncate">{p.full_name}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
@@ -146,14 +146,15 @@ export function GameDetail() {
               </CardHeader>
               <CardContent className="gap-0">
                 {transfers.map((t, i) => (
-                  <div key={i} className="flex items-center justify-between py-1 text-sm">
-                    <span className="flex items-center gap-1.5 text-ink">
+                  <div key={i} className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 py-1 text-sm">
+                    <span className="flex min-w-0 items-center gap-1.5 text-ink">
                       <NamedAvatar name={t.from} className="h-6 w-6" />
-                      {t.from} →
+                      <span className="min-w-0 flex-1 truncate">{t.from}</span>
+                      <span className="shrink-0 text-muted">→</span>
                       <NamedAvatar name={t.to} className="h-6 w-6" />
-                      {t.to}
+                      <span className="min-w-0 flex-1 truncate">{t.to}</span>
                     </span>
-                    <span className="flex items-center gap-2">
+                    <span className="flex shrink-0 items-center gap-2">
                       <span className="type-figure-md text-ink">{toChips(t.amount, ratio)} chips</span>
                       <Badge variant={t.status === 'confirmed' ? 'win' : t.status === 'disputed' ? 'error' : 'muted'}>
                         {t.status}
