@@ -14,7 +14,6 @@ import { Card, CardContent } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
-import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import { Slider } from '../components/ui/slider'
@@ -502,14 +501,14 @@ export function LiveGame() {
                   <TableRow key={p.id} className="cursor-pointer" onClick={() => openPlayerSheet(p)}>
                     <TableCell>
                       <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-ink">
-                        <NamedAvatar name={p.full_name} className="h-6 w-6 shrink-0" />
+                        <span className="relative shrink-0">
+                          <NamedAvatar name={p.full_name} className="h-8 w-8" />
+                          <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-canvas bg-win" />
+                        </span>
                         <span className="truncate">
                           {p.full_name}
                           {p.is_host ? ' (host)' : ''}
                         </span>
-                        <Badge variant="win" className="shrink-0">
-                          Playing
-                        </Badge>
                       </div>
                     </TableCell>
                     <TableCell className="w-20 text-right">
@@ -539,14 +538,14 @@ export function LiveGame() {
                     <TableRow key={p.id} className="cursor-pointer opacity-80" onClick={() => openPlayerSheet(p)}>
                       <TableCell>
                         <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-ink">
-                          <NamedAvatar name={p.full_name} className="h-6 w-6 shrink-0" />
+                          <span className="relative shrink-0">
+                            <NamedAvatar name={p.full_name} className="h-8 w-8" />
+                            <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-canvas bg-error" />
+                          </span>
                           <span className="truncate">
                             {p.full_name}
                             {p.is_host ? ' (host)' : ''}
                           </span>
-                          <Badge variant="muted" className="shrink-0">
-                            Cashed out
-                          </Badge>
                         </div>
                         <p className="text-xs text-muted">
                           {p.confirmed_buyins} buy-in{p.confirmed_buyins === 1 ? '' : 's'}
@@ -581,9 +580,9 @@ export function LiveGame() {
             <>
               <SheetHeader>
                 <span className="relative shrink-0">
-                  <NamedAvatar name={sheetPlayer.full_name} />
+                  <NamedAvatar name={sheetPlayer.full_name} className="h-8 w-8" />
                   <span
-                    className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-canvas ${
+                    className={`absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-canvas ${
                       sheetPlayer.cashout == null ? 'bg-win' : 'bg-error'
                     }`}
                   />
