@@ -6,6 +6,11 @@ import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
+import { Card, CardContent } from '../components/ui/card'
+import { Badge } from '../components/ui/badge'
+import { Select } from '../components/ui/select'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
 
 type Game = { id: string; name: string; chip_ratio: ChipRatio; settlement_published_at: string | null }
 type PlayerOpt = { id: string; name: string }
@@ -138,8 +143,8 @@ export function Settlement() {
 
   return (
     <div className="mx-auto max-w-md p-6">
-      <h1 className="text-lg font-semibold text-ink">{game.name} — Settlement</h1>
-      <p className="mt-1 text-xs text-muted">
+      <h1 className="type-page-title text-ink">{game.name} — Settlement</h1>
+      <p className="type-body-md mt-1 text-body">
         Computed as a starting point, deterministic tie-break. Reassign freely below.
       </p>
 
@@ -148,114 +153,105 @@ export function Settlement() {
         const toName = nameById.get(t.to_player_id) ?? '—'
         const editing = editingId === t.id
         return (
-          <div key={t.id} className="mt-3 rounded-lg border border-hairline bg-canvas p-3">
-            <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-strong text-xs font-bold text-ink">
-                {initials(fromName)}
-              </span>
-              <span className="truncate text-sm text-ink">{fromName}</span>
-              <svg
-                className="mx-0.5 shrink-0 text-muted"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-strong text-xs font-bold text-ink">
-                {initials(toName)}
-              </span>
-              <span className="truncate text-sm text-ink">{toName}</span>
-            </div>
-
-            <div className="mt-2 flex items-center justify-between">
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                  t.status === 'confirmed'
-                    ? 'bg-win/10 text-win'
-                    : t.status === 'disputed'
-                      ? 'bg-error/10 text-error'
-                      : 'bg-surface-strong text-muted'
-                }`}
-              >
-                {t.status}
-              </span>
-              <span className="font-mono text-lg font-bold tabular-nums text-ink">
-                {toChips(t.amount, ratio)} chips
-                <span className="ml-1 text-xs font-normal text-muted">({t.amount} banks)</span>
-              </span>
-            </div>
-
-            {t.request_note && (
-              <p className="mt-2 text-xs text-muted">Player's proposed change: "{t.request_note}"</p>
-            )}
-
-            <div className="mt-2 flex justify-end gap-3">
-              <button
-                className="text-xs text-muted underline"
-                onClick={() => setEditingId(editing ? null : t.id)}
-              >
-                {editing ? 'Done' : 'Edit'}
-              </button>
-              <button className="text-xs text-error underline" onClick={() => removeTransfer(t.id)}>
-                Remove
-              </button>
-            </div>
-
-            {editing && (
-              <div className="mt-3 border-t border-hairline-soft pt-3">
-                <div className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <label className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-                      From
-                    </label>
-                    <select
-                      value={t.from_player_id}
-                      onChange={(e) => editTransfer(t.id, { from_player_id: e.target.value })}
-                      className="h-9 w-full rounded-sm border border-hairline bg-surface-strong text-sm"
-                    >
-                      {players.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <span className="mt-4 shrink-0 text-xs text-muted">owes</span>
-                  <div className="flex-1">
-                    <label className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-                      To
-                    </label>
-                    <select
-                      value={t.to_player_id}
-                      onChange={(e) => editTransfer(t.id, { to_player_id: e.target.value })}
-                      className="h-9 w-full rounded-sm border border-hairline bg-surface-strong text-sm"
-                    >
-                      {players.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="mt-2">
-                  <label className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-                    Amount (banks)
-                  </label>
-                  <input
-                    type="number"
-                    defaultValue={t.amount}
-                    onBlur={(e) => editTransfer(t.id, { amount: Number(e.target.value) || 0 })}
-                    className="h-9 w-full rounded-sm border border-hairline bg-surface-strong px-2 text-sm"
-                  />
-                </div>
+          <Card key={t.id} className="mt-3">
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-strong text-xs font-bold text-ink">
+                  {initials(fromName)}
+                </span>
+                <span className="truncate text-sm text-ink">{fromName}</span>
+                <svg
+                  className="mx-0.5 shrink-0 text-muted"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-strong text-xs font-bold text-ink">
+                  {initials(toName)}
+                </span>
+                <span className="truncate text-sm text-ink">{toName}</span>
               </div>
-            )}
-          </div>
+
+              <div className="mt-2 flex items-center justify-between">
+                <Badge variant={t.status === 'confirmed' ? 'win' : t.status === 'disputed' ? 'error' : 'muted'}>
+                  {t.status}
+                </Badge>
+                <span className="type-figure-md text-ink">
+                  {toChips(t.amount, ratio)} chips
+                  <span className="ml-1 text-xs font-normal text-muted">({t.amount} banks)</span>
+                </span>
+              </div>
+
+              {t.request_note && (
+                <p className="mt-2 text-xs text-muted">Player's proposed change: "{t.request_note}"</p>
+              )}
+
+              <div className="mt-2 flex justify-end gap-3">
+                <button
+                  className="text-xs text-muted underline"
+                  onClick={() => setEditingId(editing ? null : t.id)}
+                >
+                  {editing ? 'Done' : 'Edit'}
+                </button>
+                <button className="text-xs text-error underline" onClick={() => removeTransfer(t.id)}>
+                  Remove
+                </button>
+              </div>
+
+              {editing && (
+                <div className="mt-3 border-t border-hairline-soft pt-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <Label htmlFor={`from-${t.id}`}>From</Label>
+                      <Select
+                        id={`from-${t.id}`}
+                        className="mt-1 h-9 text-sm"
+                        value={t.from_player_id}
+                        onChange={(e) => editTransfer(t.id, { from_player_id: e.target.value })}
+                      >
+                        {players.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                    <span className="mt-6 shrink-0 text-xs text-muted">owes</span>
+                    <div className="flex-1">
+                      <Label htmlFor={`to-${t.id}`}>To</Label>
+                      <Select
+                        id={`to-${t.id}`}
+                        className="mt-1 h-9 text-sm"
+                        value={t.to_player_id}
+                        onChange={(e) => editTransfer(t.id, { to_player_id: e.target.value })}
+                      >
+                        {players.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <Label htmlFor={`amount-${t.id}`}>Amount (banks)</Label>
+                    <Input
+                      id={`amount-${t.id}`}
+                      type="number"
+                      className="mt-1 h-9"
+                      defaultValue={t.amount}
+                      onBlur={(e) => editTransfer(t.id, { amount: Number(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )
       })}
 
