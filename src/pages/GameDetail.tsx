@@ -140,30 +140,40 @@ export function GameDetail() {
             </TableBody>
           </Table>
           {transfers.length > 0 && (
-            <Card className="mt-4">
-              <CardHeader>
-                <CardTitle>Settlement</CardTitle>
-              </CardHeader>
-              <CardContent className="gap-0">
+            <>
+              <h2 className="type-label-caption mb-2 mt-5 text-muted">Settlement</h2>
+              <div className="space-y-3">
                 {transfers.map((t, i) => (
-                  <div key={i} className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 py-1 text-sm">
-                    <span className="flex min-w-0 items-center gap-1.5 text-ink">
-                      <NamedAvatar name={t.from} className="h-6 w-6" />
-                      <span className="min-w-0 flex-1 truncate">{t.from}</span>
-                      <span className="shrink-0 text-muted">→</span>
-                      <NamedAvatar name={t.to} className="h-6 w-6" />
-                      <span className="min-w-0 flex-1 truncate">{t.to}</span>
-                    </span>
-                    <span className="flex shrink-0 items-center gap-2">
-                      <span className="type-figure-md text-ink">{toChips(t.amount, ratio)} chips</span>
-                      <Badge variant={t.status === 'confirmed' ? 'win' : t.status === 'disputed' ? 'error' : 'muted'}>
-                        {t.status}
-                      </Badge>
-                    </span>
-                  </div>
+                  <Card key={i}>
+                    <CardContent>
+                      <div className="flex items-center gap-2">
+                        <NamedAvatar name={t.from} className="h-7 w-7" />
+                        <span className="min-w-0 flex-1 truncate text-sm text-ink">{t.from}</span>
+                        <svg
+                          className="mx-0.5 shrink-0 text-muted"
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <NamedAvatar name={t.to} className="h-7 w-7" />
+                        <span className="min-w-0 flex-1 truncate text-sm text-ink">{t.to}</span>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between">
+                        <Badge variant={t.status === 'confirmed' ? 'win' : t.status === 'disputed' ? 'error' : 'muted'}>
+                          {t.status}
+                        </Badge>
+                        <span className="type-figure-md text-ink">{toChips(t.amount, ratio)} chips</span>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
-              </CardContent>
-            </Card>
+              </div>
+            </>
           )}
         </>
       ) : me ? (

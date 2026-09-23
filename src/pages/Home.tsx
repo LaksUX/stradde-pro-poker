@@ -11,8 +11,16 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
+import { LineChart } from '../components/ui/line-chart'
 
-type HostedGame = { id: string; name: string; closed_at: string | null; buyins: number; rake: number }
+type HostedGame = {
+  id: string
+  name: string
+  closed_at: string | null
+  buyins: number
+  rake: number
+  chip_ratio: ChipRatio
+}
 type PlayedGame = { id: string; name: string; closed_at: string | null; net: number; chip_ratio: ChipRatio }
 type SettlementRow = {
   id: string
@@ -61,7 +69,7 @@ export function Home() {
       if (!isApprovedHostRole(profile!) || !profile!.approved) return
       const { data: games } = await supabase
         .from('games')
-        .select('id, name, closed_at, rake, stake')
+        .select('id, name, closed_at, rake, stake, chip_ratio')
         .eq('host_id', profile!.id)
         .eq('status', 'closed')
         .order('closed_at', { ascending: false })
@@ -75,7 +83,14 @@ export function Home() {
           .eq('game_id', g.id)
           .eq('status', 'confirmed')
         const totalBuyins = (reqs ?? []).reduce((s, r) => s + r.count, 0) * g.stake
-        results.push({ id: g.id, name: g.name, closed_at: g.closed_at, buyins: totalBuyins, rake: g.rake })
+        results.push({
+          id: g.id,
+          name: g.name,
+          closed_at: g.closed_at,
+          buyins: totalBuyins,
+          rake: g.rake,
+          chip_ratio: g.chip_ratio,
+        })
       }
       if (!cancelled) setHostedGames(results)
     }
@@ -186,16 +201,20 @@ export function Home() {
   const isApprovedHost = !!profile && isApprovedHostRole(profile) && profile.approved
   const lifetimeNet = playedGames.reduce((s, g) => s + toChips(g.net, g.chip_ratio), 0)
   const wins = playedGames.filter((g) => g.net > 0).length
-  const totalRake = hostedGames.reduce((s, g) => s + g.rake, 0)
+  // Converted to chips PER GAME before summing/averaging — never sum raw
+  // banks across games and convert once, since different games here can be
+  // on different chip ratios (same pitfall VenueDetail's equivalent stat
+  // already guards against).
+  const totalRake = hostedGames.reduce((s, g) => s + toChips(g.rake, g.chip_ratio), 0)
   const avgBuyins = hostedGames.length
-    ? Math.round(hostedGames.reduce((s, g) => s + g.buyins, 0) / hostedGames.length)
+    ? Math.round(hostedGames.reduce((s, g) => s + toChips(g.buyins, g.chip_ratio), 0) / hostedGames.length)
     : 0
   const pendingAdminCount = adminRows.filter((r) => r.role === 'host' && !r.approved).length
 
-  // Chronological (oldest → newest) for the bar chart, independent of the
-  // table above it which stays newest-first.
+  // Chronological (oldest → newest) for the chart, independent of the table
+  // above it which stays newest-first.
   const chartGames = [...playedGames].reverse()
-  const maxAbsNet = Math.max(1, ...playedGames.map((g) => Math.abs(toChips(g.net, g.chip_ratio))))
+  const netChartPoints = chartGames.map((g) => toChips(g.net, g.chip_ratio))
 
   return (
     <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
@@ -246,129 +265,114 @@ export function Home() {
                   {wins} win{wins === 1 ? '' : 's'} · {playedGames.length} game
                   {playedGames.length === 1 ? '' : 's'} played
                 </p>
-                {chartGames.length > 0 && (
-                  <svg
-                    viewBox={`0 0 ${Math.max(chartGames.length * 24, 24)} 64`}
-                    preserveAspectRatio="none"
-                    className="mt-3 h-16 w-full border-t border-hairline-soft pt-3"
-                    role="img"
-                  >
-                    <line
-                      x1={0}
-                      y1={32}
-                      x2={Math.max(chartGames.length * 24, 24)}
-                      y2={32}
-                      className="stroke-hairline-soft"
-                      strokeWidth={1}
-                    />
-                    {chartGames.map((g, i) => {
-                      const val = toChips(g.net, g.chip_ratio)
-                      const isWin = val >= 0
-                      const h = Math.max(2, (Math.abs(val) / maxAbsNet) * 28)
-                      return (
-                        <rect
-                          key={g.id}
-                          x={i * 24 + 4}
-                          y={isWin ? 32 - h : 32}
-                          width={16}
-                          height={h}
-                          rx={2}
-                          className={isWin ? 'fill-win' : 'fill-error'}
-                        />
-                      )
-                    })}
-                  </svg>
+                {netChartPoints.length > 0 && (
+                  <LineChart
+                    points={netChartPoints}
+                    colorBySign
+                    className="mt-3 h-16 border-t border-hairline-soft pt-3"
+                  />
                 )}
               </CardContent>
             </Card>
 
-            <h2 className="type-label-caption mb-2 mt-5 text-muted">Played games</h2>
-            {playedGames.length === 0 ? (
-              <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
-                No closed games yet.
-              </p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Game</TableHead>
-                    <TableHead className="w-28 text-right">Net</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {playedGames.map((g) => (
-                    <TableRow
-                      key={g.id}
-                      className="cursor-pointer"
-                      onClick={() => navigate(`/games/${g.id}`)}
-                    >
-                      <TableCell>
-                        <div className="flex min-w-0 items-center gap-2">
-                          <NamedAvatar name={g.name} className="shrink-0" />
-                          <span className="truncate">{g.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell
-                        className={`type-figure-md w-28 whitespace-nowrap text-right ${
-                          g.net >= 0 ? 'text-win' : 'text-error'
-                        }`}
-                      >
-                        {toChips(g.net, g.chip_ratio)} chips
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+            <Tabs defaultValue="games" className="mt-5">
+              <TabsList>
+                <TabsTrigger value="games">Games</TabsTrigger>
+                <TabsTrigger value="settlements">Settlements</TabsTrigger>
+              </TabsList>
 
-            <h2 className="type-label-caption mb-2 mt-5 text-muted">Settlements</h2>
-            {settlementRows.length === 0 ? (
-              <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
-                No settlements yet.
-              </p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>With</TableHead>
-                    <TableHead className="w-28 text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {settlementRows.map((r) => (
-                    <TableRow
-                      key={r.id}
-                      className="cursor-pointer"
-                      onClick={() => navigate(`/games/${r.gameId}`)}
-                    >
-                      <TableCell>
-                        <div className="flex min-w-0 items-center gap-2">
-                          <NamedAvatar name={r.otherName} className="shrink-0" />
-                          <div className="min-w-0">
-                            <p className="truncate text-ink">
-                              {r.direction === 'owe' ? `You owe ${r.otherName}` : `${r.otherName} owes you`}
-                            </p>
-                            <p className="truncate text-xs text-muted">{r.gameName}</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="w-28 text-right">
-                        <p className="type-figure-md whitespace-nowrap text-ink">
-                          {toChips(r.amount, r.chip_ratio)} chips
-                        </p>
-                        <Badge
-                          variant={
-                            r.status === 'confirmed' ? 'win' : r.status === 'disputed' ? 'error' : 'muted'
-                          }
+              <TabsContent value="games" className="mt-4">
+                <h2 className="type-label-caption mb-2 text-muted">My games</h2>
+                {playedGames.length === 0 ? (
+                  <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                    No closed games yet.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Game</TableHead>
+                        <TableHead className="w-28 text-right">Net</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {playedGames.map((g) => (
+                        <TableRow
+                          key={g.id}
+                          className="cursor-pointer"
+                          onClick={() => navigate(`/games/${g.id}`)}
                         >
-                          {r.status}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+                          <TableCell>
+                            <div className="flex min-w-0 items-center gap-2">
+                              <NamedAvatar name={g.name} className="shrink-0" />
+                              <span className="truncate">{g.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell
+                            className={`type-figure-md w-28 whitespace-nowrap text-right ${
+                              g.net >= 0 ? 'text-win' : 'text-error'
+                            }`}
+                          >
+                            {toChips(g.net, g.chip_ratio)} chips
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </TabsContent>
+
+              <TabsContent value="settlements" className="mt-4">
+                <h2 className="type-label-caption mb-2 text-muted">Settlements</h2>
+                {settlementRows.length === 0 ? (
+                  <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                    No settlements yet.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>With</TableHead>
+                        <TableHead className="w-28 text-right">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {settlementRows.map((r) => (
+                        <TableRow
+                          key={r.id}
+                          className="cursor-pointer"
+                          onClick={() => navigate(`/games/${r.gameId}`)}
+                        >
+                          <TableCell>
+                            <div className="flex min-w-0 items-center gap-2">
+                              <NamedAvatar name={r.otherName} className="shrink-0" />
+                              <div className="min-w-0">
+                                <p className="truncate text-ink">
+                                  {r.direction === 'owe' ? `You owe ${r.otherName}` : `${r.otherName} owes you`}
+                                </p>
+                                <p className="truncate text-xs text-muted">{r.gameName}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="w-28 text-right">
+                            <p className="type-figure-md whitespace-nowrap text-ink">
+                              {toChips(r.amount, r.chip_ratio)} chips
+                            </p>
+                            <Badge
+                              variant={
+                                r.status === 'confirmed' ? 'win' : r.status === 'disputed' ? 'error' : 'muted'
+                              }
+                            >
+                              {r.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         )}
 
@@ -400,7 +404,7 @@ export function Home() {
                       <CardTitle className="mx-auto">Rake collected</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="type-figure-md text-ink">{totalRake} banks</p>
+                      <p className="type-figure-md text-ink">{totalRake} chips</p>
                     </CardContent>
                   </Card>
                   <Card className="col-span-2 text-center">
@@ -408,7 +412,7 @@ export function Home() {
                       <CardTitle className="mx-auto">Average buy-ins</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="type-figure-md text-ink">{avgBuyins} banks</p>
+                      <p className="type-figure-md text-ink">{avgBuyins} chips</p>
                     </CardContent>
                   </Card>
                 </div>
@@ -440,7 +444,7 @@ export function Home() {
                               </div>
                             </TableCell>
                             <TableCell className="type-figure-md w-28 whitespace-nowrap text-right text-muted">
-                              {g.buyins} banks
+                              {toChips(g.buyins, g.chip_ratio)} chips
                             </TableCell>
                           </TableRow>
                         ))}

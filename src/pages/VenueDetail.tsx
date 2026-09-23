@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
+import { LineChart } from '../components/ui/line-chart'
 
 type GameRow = {
   game_id: string
@@ -151,9 +152,6 @@ export function VenueDetail() {
   const avgRake = rakeChipsPerGame.length
     ? Math.round(rakeChipsPerGame.reduce((s, v) => s + v, 0) / rakeChipsPerGame.length)
     : 0
-  const ratios = new Set(rows.map((r) => r.chip_ratio))
-
-  const maxPot = Math.max(1, ...potChipsPerGame)
   const maxAttendance = Math.max(1, ...regulars.map((r) => r.games_played))
 
   return (
@@ -187,44 +185,18 @@ export function VenueDetail() {
               </CardContent>
             </Card>
           </div>
-          {ratios.size > 1 && (
-            <p className="mt-2 text-xs text-muted">
-              ⚠️ Games here use different chip ratios ({[...ratios].join(', ')}) — this average
-              blends them, which isn't quite apples-to-apples. See REQUIREMENTS.md's flagged gap.
-            </p>
-          )}
           <p className="mt-2 text-xs text-muted">
             Hosted by {hostNames.join(', ')}
           </p>
 
           <h2 className="type-label-caption mb-2 mt-5 text-muted">Buy-ins trend</h2>
-          <svg
-            viewBox={`0 0 ${Math.max(rows.length * 24, 24)} 60`}
-            preserveAspectRatio="none"
-            className="h-[60px] w-full"
-            role="img"
-          >
-            {potChipsPerGame.map((v, i) => {
-              const h = Math.max(2, (v / maxPot) * 52)
-              return (
-                <rect
-                  key={i}
-                  x={i * 24 + 4}
-                  y={56 - h}
-                  width={16}
-                  height={h}
-                  rx={2}
-                  className="fill-primary"
-                />
-              )
-            })}
-          </svg>
+          <LineChart points={potChipsPerGame} height={60} />
 
           <h2 className="type-label-caption mb-2 mt-5 text-muted">Regulars</h2>
           {regulars.length === 0 && <p className="text-sm text-muted">Not enough games yet.</p>}
           {regulars.length > 0 && (
             <Card>
-              <CardContent className="gap-2">
+              <CardContent className="space-y-3">
                 {regulars.map((r) => (
                   <div key={r.profile_id} className="flex items-center gap-2 text-sm">
                     <NamedAvatar name={r.full_name} className="h-6 w-6" />

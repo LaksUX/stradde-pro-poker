@@ -11,6 +11,7 @@ import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { InviteQrCard } from '../components/ui/InviteQrCard'
+import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover'
 import { Card, CardContent } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Input } from '../components/ui/input'
@@ -43,6 +44,17 @@ type PlayerRow = {
   confirmed_buyins: number
 }
 
+function QrIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <path d="M14 14h3v3h-3M19 14v2M14 19h2M19 19h2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 // See PAGE_PROMPTS.md "Live Game". This pass wires the core loop that
 // matters most to get right end to end: the Pending requests queue and
 // confirm/decline — everything else on this screen (the full bottom sheet,
@@ -58,7 +70,6 @@ export function LiveGame() {
   const [rakeRevealed, setRakeRevealed] = useState(false)
   const [tableSizeEditing, setTableSizeEditing] = useState(false)
   const [cashoutEditingId, setCashoutEditingId] = useState<string | null>(null)
-  const [inviteOpen, setInviteOpen] = useState(false)
 
   useEffect(() => {
     if (!gameId) return
@@ -304,7 +315,19 @@ export function LiveGame() {
 
   return (
     <div className="mx-auto w-full max-w-md p-4 sm:p-6">
-      <h1 className="type-page-title text-ink">{game.name}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="type-page-title text-ink">{game.name}</h1>
+        {gameId && (
+          <Popover>
+            <PopoverTrigger className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-hairline text-muted hover:bg-surface-strong hover:text-ink">
+              <QrIcon />
+            </PopoverTrigger>
+            <PopoverContent>
+              <InviteQrCard eyebrow="Live table" title={game.name} url={`${window.location.origin}/t/${gameId}`} />
+            </PopoverContent>
+          </Popover>
+        )}
+      </div>
 
       {/* Pending requests need action now — they lead the screen, ahead of
           the always-there utility cards below (invite, table status, rake),
@@ -348,25 +371,6 @@ export function LiveGame() {
       <Card className="mt-3">
         <CardContent>
           <div className="flex items-center justify-between">
-            <span className="text-muted">Invite walk-ins</span>
-            <button
-              className="text-xs text-primary underline"
-              onClick={() => setInviteOpen((v) => !v)}
-            >
-              {inviteOpen ? 'Hide' : 'Show QR'}
-            </button>
-          </div>
-          {inviteOpen && gameId && (
-            <div className="mt-3">
-              <InviteQrCard eyebrow="Live table" title={game.name} url={`${window.location.origin}/t/${gameId}`} />
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="mt-3">
-        <CardContent>
-          <div className="flex items-center justify-between">
             <Badge variant={full ? 'error' : 'win'}>
               {full ? 'Full' : 'Open'} · {activeSeated}/{game.table_size}
             </Badge>
@@ -406,30 +410,28 @@ export function LiveGame() {
 
       <Card className="mt-3">
         <CardContent>
-          <div className="flex items-center justify-between">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between text-left"
+            onClick={() => setRakeRevealed((v) => !v)}
+          >
             <span className="text-muted">Rake</span>
-            <Tabs value={rakeRevealed ? 'revealed' : 'masked'} onValueChange={(v) => setRakeRevealed(v === 'revealed')}>
-              <TabsList>
-                <TabsTrigger value="masked">Masked</TabsTrigger>
-                <TabsTrigger value="revealed">Revealed</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-          {rakeRevealed ? (
+            {rakeRevealed ? (
+              <span className="type-figure-md text-ink">{toChips(game.rake, ratio)} chips</span>
+            ) : (
+              <span className="type-figure-md tracking-widest text-muted">••••</span>
+            )}
+          </button>
+          {rakeRevealed && (
             <div className="mt-2 flex items-center gap-2">
-              <span className="type-figure-md text-ink">
-                {toChips(game.rake, ratio)} chips
-                <span className="ml-1 text-xs font-normal text-muted">({game.rake} banks)</span>
-              </span>
               <Input
                 type="number"
                 className="h-9 w-20"
                 defaultValue={game.rake}
                 onBlur={(e) => setRake(Number(e.target.value) || 0)}
               />
+              <span className="text-xs text-muted">({game.rake} banks) · only you can see this</span>
             </div>
-          ) : (
-            <p className="mt-1 text-xs text-muted">Masked — only you can see this.</p>
           )}
         </CardContent>
       </Card>
