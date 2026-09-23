@@ -1,22 +1,36 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth, type Profile } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { toChips } from '../lib/chips'
+import { toChips, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
-import { type HostingEntity } from '../lib/entities'
 import { Button } from '../components/ui/Button'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
-import { InviteQrCard } from '../components/ui/InviteQrCard'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 import { Badge } from '../components/ui/badge'
-import { Input } from '../components/ui/input'
 import { NamedAvatar } from '../components/ui/avatar'
 
-type HostedGame = { id: string; name: string; closed_at: string | null; pot: number; rake: number }
-type PlayedGame = { id: string; name: string; closed_at: string | null; net: number; chip_ratio: '1:1' | '1:2' }
+type HostedGame = { id: string; name: string; closed_at: string | null; buyins: number; rake: number }
+type PlayedGame = { id: string; name: string; closed_at: string | null; net: number; chip_ratio: ChipRatio }
+type SettlementRow = {
+  id: string
+  gameId: string
+  gameName: string
+  direction: 'owe' | 'owed'
+  otherName: string
+  amount: number
+  status: 'pending' | 'confirmed' | 'disputed'
+  chip_ratio: ChipRatio
+}
+type AdminRow = {
+  id: string
+  full_name: string | null
+  phone: string | null
+  role: 'player' | 'host' | 'admin'
+  approved: boolean
+}
 
 // An admin can also act as a host (0009_admin_can_host.sql widens the
 // matching RLS insert policies to match) — kept as one helper so every
@@ -25,20 +39,19 @@ function isApprovedHostRole(profile: Profile): boolean {
   return profile.role === 'host' || profile.role === 'admin'
 }
 
-// See PAGE_PROMPTS.md "Home". Simplified from the full spec: no net-trend
-// chart split by stake yet (that needs a charting approach this pass
-// doesn't set up) — everything else (stats, game lists, tab split) is real,
-// queried from Supabase, not mocked.
+// See PAGE_PROMPTS.md "Home". Player/Host/Admin all live as tabs on this one
+// screen now — Admin used to be a separate page reached by a text link;
+// folding its profile-approval queue in here (with a pending-count badge on
+// the tab itself) means an admin sees what needs action without a detour.
 export function Home() {
   const { session, profile, loading } = useAuth()
   const navigate = useNavigate()
-  const [tab, setTab] = useState<'host' | 'player'>('player')
+  const [tab, setTab] = useState<'host' | 'player' | 'admin'>('player')
   const [hostedGames, setHostedGames] = useState<HostedGame[]>([])
   const [playedGames, setPlayedGames] = useState<PlayedGame[]>([])
+  const [settlementRows, setSettlementRows] = useState<SettlementRow[]>([])
+  const [adminRows, setAdminRows] = useState<AdminRow[]>([])
   const [loadingData, setLoadingData] = useState(true)
-  const [entity, setEntity] = useState<HostingEntity | null>(null)
-  const [entityQrOpen, setEntityQrOpen] = useState(false)
-  const [nameEditing, setNameEditing] = useState(false)
 
   useEffect(() => {
     if (!profile) return
@@ -62,7 +75,7 @@ export function Home() {
           .eq('game_id', g.id)
           .eq('status', 'confirmed')
         const totalBuyins = (reqs ?? []).reduce((s, r) => s + r.count, 0) * g.stake
-        results.push({ id: g.id, name: g.name, closed_at: g.closed_at, pot: totalBuyins, rake: g.rake })
+        results.push({ id: g.id, name: g.name, closed_at: g.closed_at, buyins: totalBuyins, rake: g.rake })
       }
       if (!cancelled) setHostedGames(results)
     }
@@ -91,22 +104,62 @@ export function Home() {
       if (!cancelled) setPlayedGames(results)
     }
 
-    async function loadEntity() {
-      if (!isApprovedHostRole(profile!) || !profile!.approved) return
-      // Read-only here — the entity is only ever created lazily by
-      // getOrCreateOwnEntity, the first time this host actually creates a
-      // game (see CreateGame.tsx). A brand-new approved host with no games
-      // yet legitimately has none — the card below just doesn't render.
+    async function loadSettlements() {
+      const { data: myPlayers } = await supabase
+        .from('game_players')
+        .select('id, game_id')
+        .eq('profile_id', profile!.id)
+      const myPlayerIds = (myPlayers ?? []).map((p) => p.id)
+      if (myPlayerIds.length === 0) {
+        if (!cancelled) setSettlementRows([])
+        return
+      }
+      const orFilter = myPlayerIds.map((id) => `from_player_id.eq.${id},to_player_id.eq.${id}`).join(',')
+      const { data: transfers } = await supabase
+        .from('settlement_transfers')
+        .select('id, from_player_id, to_player_id, amount, status, game_id')
+        .or(orFilter)
+
+      const results: SettlementRow[] = []
+      for (const t of transfers ?? []) {
+        const mine = myPlayerIds.includes(t.from_player_id) ? t.from_player_id : t.to_player_id
+        const otherId = t.from_player_id === mine ? t.to_player_id : t.from_player_id
+        const direction: 'owe' | 'owed' = t.from_player_id === mine ? 'owe' : 'owed'
+        const { data: other } = await supabase
+          .from('game_players')
+          .select('profiles(full_name)')
+          .eq('id', otherId)
+          .maybeSingle()
+        const { data: g } = await supabase
+          .from('games')
+          .select('name, chip_ratio')
+          .eq('id', t.game_id)
+          .maybeSingle()
+        results.push({
+          id: t.id,
+          gameId: t.game_id,
+          gameName: g?.name ?? '—',
+          direction,
+          otherName: (other as any)?.profiles?.full_name ?? '—',
+          amount: t.amount,
+          status: t.status,
+          chip_ratio: (g?.chip_ratio as ChipRatio) ?? '1:1',
+        })
+      }
+      if (!cancelled) setSettlementRows(results)
+    }
+
+    async function loadAdminRows() {
+      if (profile!.role !== 'admin') return
       const { data } = await supabase
-        .from('hosting_entities')
-        .select('id, name, slug')
-        .eq('owner_profile_id', profile!.id)
-        .maybeSingle()
-      if (!cancelled) setEntity((data as HostingEntity) ?? null)
+        .from('profiles')
+        .select('id, full_name, phone, role, approved')
+        .neq('role', 'admin')
+      if (!cancelled) setAdminRows((data ?? []) as AdminRow[])
     }
 
     setLoadingData(true)
-    Promise.all([loadHostTab(), loadPlayerTab(), loadEntity()]).then(() => {
+    Promise.all([loadHostTab(), loadPlayerTab(), loadSettlements(), loadAdminRows()]).then(() => {
       if (!cancelled) setLoadingData(false)
     })
     return () => {
@@ -122,59 +175,56 @@ export function Home() {
     navigate('/continue')
   }
 
-  async function renameEntity(name: string) {
-    if (!entity || !name.trim()) return
+  async function setApproval(id: string, approved: boolean) {
     const ok = await runWrite(
-      () => supabase.from('hosting_entities').update({ name: name.trim() }).eq('id', entity.id),
-      'Renaming'
+      () => supabase.from('profiles').update({ approved }).eq('id', id),
+      approved ? 'Approving host' : 'Revoking host'
     )
-    if (ok) setEntity({ ...entity, name: name.trim() })
-    setNameEditing(false)
+    if (ok) setAdminRows((prev) => prev.map((r) => (r.id === id ? { ...r, approved } : r)))
   }
 
   const isApprovedHost = !!profile && isApprovedHostRole(profile) && profile.approved
   const lifetimeNet = playedGames.reduce((s, g) => s + toChips(g.net, g.chip_ratio), 0)
   const wins = playedGames.filter((g) => g.net > 0).length
   const totalRake = hostedGames.reduce((s, g) => s + g.rake, 0)
-  const avgPot = hostedGames.length
-    ? Math.round(hostedGames.reduce((s, g) => s + g.pot, 0) / hostedGames.length)
+  const avgBuyins = hostedGames.length
+    ? Math.round(hostedGames.reduce((s, g) => s + g.buyins, 0) / hostedGames.length)
     : 0
+  const pendingAdminCount = adminRows.filter((r) => r.role === 'host' && !r.approved).length
+
+  // Chronological (oldest → newest) for the bar chart, independent of the
+  // table above it which stays newest-first.
+  const chartGames = [...playedGames].reverse()
+  const maxAbsNet = Math.max(1, ...playedGames.map((g) => Math.abs(toChips(g.net, g.chip_ratio))))
 
   return (
     <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
       <header className="flex items-center justify-between">
-        <h1 className="type-page-title text-ink">
-          Hey{profile?.full_name ? ` ${profile.full_name}` : ''}
-        </h1>
+        <div className="flex items-center gap-2">
+          <NamedAvatar name={profile?.full_name ?? '?'} />
+          <h1 className="type-page-title text-ink">
+            Hey{profile?.full_name ? ` ${profile.full_name}` : ''}
+          </h1>
+        </div>
         <button className="text-xs text-muted underline" onClick={handleLogout}>
           Log out
         </button>
       </header>
 
-      {profile?.role === 'admin' && (
-        <Link to="/admin" className="mt-2 inline-block text-xs text-primary underline">
-          Admin
-        </Link>
-      )}
-
-      {isApprovedHost ? (
-        <Button block className="mt-4" onClick={() => navigate('/games/new')}>
-          New game
-        </Button>
-      ) : profile?.role === 'host' ? (
-        <Button variant="ghost" block className="mt-4" onClick={() => navigate('/pending-approval')}>
-          Host application pending
-        </Button>
-      ) : (
-        <Button variant="ghost" block className="mt-4" onClick={() => navigate('/apply-to-host')}>
-          Apply to host
-        </Button>
-      )}
-
-      <Tabs value={tab} onValueChange={(v) => setTab(v as 'host' | 'player')} className="mt-5">
+      <Tabs value={tab} onValueChange={(v) => setTab(v as 'host' | 'player' | 'admin')} className="mt-5">
         <TabsList>
           <TabsTrigger value="player">Player</TabsTrigger>
-          {isApprovedHost && <TabsTrigger value="host">Host</TabsTrigger>}
+          <TabsTrigger value="host">Host</TabsTrigger>
+          {profile?.role === 'admin' && (
+            <TabsTrigger value="admin" className="relative">
+              Admin
+              {pendingAdminCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white">
+                  {pendingAdminCount}
+                </span>
+              )}
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {loadingData && <InlineSpinner />}
@@ -192,181 +242,281 @@ export function Home() {
                     {lifetimeNet >= 0 ? 'Winning' : 'Down overall'}
                   </Badge>
                 </div>
-                <p className="mt-3 border-t border-hairline-soft pt-3 text-xs text-muted">
+                <p className="mt-3 text-xs text-muted">
                   {wins} win{wins === 1 ? '' : 's'} · {playedGames.length} game
                   {playedGames.length === 1 ? '' : 's'} played
                 </p>
+                {chartGames.length > 0 && (
+                  <svg
+                    viewBox={`0 0 ${Math.max(chartGames.length * 24, 24)} 64`}
+                    preserveAspectRatio="none"
+                    className="mt-3 h-16 w-full border-t border-hairline-soft pt-3"
+                    role="img"
+                  >
+                    <line
+                      x1={0}
+                      y1={32}
+                      x2={Math.max(chartGames.length * 24, 24)}
+                      y2={32}
+                      className="stroke-hairline-soft"
+                      strokeWidth={1}
+                    />
+                    {chartGames.map((g, i) => {
+                      const val = toChips(g.net, g.chip_ratio)
+                      const isWin = val >= 0
+                      const h = Math.max(2, (Math.abs(val) / maxAbsNet) * 28)
+                      return (
+                        <rect
+                          key={g.id}
+                          x={i * 24 + 4}
+                          y={isWin ? 32 - h : 32}
+                          width={16}
+                          height={h}
+                          rx={2}
+                          className={isWin ? 'fill-win' : 'fill-error'}
+                        />
+                      )
+                    })}
+                  </svg>
+                )}
               </CardContent>
             </Card>
 
-            <div className="mt-4 flex gap-4">
-              <Link to="/my-settlements" className="flex flex-col items-center gap-1.5">
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-strong text-primary">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 7h6m-6 4h6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </span>
-                <span className="text-xs text-muted">Settlements</span>
-              </Link>
-            </div>
-
-            <div className="mt-4">
-              {playedGames.length === 0 ? (
-                <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
-                  No closed games yet.
-                </p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Game</TableHead>
-                      <TableHead className="w-28 text-right">Net</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {playedGames.map((g) => (
-                      <TableRow
-                        key={g.id}
-                        className="cursor-pointer"
-                        onClick={() => navigate(`/games/${g.id}`)}
+            <h2 className="type-label-caption mb-2 mt-5 text-muted">Played games</h2>
+            {playedGames.length === 0 ? (
+              <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                No closed games yet.
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Game</TableHead>
+                    <TableHead className="w-28 text-right">Net</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {playedGames.map((g) => (
+                    <TableRow
+                      key={g.id}
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/games/${g.id}`)}
+                    >
+                      <TableCell>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <NamedAvatar name={g.name} className="shrink-0" />
+                          <span className="truncate">{g.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell
+                        className={`type-figure-md w-28 whitespace-nowrap text-right ${
+                          g.net >= 0 ? 'text-win' : 'text-error'
+                        }`}
                       >
-                        <TableCell>
-                          <div className="flex min-w-0 items-center gap-2">
-                            <NamedAvatar name={g.name} className="shrink-0" />
-                            <span className="truncate">{g.name}</span>
+                        {toChips(g.net, g.chip_ratio)} chips
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+
+            <h2 className="type-label-caption mb-2 mt-5 text-muted">Settlements</h2>
+            {settlementRows.length === 0 ? (
+              <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                No settlements yet.
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>With</TableHead>
+                    <TableHead className="w-28 text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {settlementRows.map((r) => (
+                    <TableRow
+                      key={r.id}
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/games/${r.gameId}`)}
+                    >
+                      <TableCell>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <NamedAvatar name={r.otherName} className="shrink-0" />
+                          <div className="min-w-0">
+                            <p className="truncate text-ink">
+                              {r.direction === 'owe' ? `You owe ${r.otherName}` : `${r.otherName} owes you`}
+                            </p>
+                            <p className="truncate text-xs text-muted">{r.gameName}</p>
                           </div>
-                        </TableCell>
-                        <TableCell
-                          className={`type-figure-md w-28 whitespace-nowrap text-right ${
-                            g.net >= 0 ? 'text-win' : 'text-error'
-                          }`}
+                        </div>
+                      </TableCell>
+                      <TableCell className="w-28 text-right">
+                        <p className="type-figure-md whitespace-nowrap text-ink">
+                          {toChips(r.amount, r.chip_ratio)} chips
+                        </p>
+                        <Badge
+                          variant={
+                            r.status === 'confirmed' ? 'win' : r.status === 'disputed' ? 'error' : 'muted'
+                          }
                         >
-                          {toChips(g.net, g.chip_ratio)} chips
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
+                          {r.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </TabsContent>
         )}
 
-        {!loadingData && isApprovedHost && (
+        {!loadingData && (
           <TabsContent value="host" className="mt-4">
-            {entity && (
-              <Card className="mb-4">
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    {nameEditing ? (
-                      <Input
-                        autoFocus
-                        defaultValue={entity.name}
-                        onBlur={(e) => renameEntity(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') renameEntity((e.target as HTMLInputElement).value)
-                        }}
-                        className="h-8 flex-1"
-                      />
-                    ) : (
-                      <span className="text-sm font-semibold text-ink">{entity.name}</span>
-                    )}
-                    <button
-                      className="ml-2 shrink-0 text-xs text-muted underline"
-                      onClick={() => setNameEditing((v) => !v)}
-                    >
-                      {nameEditing ? 'Done' : 'Rename'}
-                    </button>
-                  </div>
-                  <p className="mt-1 text-xs text-muted">
-                    Your permanent link — always opens whatever game's live right now, never changes
-                    night to night.
-                  </p>
-                  <button
-                    className="mt-2 text-xs text-primary underline"
-                    onClick={() => setEntityQrOpen((v) => !v)}
+            {isApprovedHost ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <h2 className="type-label-caption text-muted">Your games</h2>
+                  <Button
+                    className="h-9 rounded-full px-4 text-sm"
+                    onClick={() => navigate('/games/new')}
                   >
-                    {entityQrOpen ? 'Hide' : 'Show QR'}
-                  </button>
-                  {entityQrOpen && (
-                    <div className="mt-3">
-                      <InviteQrCard
-                        eyebrow="Permanent link"
-                        title={entity.name}
-                        url={`${window.location.origin}/e/${entity.slug}`}
-                      />
-                    </div>
+                    New game
+                  </Button>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <Card className="text-center">
+                    <CardHeader>
+                      <CardTitle className="mx-auto">Games hosted</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="type-figure-md text-ink">{hostedGames.length}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="text-center">
+                    <CardHeader>
+                      <CardTitle className="mx-auto">Rake collected</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="type-figure-md text-ink">{totalRake} banks</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="col-span-2 text-center">
+                    <CardHeader>
+                      <CardTitle className="mx-auto">Average buy-ins</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="type-figure-md text-ink">{avgBuyins} banks</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="mt-4">
+                  {hostedGames.length === 0 ? (
+                    <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                      No closed games yet.
+                    </p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Game</TableHead>
+                          <TableHead className="w-28 text-right">Buy-ins</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {hostedGames.map((g) => (
+                          <TableRow
+                            key={g.id}
+                            className="cursor-pointer"
+                            onClick={() => navigate(`/games/${g.id}`)}
+                          >
+                            <TableCell>
+                              <div className="flex min-w-0 items-center gap-2">
+                                <NamedAvatar name={g.name} className="shrink-0" />
+                                <span className="truncate">{g.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="type-figure-md w-28 whitespace-nowrap text-right text-muted">
+                              {g.buyins} banks
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   )}
-                </CardContent>
-              </Card>
-            )}
-
-            <div className="grid grid-cols-2 gap-2">
-              <Card className="text-center">
-                <CardHeader>
-                  <CardTitle className="mx-auto">Games hosted</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="type-figure-md text-ink">{hostedGames.length}</p>
-                </CardContent>
-              </Card>
-              <Card className="text-center">
-                <CardHeader>
-                  <CardTitle className="mx-auto">Rake collected</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="type-figure-md text-ink">{totalRake} banks</p>
-                </CardContent>
-              </Card>
-              <Card className="col-span-2 text-center">
-                <CardHeader>
-                  <CardTitle className="mx-auto">Average pot</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="type-figure-md text-ink">{avgPot} banks</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="mt-4">
-              {hostedGames.length === 0 ? (
-                <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
-                  No closed games yet.
+                </div>
+              </>
+            ) : profile?.role === 'host' ? (
+              <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                Your host application is pending approval.
+              </p>
+            ) : (
+              <div className="rounded-lg border border-hairline bg-canvas p-4 text-center">
+                <p className="mb-3 text-sm text-muted">
+                  Run your own games instead of just joining them.
                 </p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Game</TableHead>
-                      <TableHead className="w-28 text-right">Pot</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {hostedGames.map((g) => (
-                      <TableRow
-                        key={g.id}
-                        className="cursor-pointer"
-                        onClick={() => navigate(`/games/${g.id}`)}
-                      >
-                        <TableCell>
-                          <div className="flex min-w-0 items-center gap-2">
-                            <NamedAvatar name={g.name} className="shrink-0" />
-                            <span className="truncate">{g.name}</span>
+                <Button variant="ghost" onClick={() => navigate('/apply-to-host')}>
+                  Apply to host
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+        )}
+
+        {!loadingData && profile?.role === 'admin' && (
+          <TabsContent value="admin" className="mt-4">
+            {adminRows.length === 0 ? (
+              <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                No profiles yet.
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Person</TableHead>
+                    <TableHead className="w-28">Status</TableHead>
+                    <TableHead className="w-24 text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {adminRows.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <NamedAvatar name={r.full_name ?? '—'} className="shrink-0" />
+                          <div className="min-w-0">
+                            <p className="truncate text-ink">{r.full_name ?? '—'}</p>
+                            <p className="truncate text-xs text-muted">{r.phone}</p>
                           </div>
-                        </TableCell>
-                        <TableCell className="type-figure-md w-28 whitespace-nowrap text-right text-muted">
-                          {g.pot} banks
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={r.role === 'host' && r.approved ? 'win' : 'muted'}
+                          className="max-w-full truncate"
+                        >
+                          {r.role === 'host' ? (r.approved ? 'Approved' : 'Pending') : 'Player'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {r.role === 'host' && (
+                          <Button
+                            variant={r.approved ? 'danger' : 'primary'}
+                            className="h-8 px-3 text-xs"
+                            onClick={() => setApproval(r.id, !r.approved)}
+                          >
+                            {r.approved ? 'Revoke' : 'Approve'}
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </TabsContent>
         )}
       </Tabs>
