@@ -1,3 +1,4 @@
+import path from 'node:path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -6,6 +7,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 // See REQUIREMENTS.md "Stack" and "Theme" — Tailwind v4 CSS-first config
 // (no tailwind.config.js), PWA via vite-plugin-pwa, no dark mode variant.
 export default defineConfig({
+  resolve: {
+    alias: { '@': path.resolve(__dirname, './src') },
+  },
   plugins: [
     react(),
     tailwindcss(),
