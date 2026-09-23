@@ -290,7 +290,7 @@ export function Home() {
 
             <Tabs defaultValue="upcoming" className="mt-5">
               <TabsList>
-                <TabsTrigger value="upcoming">Upcoming games</TabsTrigger>
+                <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
                 <TabsTrigger value="games">My games</TabsTrigger>
                 <TabsTrigger value="settlements">Settlements</TabsTrigger>
               </TabsList>
@@ -303,7 +303,7 @@ export function Home() {
                   three read as one consistent component once it's wired
                   up. */}
               <TabsContent value="upcoming" className="mt-4">
-                <h2 className="type-label-caption mb-2 text-muted">Upcoming games</h2>
+                <h2 className="type-label-caption mb-2 text-muted">Upcoming</h2>
                 <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
                   Coming soon — scheduled games you can confirm for will show up here.
                 </p>

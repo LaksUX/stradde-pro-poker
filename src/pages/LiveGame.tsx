@@ -416,28 +416,29 @@ export function LiveGame() {
           the always-there utility cards below (invite, rake), so a host
           opening mid-game sees what's waiting on them first. */}
       {pending.length > 0 && (
-        <Card className="mt-3 border border-primary/40">
-          <CardContent>
-            <h2 className="type-label-caption mb-2 text-primary">
-              Pending requests ({pending.length})
-            </h2>
+        <div className="mt-3">
+          <h2 className="type-label-caption mb-2 text-primary">
+            Pending requests ({pending.length})
+          </h2>
+          <ListGroup className="border-primary/40">
             {pending.map((r) => (
-              <div
-                key={r.id}
-                className="mb-3 rounded-sm border border-hairline-soft bg-surface-strong p-3 last:mb-0"
-              >
-                <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-ink">
-                  <NamedAvatar name={r.requester_name} className="h-6 w-6 shrink-0" />
-                  <span className="truncate">
-                    {r.requester_name}
-                    {r.request_type === 'more_buyins' ? ' — more buy-ins' : ''}
-                  </span>
-                </div>
-                <div className="mt-0.5 text-xs text-muted">
-                  {r.count} buy-in{r.count > 1 ? 's' : ''} · requested{' '}
-                  {new Date(r.requested_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                </div>
-                <div className="mt-3 flex flex-col gap-2">
+              <div key={r.id}>
+                <ListRow
+                  avatar={<NamedAvatar name={r.requester_name} className="h-12 w-12" />}
+                  title={r.requester_name}
+                  subtitle={
+                    <>
+                      {r.count} buy-in{r.count > 1 ? 's' : ''}
+                      {r.request_type === 'more_buyins' ? ' · more buy-ins' : ' · join request'}
+                    </>
+                  }
+                  trailing={
+                    <span className="whitespace-nowrap text-[11px] text-muted">
+                      {new Date(r.requested_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                    </span>
+                  }
+                />
+                <div className="flex gap-2 px-3 pb-3">
                   <Button variant="primary" block className="h-10" onClick={() => confirmRequest(r)}>
                     Confirm
                   </Button>
@@ -447,8 +448,8 @@ export function LiveGame() {
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </ListGroup>
+        </div>
       )}
 
       <Card className="mt-3">
