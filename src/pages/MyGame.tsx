@@ -122,6 +122,11 @@ export function MyGame() {
     .filter((r) => r.status === 'confirmed')
     .reduce((s, r) => s + r.count, 0)
   const netBanks = myPlayer.cashout == null ? null : myPlayer.cashout - confirmedBuyins * game.stake
+  // While still playing, the one thing worth interrupting the player for is
+  // an outstanding request — everything else in the activity feed is just
+  // history. Surfaced right under the hero instead of buried at the bottom
+  // of a list they'd have to scroll to.
+  const pendingRequest = requests.find((r) => r.status === 'pending')
 
   async function requestMore() {
     if (!gameId || !profile || !myPlayer) return
@@ -172,18 +177,18 @@ export function MyGame() {
 
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle>Your net</CardTitle>
+          <CardTitle>{netBanks == null ? 'Total buy-ins' : 'Your net'}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2">
             <p className="type-figure-hero text-ink">
-              {netBanks == null ? 'In play' : `${toChips(netBanks, ratio)} chips`}
+              {netBanks == null
+                ? `${toChips(confirmedBuyins * game.stake, ratio)} chips`
+                : `${toChips(netBanks, ratio)} chips`}
             </p>
-            {netBanks != null && (
-              <Badge variant={netBanks >= 0 ? 'win' : 'error'}>
-                {netBanks >= 0 ? 'Winning' : 'Down'}
-              </Badge>
-            )}
+            <Badge variant={netBanks == null || netBanks >= 0 ? 'win' : 'error'}>
+              {netBanks == null ? 'Playing' : netBanks >= 0 ? 'Winning' : 'Down'}
+            </Badge>
           </div>
           <p className="mt-2 text-xs text-muted">
             {confirmedBuyins} confirmed buy-in{confirmedBuyins === 1 ? '' : 's'}
@@ -216,7 +221,17 @@ export function MyGame() {
         </CardContent>
       </Card>
 
-      {myPlayer.cashout == null && (
+      {myPlayer.cashout == null && pendingRequest && (
+        <div className="mt-3 rounded-lg border border-primary/40 bg-canvas p-3">
+          <p className="text-sm text-ink">
+            Requested {pendingRequest.count} buy-in{pendingRequest.count > 1 ? 's' : ''} — waiting on
+            the host.
+          </p>
+          <p className="mt-1 text-xs text-muted">This page updates on its own once confirmed.</p>
+        </div>
+      )}
+
+      {myPlayer.cashout == null && !pendingRequest && (
         <Button variant="secondary" block className="mt-3" onClick={() => setPickerOpen(true)}>
           Request more buy-ins
         </Button>
