@@ -280,7 +280,7 @@ export function CreateGame() {
                     setSelectedVenueId(v.id)
                     setVenueSuggestions([])
                   }}
-                  className="block w-full truncate px-3 py-2 text-left text-sm text-ink hover:bg-surface-strong"
+                  className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-surface-strong"
                 >
                   {v.name}
                 </button>

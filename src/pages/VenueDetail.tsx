@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { PageSpinner } from '../components/ui/Spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { ListGroup, ListRow } from '../components/ui/list-row'
+import { ListGroup, ListRow, ListDate } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
 import { LineChart } from '../components/ui/line-chart'
@@ -200,7 +200,7 @@ export function VenueDetail() {
                 {regulars.map((r) => (
                   <div key={r.profile_id} className="flex items-center gap-2 text-sm">
                     <NamedAvatar name={r.full_name} className="h-8 w-8" />
-                    <span className="w-20 flex-none truncate text-ink">{r.full_name}</span>
+                    <span className="w-20 flex-none text-ink">{r.full_name}</span>
                     <div className="h-2 flex-1 rounded-full bg-surface-strong">
                       <div
                         className="h-2 rounded-full bg-primary"
@@ -226,59 +226,62 @@ export function VenueDetail() {
               {myRows.map((g) => {
                 const role = myRoles[g.game_id]
                 return (
-                  <ListRow
-                    key={g.game_id}
-                    className="cursor-pointer"
-                    onClick={() => navigate(`/games/${g.game_id}`)}
-                    avatar={<NamedAvatar name={g.game_name} className="h-12 w-12" />}
-                    meta={new Date(g.closed_at).toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                    title={g.game_name}
-                    trailing={
-                      <>
-                        {role?.kind === 'hosted' && (
-                          <>
-                            <span className="type-figure-md whitespace-nowrap text-ink">
-                              {toChips(g.confirmed_buyin_units * g.stake, g.chip_ratio)} chips
-                            </span>
-                            <span className="text-[11px] text-muted">
-                              {role.confirmedTransfers}/{role.transfers} confirmed
-                            </span>
-                          </>
-                        )}
-                        {role?.kind === 'played' && (
-                          <>
-                            <span
-                              className={`type-figure-md whitespace-nowrap ${
-                                role.net >= 0 ? 'text-win' : 'text-error'
-                              }`}
-                            >
-                              {toChips(role.net, g.chip_ratio)} chips
-                            </span>
-                            <div className="flex items-center gap-1 text-[11px] text-muted">
-                              <span>{role.buyins} buy-ins</span>
-                              {role.settlementStatus && (
-                                <Badge
-                                  variant={
-                                    role.settlementStatus === 'confirmed'
-                                      ? 'win'
-                                      : role.settlementStatus === 'disputed'
-                                        ? 'error'
-                                        : 'muted'
-                                  }
-                                >
-                                  {role.settlementStatus}
-                                </Badge>
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </>
-                    }
-                  />
+                  <div key={g.game_id}>
+                    <ListDate>
+                      {new Date(g.closed_at).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </ListDate>
+                    <ListRow
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/games/${g.game_id}`)}
+                      avatar={<NamedAvatar name={g.game_name} className="h-12 w-12" />}
+                      title={g.game_name}
+                      trailing={
+                        <>
+                          {role?.kind === 'hosted' && (
+                            <>
+                              <span className="type-figure-md whitespace-nowrap text-ink">
+                                {toChips(g.confirmed_buyin_units * g.stake, g.chip_ratio)} chips
+                              </span>
+                              <span className="text-[11px] text-muted">
+                                {role.confirmedTransfers}/{role.transfers} confirmed
+                              </span>
+                            </>
+                          )}
+                          {role?.kind === 'played' && (
+                            <>
+                              <span
+                                className={`type-figure-md whitespace-nowrap ${
+                                  role.net >= 0 ? 'text-win' : 'text-error'
+                                }`}
+                              >
+                                {toChips(role.net, g.chip_ratio)} chips
+                              </span>
+                              <div className="flex items-center gap-1 text-[11px] text-muted">
+                                <span>{role.buyins} buy-ins</span>
+                                {role.settlementStatus && (
+                                  <Badge
+                                    variant={
+                                      role.settlementStatus === 'confirmed'
+                                        ? 'win'
+                                        : role.settlementStatus === 'disputed'
+                                          ? 'error'
+                                          : 'muted'
+                                    }
+                                  >
+                                    {role.settlementStatus}
+                                  </Badge>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </>
+                      }
+                    />
+                  </div>
                 )
               })}
             </ListGroup>

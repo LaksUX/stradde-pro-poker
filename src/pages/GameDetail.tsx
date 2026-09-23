@@ -143,10 +143,10 @@ export function GameDetail() {
                       </div>
                     }
                     title={
-                      <span className="flex items-center gap-1.5">
-                        <span className="truncate">{t.from}</span>
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        <span>{t.from}</span>
                         <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted" />
-                        <span className="truncate">{t.to}</span>
+                        <span>{t.to}</span>
                       </span>
                     }
                     trailing={

@@ -8,7 +8,7 @@ import { Button } from '../components/ui/Button'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
-import { ListGroup, ListRow } from '../components/ui/list-row'
+import { ListGroup, ListRow, ListDate } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
 import { LineChart } from '../components/ui/line-chart'
@@ -318,23 +318,24 @@ export function Home() {
                 ) : (
                   <ListGroup>
                     {playedGames.map((g) => (
-                      <ListRow
-                        key={g.id}
-                        className="cursor-pointer"
-                        onClick={() => navigate(`/games/${g.id}`)}
-                        avatar={<NamedAvatar name={g.name} className="h-12 w-12" />}
-                        title={g.name}
-                        meta={formatClosedDate(g.closed_at)}
-                        trailing={
-                          <span
-                            className={`type-figure-md whitespace-nowrap ${
-                              g.net >= 0 ? 'text-win' : 'text-error'
-                            }`}
-                          >
-                            {toChips(g.net, g.chip_ratio)} chips
-                          </span>
-                        }
-                      />
+                      <div key={g.id}>
+                        <ListDate>{formatClosedDate(g.closed_at)}</ListDate>
+                        <ListRow
+                          className="cursor-pointer"
+                          onClick={() => navigate(`/games/${g.id}`)}
+                          avatar={<NamedAvatar name={g.name} className="h-12 w-12" />}
+                          title={g.name}
+                          trailing={
+                            <span
+                              className={`type-figure-md whitespace-nowrap ${
+                                g.net >= 0 ? 'text-win' : 'text-error'
+                              }`}
+                            >
+                              {toChips(g.net, g.chip_ratio)} chips
+                            </span>
+                          }
+                        />
+                      </div>
                     ))}
                   </ListGroup>
                 )}
@@ -443,19 +444,20 @@ export function Home() {
                   ) : (
                     <ListGroup>
                       {hostedGames.map((g) => (
-                        <ListRow
-                          key={g.id}
-                          className="cursor-pointer"
-                          onClick={() => navigate(`/games/${g.id}`)}
-                          avatar={<NamedAvatar name={g.name} className="h-12 w-12" />}
-                          title={g.name}
-                          meta={formatClosedDate(g.closed_at)}
-                          trailing={
-                            <span className="type-figure-md whitespace-nowrap text-ink">
-                              {toChips(g.buyins, g.chip_ratio)} chips
-                            </span>
-                          }
-                        />
+                        <div key={g.id}>
+                          <ListDate>{formatClosedDate(g.closed_at)}</ListDate>
+                          <ListRow
+                            className="cursor-pointer"
+                            onClick={() => navigate(`/games/${g.id}`)}
+                            avatar={<NamedAvatar name={g.name} className="h-12 w-12" />}
+                            title={g.name}
+                            trailing={
+                              <span className="type-figure-md whitespace-nowrap text-ink">
+                                {toChips(g.buyins, g.chip_ratio)} chips
+                              </span>
+                            }
+                          />
+                        </div>
                       ))}
                     </ListGroup>
                   )}
