@@ -18,6 +18,11 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Table, TableBody, TableCell, TableRow } from '../components/ui/table'
 import { NamedAvatar } from '../components/ui/avatar'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
+import { Slider } from '../components/ui/slider'
+import { Switch } from '../components/ui/switch'
+
+const MAX_BUYINS = 50
 
 type Game = {
   id: string
@@ -69,7 +74,20 @@ export function LiveGame() {
   const [players, setPlayers] = useState<PlayerRow[]>([])
   const [rakeRevealed, setRakeRevealed] = useState(false)
   const [tableSizeEditing, setTableSizeEditing] = useState(false)
-  const [cashoutEditingId, setCashoutEditingId] = useState<string | null>(null)
+  const [sheetPlayerId, setSheetPlayerId] = useState<string | null>(null)
+  const [sliderValue, setSliderValue] = useState(0)
+  const [cashoutOn, setCashoutOn] = useState(false)
+  const [cashoutValue, setCashoutValue] = useState('')
+  const [savingSheet, setSavingSheet] = useState(false)
+
+  const sheetPlayer = players.find((p) => p.id === sheetPlayerId) ?? null
+
+  function openPlayerSheet(p: PlayerRow) {
+    setSheetPlayerId(p.id)
+    setSliderValue(p.confirmed_buyins)
+    setCashoutOn(p.cashout != null)
+    setCashoutValue(p.cashout != null ? String(p.cashout) : '')
+  }
 
   useEffect(() => {
     if (!gameId) return
@@ -211,11 +229,92 @@ export function LiveGame() {
     )
   }
 
-  async function setCashout(playerId: string, value: number) {
-    await runWrite(
-      () => supabase.from('game_players').update({ cashout: value }).eq('id', playerId),
-      'Cash-out'
-    )
+  // Increasing is a simple new confirmed request. Decreasing (a host
+  // correcting a mistake) has no natural single row to "un-confirm" — the
+  // schema requires count >= 1, so a negative correction row isn't
+  // possible — instead it walks the player's own confirmed requests
+  // newest-first, shrinking or deleting them until the total removed
+  // matches, same as how a cash register would void the most recent rings
+  // first.
+  async function applyBuyinChange(p: PlayerRow, newCount: number): Promise<boolean> {
+    const delta = newCount - p.confirmed_buyins
+    if (delta === 0) return true
+    if (delta > 0) {
+      return runWrite(
+        () =>
+          supabase.from('buyin_requests').insert({
+            game_id: gameId,
+            profile_id: p.profile_id,
+            requester_name: p.full_name,
+            game_player_id: p.id,
+            request_type: 'more_buyins',
+            count: delta,
+            status: 'confirmed',
+            confirmed_at: new Date().toISOString(),
+          }),
+        'Adding buy-ins'
+      )
+    }
+    const { data: reqs } = await supabase
+      .from('buyin_requests')
+      .select('id, count')
+      .eq('game_player_id', p.id)
+      .eq('status', 'confirmed')
+      .order('confirmed_at', { ascending: false })
+    let remaining = -delta
+    for (const r of reqs ?? []) {
+      if (remaining <= 0) break
+      if (r.count <= remaining) {
+        const ok = await runWrite(
+          () => supabase.from('buyin_requests').delete().eq('id', r.id),
+          'Lowering buy-ins'
+        )
+        if (!ok) return false
+        remaining -= r.count
+      } else {
+        const ok = await runWrite(
+          () => supabase.from('buyin_requests').update({ count: r.count - remaining }).eq('id', r.id),
+          'Lowering buy-ins'
+        )
+        if (!ok) return false
+        remaining = 0
+      }
+    }
+    return true
+  }
+
+  async function saveSheetChanges() {
+    if (!sheetPlayer) return
+    if (sliderValue < sheetPlayer.confirmed_buyins) {
+      const confirmed = await confirmDialog(
+        `Lower ${sheetPlayer.full_name}'s buy-ins from ${sheetPlayer.confirmed_buyins} to ${sliderValue}? This removes money already counted as in the table.`,
+        { confirmLabel: 'Lower buy-ins', danger: true }
+      )
+      if (!confirmed) return
+    }
+    setSavingSheet(true)
+    try {
+      if (sliderValue !== sheetPlayer.confirmed_buyins) {
+        const ok = await applyBuyinChange(sheetPlayer, sliderValue)
+        if (!ok) return
+      }
+      if (cashoutOn) {
+        const ok = await runWrite(
+          () => supabase.from('game_players').update({ cashout: Number(cashoutValue) || 0 }).eq('id', sheetPlayer.id),
+          'Cash-out'
+        )
+        if (!ok) return
+      } else if (sheetPlayer.cashout != null) {
+        const ok = await runWrite(
+          () => supabase.from('game_players').update({ cashout: null }).eq('id', sheetPlayer.id),
+          'Clearing cash-out'
+        )
+        if (!ok) return
+      }
+      setSheetPlayerId(null)
+    } finally {
+      setSavingSheet(false)
+    }
   }
 
   async function setRake(value: number) {
@@ -446,53 +545,30 @@ export function LiveGame() {
           <Table>
             <TableBody>
               {players.map((p) => (
-                <TableRow key={p.id}>
+                <TableRow key={p.id} className="cursor-pointer" onClick={() => openPlayerSheet(p)}>
                   <TableCell>
                     <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-ink">
-                      <NamedAvatar name={p.full_name} className="h-6 w-6 shrink-0" />
+                      <span className="relative shrink-0">
+                        <NamedAvatar name={p.full_name} className="h-6 w-6" />
+                        <span
+                          className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-canvas ${
+                            p.cashout == null ? 'bg-win' : 'bg-error'
+                          }`}
+                        />
+                      </span>
                       <span className="truncate">
                         {p.full_name}
                         {p.is_host ? ' (host)' : ''}
                       </span>
                     </div>
-                    {cashoutEditingId === p.id ? (
-                      <Input
-                        type="number"
-                        autoFocus
-                        defaultValue={p.cashout ?? ''}
-                        placeholder="Cash out (banks)"
-                        className="mt-1 h-9 w-28"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            setCashout(p.id, Number((e.target as HTMLInputElement).value) || 0)
-                            setCashoutEditingId(null)
-                          }
-                        }}
-                        onBlur={(e) => {
-                          if (e.target.value) setCashout(p.id, Number(e.target.value) || 0)
-                          setCashoutEditingId(null)
-                        }}
-                      />
-                    ) : (
-                      <div className="type-figure-md text-xs text-muted">
-                        {p.cashout == null
-                          ? 'In play'
-                          : `${toChips(p.cashout - p.confirmed_buyins * game.stake, ratio)} chips net`}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="w-24 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <span className="type-figure-md text-lg text-ink">{p.confirmed_buyins}</span>
-                      {cashoutEditingId !== p.id && (
-                        <button
-                          className="shrink-0 text-xs text-muted underline"
-                          onClick={() => setCashoutEditingId(p.id)}
-                        >
-                          {p.cashout == null ? 'Cash out' : 'Edit'}
-                        </button>
-                      )}
+                    <div className="type-figure-md text-xs text-muted">
+                      {p.cashout == null
+                        ? `${p.confirmed_buyins} buy-in${p.confirmed_buyins === 1 ? '' : 's'}`
+                        : `${toChips(p.cashout - p.confirmed_buyins * game.stake, ratio)} chips net`}
                     </div>
+                  </TableCell>
+                  <TableCell className="w-16 text-right">
+                    <span className="type-figure-md text-lg text-ink">{p.confirmed_buyins}</span>
                   </TableCell>
                 </TableRow>
               ))}
@@ -504,6 +580,80 @@ export function LiveGame() {
       <Button block className="mt-4" onClick={closeAndSettle}>
         End game &amp; settle
       </Button>
+
+      <Sheet open={sheetPlayerId != null} onOpenChange={(open) => !open && setSheetPlayerId(null)}>
+        <SheetContent>
+          {sheetPlayer && (
+            <>
+              <SheetHeader>
+                <span className="relative shrink-0">
+                  <NamedAvatar name={sheetPlayer.full_name} />
+                  <span
+                    className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-canvas ${
+                      sheetPlayer.cashout == null ? 'bg-win' : 'bg-error'
+                    }`}
+                  />
+                </span>
+                <SheetTitle>
+                  {sheetPlayer.full_name}
+                  {sheetPlayer.is_host ? ' (host)' : ''}
+                </SheetTitle>
+              </SheetHeader>
+
+              {!cashoutOn ? (
+                <div className="mt-5">
+                  <p className="text-xs text-muted">
+                    {sheetPlayer.confirmed_buyins} buy-in{sheetPlayer.confirmed_buyins === 1 ? '' : 's'} so far
+                  </p>
+                  <p className="type-figure-hero mt-1 text-center text-ink">{sliderValue}</p>
+                  <Slider
+                    className="mt-3"
+                    min={0}
+                    max={MAX_BUYINS}
+                    step={1}
+                    value={sliderValue}
+                    onValueChange={(v) => setSliderValue(v as number)}
+                  />
+                  <p className="mt-1 text-center text-xs text-muted">total buy-ins</p>
+                </div>
+              ) : (
+                <div className="mt-5 rounded-lg border border-hairline-soft bg-surface-strong p-3 text-center">
+                  <p className="text-xs text-muted">Buy-ins locked</p>
+                  <p className="type-figure-md text-ink">
+                    {sheetPlayer.confirmed_buyins} buy-in{sheetPlayer.confirmed_buyins === 1 ? '' : 's'}
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-5 flex items-center justify-between border-t border-hairline-soft pt-4">
+                <div>
+                  <p className="text-sm font-medium text-ink">Cashed out</p>
+                  <p className="text-xs text-muted">Turn on once they're done playing.</p>
+                </div>
+                <Switch checked={cashoutOn} onCheckedChange={setCashoutOn} />
+              </div>
+
+              {cashoutOn && (
+                <div className="mt-3 flex flex-col gap-1.5">
+                  <Label htmlFor="sheet-cashout">Cash-out (banks)</Label>
+                  <Input
+                    id="sheet-cashout"
+                    type="number"
+                    className="h-12"
+                    autoFocus
+                    value={cashoutValue}
+                    onChange={(e) => setCashoutValue(e.target.value)}
+                  />
+                </div>
+              )}
+
+              <Button block className="mt-5" disabled={savingSheet} onClick={saveSheetChanges}>
+                {savingSheet ? 'Saving…' : 'Save'}
+              </Button>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
