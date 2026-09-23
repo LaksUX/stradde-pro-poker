@@ -9,8 +9,14 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover'
 import { Calendar } from '../components/ui/calendar'
+import { TimePicker } from '../components/ui/time-picker'
 import { getOrCreateOwnEntity } from '../lib/entities'
-import type { ChipRatio } from '../lib/chips'
+import { chipMultiplier, type ChipRatio } from '../lib/chips'
+
+// Buy-ins are always exactly 1 bank each now — see REQUIREMENTS.md's
+// Fifteenth revision note. `stake` stays a real, working column (settlement
+// math is unchanged), it's just never asked for on this form anymore.
+const FIXED_STAKE = 1
 
 type VenueOption = { id: string; name: string }
 
@@ -24,7 +30,7 @@ export function CreateGame() {
   const [venue, setVenue] = useState('')
   const [venueSuggestions, setVenueSuggestions] = useState<VenueOption[]>([])
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
-  const [stake, setStake] = useState(5)
+  const [rake, setRake] = useState(0)
   const [chipRatio, setChipRatio] = useState<ChipRatio>('1:1')
   const [scheduleMode, setScheduleMode] = useState<'now' | 'later'>('now')
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined)
@@ -104,7 +110,11 @@ export function CreateGame() {
 
   // Picking a date is a signal worth using: hosts tend to repeat the same
   // night/venue week over week, so look at this host's own history for the
-  // same day of week and suggest whatever comes up most.
+  // same day of week and suggest whatever comes up most. Venue is meant to
+  // always be auto-populated (rarely hand-typed) — so if nothing matches
+  // this exact day of week (a host's first game, or an off-day one-off),
+  // fall back to this host's single most-used venue overall rather than
+  // leaving the field empty.
   async function autofillFromDate(date: Date) {
     const weekdayName = date.toLocaleDateString('en-US', { weekday: 'long' })
     if (!nameTouched) setName(`${weekdayName} night`)
@@ -116,22 +126,36 @@ export function CreateGame() {
       .eq('host_id', profile.id)
       .not('venue_freetext', 'is', null)
     const targetDow = date.getDay()
-    const counts = new Map<string, number>()
+    const sameDayCounts = new Map<string, number>()
+    const overallCounts = new Map<string, number>()
     for (const g of data ?? []) {
       if (!g.venue_freetext || !g.scheduled_for) continue
+      overallCounts.set(g.venue_freetext, (overallCounts.get(g.venue_freetext) ?? 0) + 1)
       if (new Date(g.scheduled_for).getDay() !== targetDow) continue
-      counts.set(g.venue_freetext, (counts.get(g.venue_freetext) ?? 0) + 1)
+      sameDayCounts.set(g.venue_freetext, (sameDayCounts.get(g.venue_freetext) ?? 0) + 1)
     }
-    let best: string | null = null
-    let bestCount = 0
-    for (const [v, c] of counts) {
-      if (c > bestCount) {
-        best = v
-        bestCount = c
+    const mostFrequent = (counts: Map<string, number>) => {
+      let best: string | null = null
+      let bestCount = 0
+      for (const [v, c] of counts) {
+        if (c > bestCount) {
+          best = v
+          bestCount = c
+        }
       }
+      return best
     }
+    const best = mostFrequent(sameDayCounts) ?? mostFrequent(overallCounts)
     if (best) setVenue(best)
   }
+
+  // Venue is "always auto populated," per the host — not just when
+  // scheduling for a future date. Run the same autofill against today's
+  // date once the profile loads, for the "start now" path too.
+  useEffect(() => {
+    if (profile) autofillFromDate(new Date())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile])
 
   if (loading) return <PageSpinner />
   if (!profile?.approved) {
@@ -148,8 +172,8 @@ export function CreateGame() {
 
   async function handleCreate() {
     if (!profile) return
-    if (!name.trim() || !stake) {
-      setError('Name and stake are both required')
+    if (!name.trim()) {
+      setError('Name is required')
       return
     }
     if (scheduleMode === 'later' && !scheduledDate) {
@@ -181,7 +205,8 @@ export function CreateGame() {
           name: name.trim(),
           venue_id: venueId,
           venue_freetext: trimmedVenue || null,
-          stake,
+          stake: FIXED_STAKE,
+          rake,
           chip_ratio: chipRatio,
           status: scheduleMode === 'now' ? 'live' : 'scheduled',
           scheduled_for: scheduledForIso,
@@ -271,15 +296,18 @@ export function CreateGame() {
       </p>
 
       <div className="mt-3 flex flex-col gap-1.5">
-        <Label htmlFor="game-stake">Buy-in amount (stake, banks)</Label>
+        <Label htmlFor="game-rake">Rake (one-time house fee, banks)</Label>
         <Input
-          id="game-stake"
+          id="game-rake"
           type="number"
           className="h-14"
-          value={stake}
-          onChange={(e) => setStake(Number(e.target.value) || 0)}
+          value={rake}
+          onChange={(e) => setRake(Number(e.target.value) || 0)}
         />
       </div>
+      <p className="mt-1 text-xs text-muted">
+        Set once here — still editable later from Live Game if you need to adjust it.
+      </p>
 
       <div className="mt-3 flex flex-col gap-1.5">
         <Label>Chip ratio</Label>
@@ -291,7 +319,7 @@ export function CreateGame() {
         </Tabs>
       </div>
       <p className="mt-1 text-xs text-muted">
-        {chipRatio === '1:2' ? '2 banks = 1 chip' : '1 bank = 1 chip'} — locked once the game starts.
+        1 bank = {chipMultiplier(chipRatio).toLocaleString()} chip — locked once the game starts.
       </p>
 
       <div className="mt-3 flex flex-col gap-1.5">
@@ -328,12 +356,7 @@ export function CreateGame() {
               />
             </PopoverContent>
           </Popover>
-          <Input
-            type="time"
-            className="h-14 w-28"
-            value={scheduledTime}
-            onChange={(e) => setScheduledTime(e.target.value)}
-          />
+          <TimePicker className="w-32" value={scheduledTime} onChange={setScheduledTime} />
         </div>
       )}
 

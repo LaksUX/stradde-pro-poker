@@ -133,6 +133,24 @@ sync with whatever's decided here.
 > `src/lib/chips.ts`), so every screen's `toChips()` call already gets the
 > corrected conversion — no per-screen changes needed beyond the one place
 > that described the old direction in prose (Create Game's ratio caption).
+>
+> **Fifteenth revision note — real chip denominations, stake hidden from the
+> UI.** Chips stop being an abstract 1/0.5 multiplier and become real
+> physical-chip face values, confirmed explicitly with the host: **`1:1` = 1
+> bank = 10000 chips, `1:2` = 1 bank = 5000 chips** — same "1:2 is the
+> coarser unit" relationship as the fourteenth revision, just expressed in
+> real denominations instead of an abstract ratio. Fixed at the same single
+> source of truth (`chipMultiplier()` in `src/lib/chips.ts`).
+> Separately, **Create Game no longer asks the host for a per-buy-in stake.**
+> The `stake` column, its lock-after-start trigger, and every settlement
+> calculation that multiplies by it are unchanged — a real, working field —
+> it's just fixed at `1` and never shown or asked for, since hosts think of
+> a buy-in as a bank amount directly, not "some number of standardized
+> units priced at a rate." **Rake — the one-time house fee — moves the other
+> direction: it's now a real Create Game field**, set once at creation, and
+> (as before) still freely host-editable afterward from Live Game's masked
+> reveal. Two separate, deliberate UI moves in one revision: stake hidden,
+> rake surfaced.
 
 ## What this is
 
@@ -262,10 +280,10 @@ moment they type their phone number.)*
     as a unit rather than money — satisfying the "no currency units" rule while
     still being immediately intuitive.
   - **Every game sets a ratio at creation: `1:1` or `1:2`.** `1:1` means 1 bank =
-    1 chip (no scaling — chips and banks are numerically identical, chips is just
-    the settlement-facing name for the same number). `1:2` means 2 banks = 1 chip
-    (a chip is worth double in bank terms — see the Fourteenth revision note,
-    which corrects this from the original, backwards direction).
+    10000 chips; `1:2` means 1 bank = 5000 chips — half as many chips per bank,
+    same "1:2 is the coarser unit" relationship as the Fourteenth revision note
+    established, now expressed as real chip denominations per the Fifteenth
+    revision note rather than an abstract 1/0.5 multiplier.
     **[decision] Defaults to `1:1`** so
     every game has a real, meaningful setting rather than an implied "off" state —
     this is no longer something most hosts will "never touch"; it's a real

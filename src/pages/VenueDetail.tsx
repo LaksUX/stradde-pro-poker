@@ -226,7 +226,7 @@ export function VenueDetail() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Game</TableHead>
-                  <TableHead className="w-28 text-right">Result</TableHead>
+                  <TableHead className="w-36 text-right">Result</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

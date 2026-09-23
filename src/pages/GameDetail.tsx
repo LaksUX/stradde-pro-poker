@@ -109,7 +109,7 @@ export function GameDetail() {
             <TableHeader>
               <TableRow>
                 <TableHead>Player</TableHead>
-                <TableHead className="w-28 text-right">Net</TableHead>
+                <TableHead className="w-36 text-right">Net</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
