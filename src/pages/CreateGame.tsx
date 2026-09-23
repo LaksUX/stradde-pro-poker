@@ -7,6 +7,8 @@ import { PageSpinner } from '../components/ui/Spinner'
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
+import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover'
+import { Calendar } from '../components/ui/calendar'
 import { getOrCreateOwnEntity } from '../lib/entities'
 import type { ChipRatio } from '../lib/chips'
 
@@ -25,9 +27,15 @@ export function CreateGame() {
   const [stake, setStake] = useState(5)
   const [chipRatio, setChipRatio] = useState<ChipRatio>('1:1')
   const [scheduleMode, setScheduleMode] = useState<'now' | 'later'>('now')
-  const [scheduledFor, setScheduledFor] = useState('')
+  const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined)
+  const [scheduledTime, setScheduledTime] = useState('19:00')
+  const [calendarOpen, setCalendarOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
+  // Only autofill a field the host hasn't touched themselves — picking a
+  // date shouldn't clobber a name/venue they already typed.
+  const [nameTouched, setNameTouched] = useState(false)
+  const [venueTouched, setVenueTouched] = useState(false)
   // Set right before setVenue() inside the suggestion's own onClick, so the
   // effect below — which otherwise clears selectedVenueId on every keystroke
   // — knows this particular venue change WAS the selection, not the user
@@ -94,6 +102,37 @@ export function CreateGame() {
     return created.id
   }
 
+  // Picking a date is a signal worth using: hosts tend to repeat the same
+  // night/venue week over week, so look at this host's own history for the
+  // same day of week and suggest whatever comes up most.
+  async function autofillFromDate(date: Date) {
+    const weekdayName = date.toLocaleDateString('en-US', { weekday: 'long' })
+    if (!nameTouched) setName(`${weekdayName} night`)
+    if (venueTouched || !profile) return
+
+    const { data } = await supabase
+      .from('games')
+      .select('venue_freetext, scheduled_for')
+      .eq('host_id', profile.id)
+      .not('venue_freetext', 'is', null)
+    const targetDow = date.getDay()
+    const counts = new Map<string, number>()
+    for (const g of data ?? []) {
+      if (!g.venue_freetext || !g.scheduled_for) continue
+      if (new Date(g.scheduled_for).getDay() !== targetDow) continue
+      counts.set(g.venue_freetext, (counts.get(g.venue_freetext) ?? 0) + 1)
+    }
+    let best: string | null = null
+    let bestCount = 0
+    for (const [v, c] of counts) {
+      if (c > bestCount) {
+        best = v
+        bestCount = c
+      }
+    }
+    if (best) setVenue(best)
+  }
+
   if (loading) return <PageSpinner />
   if (!profile?.approved) {
     return (
@@ -113,8 +152,8 @@ export function CreateGame() {
       setError('Name and stake are both required')
       return
     }
-    if (scheduleMode === 'later' && !scheduledFor) {
-      setError('Set a date/time to schedule')
+    if (scheduleMode === 'later' && !scheduledDate) {
+      setError('Pick a date to schedule')
       return
     }
     setCreating(true)
@@ -125,6 +164,14 @@ export function CreateGame() {
         ? selectedVenueId ?? (await resolveVenueId(trimmedVenue))
         : null
       const entity = await getOrCreateOwnEntity(profile)
+
+      const scheduledForIso = (() => {
+        if (scheduleMode !== 'later' || !scheduledDate) return new Date().toISOString()
+        const [hours, minutes] = scheduledTime.split(':').map(Number)
+        const combined = new Date(scheduledDate)
+        combined.setHours(hours || 0, minutes || 0, 0, 0)
+        return combined.toISOString()
+      })()
 
       const { data, error: insertError } = await supabase
         .from('games')
@@ -137,7 +184,7 @@ export function CreateGame() {
           stake,
           chip_ratio: chipRatio,
           status: scheduleMode === 'now' ? 'live' : 'scheduled',
-          scheduled_for: scheduleMode === 'later' ? scheduledFor : new Date().toISOString(),
+          scheduled_for: scheduledForIso,
         })
         .select('id, status')
         .single()
@@ -172,7 +219,15 @@ export function CreateGame() {
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="game-name">Game name</Label>
-        <Input id="game-name" className="h-14" value={name} onChange={(e) => setName(e.target.value)} />
+        <Input
+          id="game-name"
+          className="h-14"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value)
+            setNameTouched(true)
+          }}
+        />
       </div>
       <div className="mt-3 flex flex-col gap-1.5">
         <Label htmlFor="game-venue">Venue</Label>
@@ -181,7 +236,10 @@ export function CreateGame() {
             id="game-venue"
             className="h-14"
             value={venue}
-            onChange={(e) => setVenue(e.target.value)}
+            onChange={(e) => {
+              setVenue(e.target.value)
+              setVenueTouched(true)
+            }}
             placeholder="Kumar's house"
           />
           {venueSuggestions.length > 0 && !selectedVenueId && (
@@ -193,6 +251,7 @@ export function CreateGame() {
                   onClick={() => {
                     justSelectedVenue.current = true
                     setVenue(v.name)
+                    setVenueTouched(true)
                     setSelectedVenueId(v.id)
                     setVenueSuggestions([])
                   }}
@@ -245,12 +304,37 @@ export function CreateGame() {
         </Tabs>
       </div>
       {scheduleMode === 'later' && (
-        <Input
-          type="datetime-local"
-          className="mt-2 h-14"
-          value={scheduledFor}
-          onChange={(e) => setScheduledFor(e.target.value)}
-        />
+        <div className="mt-2 flex gap-2">
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+            <PopoverTrigger className="h-14 flex-1 rounded-sm border border-hairline bg-surface-strong px-3 text-left text-sm text-ink">
+              {scheduledDate
+                ? scheduledDate.toLocaleDateString(undefined, {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                  })
+                : 'Pick a date'}
+            </PopoverTrigger>
+            <PopoverContent>
+              <Calendar
+                mode="single"
+                selected={scheduledDate}
+                disabled={{ before: new Date() }}
+                onSelect={(date) => {
+                  setScheduledDate(date)
+                  setCalendarOpen(false)
+                  if (date) autofillFromDate(date)
+                }}
+              />
+            </PopoverContent>
+          </Popover>
+          <Input
+            type="time"
+            className="h-14 w-28"
+            value={scheduledTime}
+            onChange={(e) => setScheduledTime(e.target.value)}
+          />
+        </div>
       )}
 
       {error && <p className="mt-3 text-sm text-error">{error}</p>}
