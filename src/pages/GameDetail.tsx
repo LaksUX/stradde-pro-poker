@@ -4,7 +4,9 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { PageSpinner } from '../components/ui/Spinner'
-import { StatCard } from '../components/ui/StatCard'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
+import { Badge } from '../components/ui/badge'
 
 type Game = {
   id: string
@@ -91,7 +93,7 @@ export function GameDetail() {
 
   return (
     <div className="mx-auto max-w-sm p-6">
-      <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
+      <h1 className="type-page-title text-ink">{game.name}</h1>
       {game.venue_id ? (
         <Link to={`/venues/${game.venue_id}`} className="text-sm text-primary underline">
           {game.venue_freetext}
@@ -102,60 +104,77 @@ export function GameDetail() {
 
       {isHost ? (
         <>
-          <div className="mt-4 rounded-lg border border-hairline bg-canvas">
-            {players.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center justify-between border-b border-hairline-soft p-3 text-sm last:border-none"
-              >
-                <span className="text-ink">{p.full_name}</span>
-                <span className="font-mono tabular-nums text-muted">
-                  {p.buyins} buy-ins ·{' '}
-                  {p.cashout == null ? (
-                    'in play'
-                  ) : (
-                    <span className={p.cashout - p.buyins * game.stake >= 0 ? 'text-win' : 'text-error'}>
-                      {toChips(p.cashout - p.buyins * game.stake, ratio)} chips
-                    </span>
-                  )}
-                </span>
-              </div>
-            ))}
-          </div>
-          {transfers.length > 0 && (
-            <div className="mt-4 rounded-lg border border-hairline bg-canvas p-3">
-              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
-                Settlement
-              </h2>
-              {transfers.map((t, i) => (
-                <div key={i} className="flex items-center justify-between py-1 text-sm">
-                  <span className="text-ink">
-                    {t.from} → {t.to}
-                  </span>
-                  <span className="font-mono tabular-nums text-muted">
-                    {toChips(t.amount, ratio)} chips · {t.status}
-                  </span>
-                </div>
+          <Table className="mt-4">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Player</TableHead>
+                <TableHead className="text-right">Net</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {players.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell>{p.full_name}</TableCell>
+                  <TableCell className="text-right">
+                    <p className="text-xs text-muted">{p.buyins} buy-ins</p>
+                    {p.cashout == null ? (
+                      <p className="type-figure-md text-muted">in play</p>
+                    ) : (
+                      <p
+                        className={`type-figure-md ${
+                          p.cashout - p.buyins * game.stake >= 0 ? 'text-win' : 'text-error'
+                        }`}
+                      >
+                        {toChips(p.cashout - p.buyins * game.stake, ratio)} chips
+                      </p>
+                    )}
+                  </TableCell>
+                </TableRow>
               ))}
-            </div>
+            </TableBody>
+          </Table>
+          {transfers.length > 0 && (
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle>Settlement</CardTitle>
+              </CardHeader>
+              <CardContent className="gap-0">
+                {transfers.map((t, i) => (
+                  <div key={i} className="flex items-center justify-between py-1 text-sm">
+                    <span className="text-ink">
+                      {t.from} → {t.to}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="type-figure-md text-ink">{toChips(t.amount, ratio)} chips</span>
+                      <Badge variant={t.status === 'confirmed' ? 'win' : t.status === 'disputed' ? 'error' : 'muted'}>
+                        {t.status}
+                      </Badge>
+                    </span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
           )}
         </>
       ) : me ? (
-        <div className="mt-4">
-          <StatCard
-            eyebrow="Your net"
-            value={me.cashout == null ? 'In play' : `${toChips(me.cashout - me.buyins * game.stake, ratio)} chips`}
-            valueClassName={
-              me.cashout == null
-                ? 'text-ink'
-                : me.cashout - me.buyins * game.stake >= 0
-                  ? 'text-win'
-                  : 'text-error'
-            }
-          >
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle>Your net</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <p className="type-figure-hero text-ink">
+                {me.cashout == null ? 'In play' : `${toChips(me.cashout - me.buyins * game.stake, ratio)} chips`}
+              </p>
+              {me.cashout != null && (
+                <Badge variant={me.cashout - me.buyins * game.stake >= 0 ? 'win' : 'error'}>
+                  {me.cashout - me.buyins * game.stake >= 0 ? 'Winning' : 'Down'}
+                </Badge>
+              )}
+            </div>
             <p className="mt-2 text-xs text-muted">{me.buyins} buy-in{me.buyins === 1 ? '' : 's'}</p>
-          </StatCard>
-        </div>
+          </CardContent>
+        </Card>
       ) : (
         <p className="mt-4 text-center text-sm text-muted">You weren't in this game.</p>
       )}

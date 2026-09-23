@@ -85,7 +85,7 @@ export function ScheduledGame() {
 
   return (
     <div className="mx-auto max-w-sm p-6 text-center">
-      <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
+      <h1 className="type-page-title text-ink">{game.name}</h1>
       <p className="mt-1 text-muted">{game.venue_freetext}</p>
       <p className="text-sm text-muted">{new Date(game.scheduled_for).toLocaleString()}</p>
       <p className="mt-1 text-sm text-muted">{game.stake} banks buy-in</p>

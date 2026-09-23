@@ -77,7 +77,7 @@ export function EntityLink() {
 
   return (
     <div className="mx-auto max-w-sm p-6 text-center">
-      <h1 className="text-lg font-semibold text-ink">{entity.name}</h1>
+      <h1 className="type-page-title text-ink">{entity.name}</h1>
       <p className="mt-3 text-sm text-muted">
         No game live right now — this page updates on its own the moment one starts.
       </p>

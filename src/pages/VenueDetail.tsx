@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { PageSpinner } from '../components/ui/Spinner'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
+import { Badge } from '../components/ui/badge'
 
 type GameRow = {
   game_id: string
@@ -30,6 +33,7 @@ type MyRole =
 // directly — see that migration's comment for the visibility trade-off.
 export function VenueDetail() {
   const { venueId } = useParams()
+  const navigate = useNavigate()
   const { session, profile, loading } = useAuth()
   const [venueName, setVenueName] = useState<string | null>(null)
   const [rows, setRows] = useState<GameRow[]>([])
@@ -153,7 +157,7 @@ export function VenueDetail() {
 
   return (
     <div className="mx-auto max-w-sm p-6">
-      <h1 className="text-lg font-semibold text-ink">{venueName ?? 'Venue'}</h1>
+      <h1 className="type-page-title text-ink">{venueName ?? 'Venue'}</h1>
       <p className="mt-1 text-sm text-muted">
         {gameCount} game{gameCount === 1 ? '' : 's'} played{dateRange ? ` · ${dateRange}` : ''}
       </p>
@@ -165,14 +169,22 @@ export function VenueDetail() {
       ) : (
         <>
           <div className="mt-4 grid grid-cols-2 gap-2">
-            <div className="rounded-lg border border-hairline bg-canvas p-3">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Average pot</p>
-              <p className="mt-1 font-mono text-lg font-bold tabular-nums text-ink">{avgPot} chips</p>
-            </div>
-            <div className="rounded-lg border border-hairline bg-canvas p-3">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Average rake</p>
-              <p className="mt-1 font-mono text-lg font-bold tabular-nums text-ink">{avgRake} chips</p>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Average pot</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="type-figure-md text-ink">{avgPot} chips</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Average rake</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="type-figure-md text-ink">{avgRake} chips</p>
+              </CardContent>
+            </Card>
           </div>
           {ratios.size > 1 && (
             <p className="mt-2 text-xs text-muted">
@@ -184,9 +196,7 @@ export function VenueDetail() {
             Hosted by {hostNames.join(', ')}
           </p>
 
-          <h2 className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-muted">
-            Pot trend
-          </h2>
+          <h2 className="type-label-caption mb-2 mt-5 text-muted">Pot trend</h2>
           <svg
             viewBox={`0 0 ${Math.max(rows.length * 24, 24)} 60`}
             preserveAspectRatio="none"
@@ -209,72 +219,92 @@ export function VenueDetail() {
             })}
           </svg>
 
-          <h2 className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-muted">
-            Regulars
-          </h2>
+          <h2 className="type-label-caption mb-2 mt-5 text-muted">Regulars</h2>
           {regulars.length === 0 && <p className="text-sm text-muted">Not enough games yet.</p>}
-          <div className="rounded-lg border border-hairline bg-canvas">
-            {regulars.map((r) => (
-              <div
-                key={r.profile_id}
-                className="flex items-center gap-3 border-b border-hairline-soft p-2.5 text-sm last:border-none"
-              >
-                <span className="w-24 flex-none truncate text-ink">{r.full_name}</span>
-                <div className="h-2 flex-1 rounded-full bg-surface-strong">
-                  <div
-                    className="h-2 rounded-full bg-primary"
-                    style={{ width: `${(r.games_played / maxAttendance) * 100}%` }}
-                  />
-                </div>
-                <span className="w-6 flex-none text-right text-muted">{r.games_played}</span>
-              </div>
-            ))}
-          </div>
+          {regulars.length > 0 && (
+            <Card>
+              <CardContent className="gap-2">
+                {regulars.map((r) => (
+                  <div key={r.profile_id} className="flex items-center gap-3 text-sm">
+                    <span className="w-24 flex-none truncate text-ink">{r.full_name}</span>
+                    <div className="h-2 flex-1 rounded-full bg-surface-strong">
+                      <div
+                        className="h-2 rounded-full bg-primary"
+                        style={{ width: `${(r.games_played / maxAttendance) * 100}%` }}
+                      />
+                    </div>
+                    <span className="w-6 flex-none text-right text-muted">{r.games_played}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
-          <h2 className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-muted">
-            Games
-          </h2>
+          <h2 className="type-label-caption mb-2 mt-5 text-muted">Games</h2>
           {myRows.length === 0 && (
             <p className="text-sm text-muted">
               You haven't played or hosted at this venue — only the aggregate above is visible to
               you.
             </p>
           )}
-          <div className="rounded-lg border border-hairline bg-canvas">
-            {myRows.map((g) => {
-              const role = myRoles[g.game_id]
-              return (
-                <Link
-                  key={g.game_id}
-                  to={`/games/${g.game_id}`}
-                  className="block border-b border-hairline-soft p-3 last:border-none"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-ink">{g.game_name}</span>
-                    <span className="text-xs text-muted">
-                      {new Date(g.closed_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                  {role?.kind === 'hosted' && (
-                    <p className="mt-1 text-xs text-muted">
-                      {toChips(g.confirmed_buyin_units * g.stake, g.chip_ratio)} chips pot ·{' '}
-                      {role.transfers} transfer{role.transfers === 1 ? '' : 's'},{' '}
-                      {role.confirmedTransfers} confirmed
-                    </p>
-                  )}
-                  {role?.kind === 'played' && (
-                    <p className="mt-1 text-xs text-muted">
-                      Your buy-ins: {role.buyins} ·{' '}
-                      <span className={role.net >= 0 ? 'text-win' : 'text-error'}>
-                        {toChips(role.net, g.chip_ratio)} chips
-                      </span>
-                      {role.settlementStatus ? ` · settlement ${role.settlementStatus}` : ''}
-                    </p>
-                  )}
-                </Link>
-              )
-            })}
-          </div>
+          {myRows.length > 0 && (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Game</TableHead>
+                  <TableHead className="text-right">Result</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {myRows.map((g) => {
+                  const role = myRoles[g.game_id]
+                  return (
+                    <TableRow key={g.game_id} className="cursor-pointer" onClick={() => navigate(`/games/${g.game_id}`)}>
+                      <TableCell>
+                        <p className="font-semibold text-ink">{g.game_name}</p>
+                        <p className="text-xs text-muted">{new Date(g.closed_at).toLocaleDateString()}</p>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {role?.kind === 'hosted' && (
+                          <>
+                            <p className="type-figure-md text-ink">
+                              {toChips(g.confirmed_buyin_units * g.stake, g.chip_ratio)} chips
+                            </p>
+                            <p className="text-xs text-muted">
+                              {role.confirmedTransfers}/{role.transfers} confirmed
+                            </p>
+                          </>
+                        )}
+                        {role?.kind === 'played' && (
+                          <>
+                            <p className={`type-figure-md ${role.net >= 0 ? 'text-win' : 'text-error'}`}>
+                              {toChips(role.net, g.chip_ratio)} chips
+                            </p>
+                            <div className="mt-0.5 flex items-center justify-end gap-1 text-xs text-muted">
+                              <span>{role.buyins} buy-ins</span>
+                              {role.settlementStatus && (
+                                <Badge
+                                  variant={
+                                    role.settlementStatus === 'confirmed'
+                                      ? 'win'
+                                      : role.settlementStatus === 'disputed'
+                                        ? 'error'
+                                        : 'muted'
+                                  }
+                                >
+                                  {role.settlementStatus}
+                                </Badge>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          )}
         </>
       )}
     </div>

@@ -6,6 +6,9 @@ import { toast } from '../lib/toast'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
 import { Button } from '../components/ui/Button'
 import { InviteQrCard } from '../components/ui/InviteQrCard'
+import { Card, CardContent } from '../components/ui/card'
+import { Badge } from '../components/ui/badge'
+import { Table, TableBody, TableCell, TableRow } from '../components/ui/table'
 
 type GameSummary = {
   id: string
@@ -211,8 +214,8 @@ export function ShareTable() {
   if (game.status === 'scheduled') {
     return (
       <div className="mx-auto max-w-sm p-6 text-center">
-        <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
-        <p className="mt-2 text-muted">
+        <h1 className="type-page-title text-ink">{game.name}</h1>
+        <p className="type-body-md mt-2 text-body">
           Starts {new Date(game.scheduled_for).toLocaleString()} — hasn't started yet.
         </p>
       </div>
@@ -221,10 +224,12 @@ export function ShareTable() {
   if (game.status === 'closed') {
     return (
       <div className="mx-auto max-w-sm p-6">
-        <div className="rounded-lg border border-hairline bg-canvas p-4">
-          <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
-          <p className="text-sm text-muted">{game.venue_freetext}</p>
-        </div>
+        <Card>
+          <CardContent>
+            <h1 className="type-page-title text-ink">{game.name}</h1>
+            <p className="text-sm text-muted">{game.venue_freetext}</p>
+          </CardContent>
+        </Card>
         {myTransfer === 'unresolved' && <InlineSpinner />}
         {myTransfer === 'none' && (
           <p className="mt-4 text-center text-sm text-muted">
@@ -233,28 +238,32 @@ export function ShareTable() {
           </p>
         )}
         {myTransfer && myTransfer !== 'none' && myTransfer !== 'unresolved' && (
-          <div className="mt-4 rounded-lg border border-hairline bg-canvas p-4">
-            <p className="text-ink">
-              <span className="capitalize">{myTransfer.from_name}</span>{' '}
-              {myTransfer.from_name === 'you' ? 'owe' : 'owes'}{' '}
-              <span className="capitalize">{myTransfer.to_name}</span>
-            </p>
-            <p className="mt-1 text-2xl font-mono font-bold tabular-nums text-primary">
-              {toChips(myTransfer.amount, closedGameRatio)} chips
-              <span className="ml-2 text-sm font-normal text-muted">({myTransfer.amount} banks)</span>
-            </p>
-            <span
-              className={`mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                myTransfer.status === 'confirmed'
-                  ? 'bg-win/10 text-win'
-                  : myTransfer.status === 'disputed'
-                    ? 'bg-error/10 text-error'
-                    : 'bg-surface-strong text-muted'
-              }`}
-            >
-              {myTransfer.status}
-            </span>
-          </div>
+          <Card className="mt-4">
+            <CardContent>
+              <p className="text-ink">
+                <span className="capitalize">{myTransfer.from_name}</span>{' '}
+                {myTransfer.from_name === 'you' ? 'owe' : 'owes'}{' '}
+                <span className="capitalize">{myTransfer.to_name}</span>
+              </p>
+              <div className="mt-1 flex items-center gap-2">
+                <p className="type-figure-hero text-ink">
+                  {toChips(myTransfer.amount, closedGameRatio)} chips
+                </p>
+                <Badge
+                  variant={
+                    myTransfer.status === 'confirmed'
+                      ? 'win'
+                      : myTransfer.status === 'disputed'
+                        ? 'error'
+                        : 'muted'
+                  }
+                >
+                  {myTransfer.status}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted">({myTransfer.amount} banks)</p>
+            </CardContent>
+          </Card>
         )}
       </div>
     )
@@ -301,20 +310,18 @@ export function ShareTable() {
           Copy invite link
         </button>
       )}
-      <div className="rounded-lg border border-hairline bg-canvas p-4">
-        <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
-        <p className="text-sm text-muted">{game.venue_freetext}</p>
-        <p className="text-sm text-muted">
-          {game.stake} banks buy-in ({toChips(game.stake, ratio)} chips)
-        </p>
-        <span
-          className={`mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-            full ? 'bg-error/10 text-error' : 'bg-win/10 text-win'
-          }`}
-        >
-          {full ? 'Table full' : 'Seats open'} · {seated}/{game.table_size}
-        </span>
-      </div>
+      <Card>
+        <CardContent>
+          <h1 className="type-page-title text-ink">{game.name}</h1>
+          <p className="text-sm text-muted">{game.venue_freetext}</p>
+          <p className="text-sm text-muted">
+            {game.stake} banks buy-in ({toChips(game.stake, ratio)} chips)
+          </p>
+          <Badge variant={full ? 'error' : 'win'} className="mt-2">
+            {full ? 'Table full' : 'Seats open'} · {seated}/{game.table_size}
+          </Badge>
+        </CardContent>
+      </Card>
 
       {!displayMode && myStatus === 'not-joined' && (
         <>
@@ -331,13 +338,15 @@ export function ShareTable() {
       )}
 
       {!displayMode && myStatus === 'pending' && (
-        <div className="mt-4 rounded-lg border border-hairline bg-canvas p-4 text-center">
-          <p className="text-sm text-ink">
-            Your request for {myPendingCount} buy-in{myPendingCount === 1 ? '' : 's'} is waiting
-            on the host.
-          </p>
-          <p className="mt-1 text-xs text-muted">This page updates on its own once confirmed.</p>
-        </div>
+        <Card className="mt-4 text-center">
+          <CardContent>
+            <p className="text-sm text-ink">
+              Your request for {myPendingCount} buy-in{myPendingCount === 1 ? '' : 's'} is waiting
+              on the host.
+            </p>
+            <p className="mt-1 text-xs text-muted">This page updates on its own once confirmed.</p>
+          </CardContent>
+        </Card>
       )}
 
       {!displayMode && myStatus === 'confirmed' && (
@@ -355,24 +364,27 @@ export function ShareTable() {
       )}
 
       {myStatus === 'confirmed' && roster.length > 0 && (
-        <div className="mt-5 rounded-lg border border-hairline bg-canvas">
-          <p className="border-b border-hairline-soft p-3 text-center text-xs text-muted">
+        <div className="mt-5">
+          <p className="mb-2 text-center text-xs text-muted">
             Names only, ranked by buy-ins — no totals, no one else's numbers.
           </p>
-          {roster.map((r) => (
-            <div
-              key={r.profile_id}
-              className="flex items-center justify-between border-b border-hairline-soft px-3 py-2.5 text-sm last:border-none"
-            >
-              <span className="font-semibold text-ink">
-                {r.full_name}
-                {r.profile_id === myProfileId ? ' (you)' : ''}
-              </span>
-              {r.profile_id === myProfileId && (
-                <span className="text-lg font-mono font-bold tabular-nums text-ink">{r.buyin_count}</span>
-              )}
-            </div>
-          ))}
+          <Table>
+            <TableBody>
+              {roster.map((r) => (
+                <TableRow key={r.profile_id}>
+                  <TableCell className="font-semibold text-ink">
+                    {r.full_name}
+                    {r.profile_id === myProfileId ? ' (you)' : ''}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {r.profile_id === myProfileId && (
+                      <span className="type-figure-md text-ink">{r.buyin_count}</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>
