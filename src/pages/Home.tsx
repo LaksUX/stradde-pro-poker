@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 import { Badge } from '../components/ui/badge'
 import { Input } from '../components/ui/input'
+import { NamedAvatar } from '../components/ui/avatar'
 
 type HostedGame = { id: string; name: string; closed_at: string | null; pot: number; rake: number }
 type PlayedGame = { id: string; name: string; closed_at: string | null; net: number; chip_ratio: '1:1' | '1:2' }
@@ -233,7 +234,12 @@ export function Home() {
                         className="cursor-pointer"
                         onClick={() => navigate(`/games/${g.id}`)}
                       >
-                        <TableCell>{g.name}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <NamedAvatar name={g.name} />
+                            <span>{g.name}</span>
+                          </div>
+                        </TableCell>
                         <TableCell
                           className={`type-figure-md text-right ${
                             g.net >= 0 ? 'text-win' : 'text-error'
@@ -346,7 +352,12 @@ export function Home() {
                         className="cursor-pointer"
                         onClick={() => navigate(`/games/${g.id}`)}
                       >
-                        <TableCell>{g.name}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <NamedAvatar name={g.name} />
+                            <span>{g.name}</span>
+                          </div>
+                        </TableCell>
                         <TableCell className="type-figure-md text-right text-muted">
                           {g.pot} banks
                         </TableCell>

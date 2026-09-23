@@ -7,6 +7,7 @@ import { PageSpinner } from '../components/ui/Spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 import { Badge } from '../components/ui/badge'
+import { NamedAvatar } from '../components/ui/avatar'
 
 type Game = {
   id: string
@@ -114,7 +115,12 @@ export function GameDetail() {
             <TableBody>
               {players.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell>{p.full_name}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <NamedAvatar name={p.full_name} />
+                      <span>{p.full_name}</span>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right">
                     <p className="text-xs text-muted">{p.buyins} buy-ins</p>
                     {p.cashout == null ? (
@@ -141,8 +147,11 @@ export function GameDetail() {
               <CardContent className="gap-0">
                 {transfers.map((t, i) => (
                   <div key={i} className="flex items-center justify-between py-1 text-sm">
-                    <span className="text-ink">
-                      {t.from} → {t.to}
+                    <span className="flex items-center gap-1.5 text-ink">
+                      <NamedAvatar name={t.from} className="h-6 w-6" />
+                      {t.from} →
+                      <NamedAvatar name={t.to} className="h-6 w-6" />
+                      {t.to}
                     </span>
                     <span className="flex items-center gap-2">
                       <span className="type-figure-md text-ink">{toChips(t.amount, ratio)} chips</span>

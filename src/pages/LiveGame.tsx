@@ -16,6 +16,7 @@ import { Badge } from '../components/ui/badge'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Table, TableBody, TableCell, TableRow } from '../components/ui/table'
+import { NamedAvatar } from '../components/ui/avatar'
 
 type Game = {
   id: string
@@ -319,9 +320,12 @@ export function LiveGame() {
                 key={r.id}
                 className="mb-3 rounded-sm border border-hairline-soft bg-surface-strong p-3 last:mb-0"
               >
-                <div className="text-sm font-semibold text-ink">
-                  {r.requester_name}
-                  {r.request_type === 'more_buyins' ? ' — more buy-ins' : ''}
+                <div className="flex items-center gap-2 text-sm font-semibold text-ink">
+                  <NamedAvatar name={r.requester_name} className="h-6 w-6" />
+                  <span>
+                    {r.requester_name}
+                    {r.request_type === 'more_buyins' ? ' — more buy-ins' : ''}
+                  </span>
                 </div>
                 <div className="mt-0.5 text-xs text-muted">
                   {r.count} buy-in{r.count > 1 ? 's' : ''} · requested{' '}
@@ -442,9 +446,12 @@ export function LiveGame() {
               {players.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>
-                    <div className="text-sm font-semibold text-ink">
-                      {p.full_name}
-                      {p.is_host ? ' (host)' : ''}
+                    <div className="flex items-center gap-2 text-sm font-semibold text-ink">
+                      <NamedAvatar name={p.full_name} className="h-6 w-6" />
+                      <span>
+                        {p.full_name}
+                        {p.is_host ? ' (host)' : ''}
+                      </span>
                     </div>
                     {cashoutEditingId === p.id ? (
                       <Input

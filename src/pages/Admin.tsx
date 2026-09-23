@@ -7,6 +7,7 @@ import { Button } from '../components/ui/Button'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 import { Badge } from '../components/ui/badge'
+import { NamedAvatar } from '../components/ui/avatar'
 
 type ProfileRow = {
   id: string
@@ -69,8 +70,13 @@ export function Admin() {
             {rows.map((r) => (
               <TableRow key={r.id}>
                 <TableCell>
-                  <p className="text-ink">{r.full_name ?? '—'}</p>
-                  <p className="text-xs text-muted">{r.phone}</p>
+                  <div className="flex items-center gap-2">
+                    <NamedAvatar name={r.full_name ?? '—'} />
+                    <div>
+                      <p className="text-ink">{r.full_name ?? '—'}</p>
+                      <p className="text-xs text-muted">{r.phone}</p>
+                    </div>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant={r.role === 'host' && r.approved ? 'win' : 'muted'}>
