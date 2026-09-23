@@ -9,7 +9,10 @@ import { BuyinPicker } from '../components/ui/BuyinPicker'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { ListGroup, ListRow } from '../components/ui/list-row'
+import { Avatar, AvatarFallback } from '../components/ui/avatar'
 import { Badge } from '../components/ui/badge'
+import { Plus } from 'lucide-react'
 
 type Game = {
   id: string
@@ -233,60 +236,75 @@ export function MyGame() {
 
       <div className="mt-5">
         <h2 className="type-label-caption mb-2 text-muted">Your activity</h2>
-        <div className="rounded-lg border border-hairline bg-canvas">
-          {requests.length === 0 && (
-            <p className="p-4 text-center text-sm text-muted">Nothing yet.</p>
-          )}
-          {requests.map((r) => {
-            const locked =
-              r.status === 'confirmed' &&
-              r.confirmed_at &&
-              Date.now() - new Date(r.confirmed_at).getTime() > LOCK_MS
-            return (
-              <div key={r.id} className="border-b border-hairline-soft p-3 last:border-none">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-ink">
-                    {r.count} buy-in{r.count > 1 ? 's' : ''}
-                    {r.request_type === 'more_buyins' ? ' requested' : ' — join request'}
-                  </span>
-                  <Badge
-                    variant={
-                      r.status === 'confirmed' ? 'win' : r.status === 'declined' ? 'error' : 'muted'
+        {requests.length === 0 ? (
+          <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+            Nothing yet.
+          </p>
+        ) : (
+          <ListGroup>
+            {requests.map((r) => {
+              const locked =
+                r.status === 'confirmed' &&
+                r.confirmed_at &&
+                Date.now() - new Date(r.confirmed_at).getTime() > LOCK_MS
+              return (
+                <div key={r.id}>
+                  <ListRow
+                    avatar={
+                      <Avatar className="h-12 w-12">
+                        <AvatarFallback>
+                          <Plus className="h-5 w-5" />
+                        </AvatarFallback>
+                      </Avatar>
                     }
-                  >
-                    {r.status}
-                  </Badge>
+                    title={
+                      <>
+                        {r.count} buy-in{r.count > 1 ? 's' : ''}
+                        {r.request_type === 'more_buyins' ? ' requested' : ' — join request'}
+                      </>
+                    }
+                    subtitle={new Date(r.requested_at).toLocaleTimeString([], {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}
+                    trailing={
+                      <Badge
+                        variant={
+                          r.status === 'confirmed' ? 'win' : r.status === 'declined' ? 'error' : 'muted'
+                        }
+                      >
+                        {r.status}
+                      </Badge>
+                    }
+                  />
+                  {r.status === 'confirmed' && !r.player_confirm_status && (
+                    <div className="flex gap-2 px-3 pb-3">
+                      <button
+                        className="text-xs text-primary underline"
+                        onClick={() => setBuyinConfirm(r.id, 'confirmed')}
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        className="text-xs text-error underline"
+                        onClick={() => setBuyinConfirm(r.id, 'disputed')}
+                      >
+                        Doesn't look right
+                      </button>
+                    </div>
+                  )}
+                  {r.status === 'confirmed' && r.player_confirm_status === 'disputed' && (
+                    <p className="px-3 pb-3 text-xs text-error">
+                      {locked
+                        ? "Flagged for the host — this buy-in is locked, so this is a note, not an edit request."
+                        : 'Flagged for the host.'}
+                    </p>
+                  )}
                 </div>
-                <p className="mt-0.5 text-xs text-muted">
-                  {new Date(r.requested_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                </p>
-                {r.status === 'confirmed' && !r.player_confirm_status && (
-                  <div className="mt-1.5 flex gap-2">
-                    <button
-                      className="text-xs text-primary underline"
-                      onClick={() => setBuyinConfirm(r.id, 'confirmed')}
-                    >
-                      Confirm
-                    </button>
-                    <button
-                      className="text-xs text-error underline"
-                      onClick={() => setBuyinConfirm(r.id, 'disputed')}
-                    >
-                      Doesn't look right
-                    </button>
-                  </div>
-                )}
-                {r.status === 'confirmed' && r.player_confirm_status === 'disputed' && (
-                  <p className="mt-1 text-xs text-error">
-                    {locked
-                      ? "Flagged for the host — this buy-in is locked, so this is a note, not an edit request."
-                      : 'Flagged for the host.'}
-                  </p>
-                )}
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </ListGroup>
+        )}
       </div>
 
       <Link to={`/t/${gameId}`} className="mt-4 block text-center text-xs text-primary underline">
