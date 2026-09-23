@@ -1,18 +1,21 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Navigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
-import { BuyinPicker } from '../components/ui/BuyinPicker'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { ListGroup, ListRow } from '../components/ui/list-row'
-import { Avatar, AvatarFallback } from '../components/ui/avatar'
+import { Avatar, AvatarFallback, NamedAvatar } from '../components/ui/avatar'
 import { Badge } from '../components/ui/badge'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
+import { Slider } from '../components/ui/slider'
 import { Plus } from 'lucide-react'
+
+const MAX_REQUEST = 30
 
 type Game = {
   id: string
@@ -135,6 +138,7 @@ export function MyGame() {
       if (error) throw error
       setPickerOpen(false)
       setCount(1)
+      toast.success('Request sent — waiting on the host.')
     } catch (e) {
       toast.error(
         e instanceof Error && navigator.onLine
@@ -213,26 +217,42 @@ export function MyGame() {
       </Card>
 
       {myPlayer.cashout == null && (
-        <div className="mt-3">
-          {!pickerOpen ? (
-            <Button variant="secondary" block onClick={() => setPickerOpen(true)}>
-              Request more buy-ins
-            </Button>
-          ) : (
-            <div className="rounded-lg border border-hairline bg-canvas p-3">
-              <BuyinPicker value={count} onChange={setCount} />
-              <div className="flex gap-2">
-                <Button block disabled={submitting} onClick={requestMore}>
-                  Send request
-                </Button>
-                <Button variant="ghost" onClick={() => setPickerOpen(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
+        <Button variant="secondary" block className="mt-3" onClick={() => setPickerOpen(true)}>
+          Request more buy-ins
+        </Button>
       )}
+
+      <Sheet open={pickerOpen} onOpenChange={setPickerOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <span className="relative shrink-0">
+              <NamedAvatar name={profile?.full_name ?? '?'} className="h-12 w-12" />
+              <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-canvas bg-win" />
+            </span>
+            <SheetTitle>Request buy-ins</SheetTitle>
+          </SheetHeader>
+
+          <div className="mt-5">
+            <p className="text-xs text-muted">
+              {confirmedBuyins} confirmed buy-in{confirmedBuyins === 1 ? '' : 's'} so far
+            </p>
+            <p className="type-figure-hero mt-1 text-center text-ink">{count}</p>
+            <Slider
+              className="mt-3"
+              min={1}
+              max={MAX_REQUEST}
+              step={1}
+              value={count}
+              onValueChange={(v) => setCount(v as number)}
+            />
+            <p className="mt-1 text-center text-xs text-muted">buy-ins requesting</p>
+          </div>
+
+          <Button block className="mt-5" disabled={submitting} onClick={requestMore}>
+            {submitting ? 'Sending…' : 'Send request'}
+          </Button>
+        </SheetContent>
+      </Sheet>
 
       <div className="mt-5">
         <h2 className="type-label-caption mb-2 text-muted">Your activity</h2>
@@ -306,10 +326,6 @@ export function MyGame() {
           </ListGroup>
         )}
       </div>
-
-      <Link to={`/t/${gameId}`} className="mt-4 block text-center text-xs text-primary underline">
-        View shared table
-      </Link>
     </div>
   )
 }
