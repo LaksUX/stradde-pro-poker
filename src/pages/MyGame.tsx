@@ -160,7 +160,7 @@ export function MyGame() {
   }
 
   return (
-    <div className="mx-auto max-w-sm p-6">
+    <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
       <h1 className="type-page-title text-ink">{game.name}</h1>
 
       <Card className="mt-4">

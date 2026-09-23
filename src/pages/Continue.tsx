@@ -67,7 +67,7 @@ export function Continue() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 p-6">
+    <div className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center gap-4 p-4 sm:p-6">
       <div className="mb-4 flex flex-col items-center gap-2">
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-on-primary">
           ♠

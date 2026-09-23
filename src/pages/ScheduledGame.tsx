@@ -84,7 +84,7 @@ export function ScheduledGame() {
   const isHost = profile?.id === game.host_id
 
   return (
-    <div className="mx-auto max-w-sm p-6 text-center">
+    <div className="mx-auto w-full max-w-sm p-4 sm:p-6 text-center">
       <h1 className="type-page-title text-ink">{game.name}</h1>
       <p className="mt-1 text-muted">{game.venue_freetext}</p>
       <p className="text-sm text-muted">{new Date(game.scheduled_for).toLocaleString()}</p>

@@ -59,7 +59,7 @@ export function Join() {
 
   if (game.status === 'scheduled') {
     return (
-      <div className="mx-auto max-w-sm p-6 text-center">
+      <div className="mx-auto w-full max-w-sm p-4 sm:p-6 text-center">
         <h1 className="type-page-title text-ink">{game.name}</h1>
         <p className="type-body-md mt-2 text-body">
           Starts {new Date(game.scheduled_for).toLocaleString()} — the host hasn't opened this
@@ -70,7 +70,7 @@ export function Join() {
   }
   if (game.status === 'closed') {
     return (
-      <div className="mx-auto max-w-sm p-6 text-center text-muted">This game has ended.</div>
+      <div className="mx-auto w-full max-w-sm p-4 sm:p-6 text-center text-muted">This game has ended.</div>
     )
   }
 
@@ -114,7 +114,7 @@ export function Join() {
   }
 
   return (
-    <div className="mx-auto max-w-sm p-6">
+    <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
       <Card>
         <CardContent>
           <h1 className="type-page-title text-ink">{game.name}</h1>

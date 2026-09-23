@@ -97,7 +97,7 @@ export function CreateGame() {
   if (loading) return <PageSpinner />
   if (!profile?.approved) {
     return (
-      <div className="mx-auto max-w-sm p-6 text-center">
+      <div className="mx-auto w-full max-w-sm p-4 sm:p-6 text-center">
         <h1 className="type-page-title text-ink">Pending approval</h1>
         <p className="type-body-md mt-2 text-body">
           Your account exists but isn't approved as a host yet. See the project README for the
@@ -167,7 +167,7 @@ export function CreateGame() {
   }
 
   return (
-    <div className="mx-auto max-w-sm p-6">
+    <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
       <h1 className="type-page-title mb-4 text-ink">New game</h1>
 
       <div className="flex flex-col gap-1.5">
@@ -196,7 +196,7 @@ export function CreateGame() {
                     setSelectedVenueId(v.id)
                     setVenueSuggestions([])
                   }}
-                  className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-surface-strong"
+                  className="block w-full truncate px-3 py-2 text-left text-sm text-ink hover:bg-surface-strong"
                 >
                   {v.name}
                 </button>

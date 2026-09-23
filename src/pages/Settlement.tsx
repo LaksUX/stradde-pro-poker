@@ -142,7 +142,7 @@ export function Settlement() {
   }
 
   return (
-    <div className="mx-auto max-w-md p-6">
+    <div className="mx-auto w-full max-w-md p-4 sm:p-6">
       <h1 className="type-page-title text-ink">{game.name} — Settlement</h1>
       <p className="type-body-md mt-1 text-body">
         Computed as a starting point, deterministic tie-break. Reassign freely below.
@@ -157,7 +157,7 @@ export function Settlement() {
             <CardContent>
               <div className="flex items-center gap-2">
                 <NamedAvatar name={fromName} className="h-7 w-7" />
-                <span className="truncate text-sm text-ink">{fromName}</span>
+                <span className="min-w-0 flex-1 truncate text-sm text-ink">{fromName}</span>
                 <svg
                   className="mx-0.5 shrink-0 text-muted"
                   width="14"
@@ -170,7 +170,7 @@ export function Settlement() {
                   <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 <NamedAvatar name={toName} className="h-7 w-7" />
-                <span className="truncate text-sm text-ink">{toName}</span>
+                <span className="min-w-0 flex-1 truncate text-sm text-ink">{toName}</span>
               </div>
 
               <div className="mt-2 flex items-center justify-between">

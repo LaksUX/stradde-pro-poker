@@ -214,7 +214,7 @@ export function ShareTable() {
 
   if (game.status === 'scheduled') {
     return (
-      <div className="mx-auto max-w-sm p-6 text-center">
+      <div className="mx-auto w-full max-w-sm p-4 sm:p-6 text-center">
         <h1 className="type-page-title text-ink">{game.name}</h1>
         <p className="type-body-md mt-2 text-body">
           Starts {new Date(game.scheduled_for).toLocaleString()} — hasn't started yet.
@@ -224,7 +224,7 @@ export function ShareTable() {
   }
   if (game.status === 'closed') {
     return (
-      <div className="mx-auto max-w-sm p-6">
+      <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
         <Card>
           <CardContent>
             <h1 className="type-page-title text-ink">{game.name}</h1>
@@ -284,7 +284,7 @@ export function ShareTable() {
   const showQrByDefault = displayMode || myStatus === 'not-joined'
 
   return (
-    <div className="mx-auto max-w-sm p-6">
+    <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
       {displayMode && (
         <p className="mb-3 text-center text-xs font-medium uppercase tracking-wide text-muted">
           Table display
@@ -374,15 +374,15 @@ export function ShareTable() {
               {roster.map((r) => (
                 <TableRow key={r.profile_id}>
                   <TableCell className="font-semibold text-ink">
-                    <div className="flex items-center gap-2">
-                      <NamedAvatar name={r.full_name} />
-                      <span>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <NamedAvatar name={r.full_name} className="shrink-0" />
+                      <span className="truncate">
                         {r.full_name}
                         {r.profile_id === myProfileId ? ' (you)' : ''}
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="w-16 text-right">
                     {r.profile_id === myProfileId && (
                       <span className="type-figure-md text-ink">{r.buyin_count}</span>
                     )}

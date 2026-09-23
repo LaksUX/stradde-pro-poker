@@ -157,7 +157,7 @@ export function VenueDetail() {
   const maxAttendance = Math.max(1, ...regulars.map((r) => r.games_played))
 
   return (
-    <div className="mx-auto max-w-sm p-6">
+    <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
       <h1 className="type-page-title text-ink">{venueName ?? 'Venue'}</h1>
       <p className="mt-1 text-sm text-muted">
         {gameCount} game{gameCount === 1 ? '' : 's'} played{dateRange ? ` · ${dateRange}` : ''}
@@ -254,7 +254,7 @@ export function VenueDetail() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Game</TableHead>
-                  <TableHead className="text-right">Result</TableHead>
+                  <TableHead className="w-28 text-right">Result</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -263,11 +263,11 @@ export function VenueDetail() {
                   return (
                     <TableRow key={g.game_id} className="cursor-pointer" onClick={() => navigate(`/games/${g.game_id}`)}>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <NamedAvatar name={g.game_name} />
-                          <div>
-                            <p className="font-semibold text-ink">{g.game_name}</p>
-                            <p className="text-xs text-muted">{new Date(g.closed_at).toLocaleDateString()}</p>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <NamedAvatar name={g.game_name} className="shrink-0" />
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-ink">{g.game_name}</p>
+                            <p className="truncate text-xs text-muted">{new Date(g.closed_at).toLocaleDateString()}</p>
                           </div>
                         </div>
                       </TableCell>

@@ -8,7 +8,15 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
     >
       <table
         data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
+        // table-fixed: with the default auto layout, a column just grows to
+        // fit its longest cell's content — truncate never actually engages
+        // because the cell is never width-constrained in the first place.
+        // Fixed layout takes column widths from the first row instead, so a
+        // long name cell (that specifies no explicit width, taking whatever
+        // the fixed-width sibling column doesn't use) can genuinely
+        // ellipsis instead of forcing the whole table into horizontal
+        // scroll on a narrow phone.
+        className={cn("w-full table-fixed caption-bottom text-sm", className)}
         {...props}
       />
     </div>
