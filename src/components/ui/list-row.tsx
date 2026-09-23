@@ -22,7 +22,6 @@ function ListGroup({ className, ...props }: React.ComponentProps<"div">) {
 
 function ListRow({
   avatar,
-  meta,
   title,
   subtitle,
   trailing,
@@ -30,11 +29,6 @@ function ListRow({
   ...props
 }: {
   avatar?: React.ReactNode
-  // A small line above the title — same slot, same styling, everywhere it's
-  // used. Its one real use so far is a date: when a row's date matters
-  // enough to lead with (a closed game's "when," not an incidental detail
-  // buried under the title), it goes here instead of in the subtitle.
-  meta?: React.ReactNode
   title: React.ReactNode
   subtitle?: React.ReactNode
   trailing?: React.ReactNode
@@ -50,9 +44,8 @@ function ListRow({
     >
       {avatar && <div className="shrink-0">{avatar}</div>}
       <div className="min-w-0 flex-1">
-        {meta && <div className="truncate text-xs text-muted">{meta}</div>}
-        <div className="truncate text-[15px] font-semibold text-ink">{title}</div>
-        {subtitle && <div className="mt-0.5 truncate text-sm text-muted">{subtitle}</div>}
+        <div className="text-[15px] font-semibold text-ink">{title}</div>
+        {subtitle && <div className="mt-0.5 text-sm text-muted">{subtitle}</div>}
       </div>
       {trailing && (
         <div className="flex shrink-0 flex-col items-end gap-1 text-right">{trailing}</div>
@@ -61,4 +54,18 @@ function ListRow({
   )
 }
 
-export { ListGroup, ListRow }
+// A row's date, when it's meant to lead — a full-width strip above the
+// avatar/title row itself, not squeezed into the same flex line as the
+// avatar (that read as "inline," not as its own row). One shared style so
+// every list that shows a date does it identically.
+function ListDate({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="list-date"
+      className={cn("px-3 pt-2.5 text-xs font-semibold text-muted", className)}
+      {...props}
+    />
+  )
+}
+
+export { ListGroup, ListRow, ListDate }

@@ -167,10 +167,10 @@ export function Settlement() {
                     </div>
                   }
                   title={
-                    <span className="flex items-center gap-1.5">
-                      <span className="truncate">{fromName}</span>
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      <span>{fromName}</span>
                       <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted" />
-                      <span className="truncate">{toName}</span>
+                      <span>{toName}</span>
                     </span>
                   }
                   subtitle={
