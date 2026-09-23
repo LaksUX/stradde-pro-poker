@@ -11,6 +11,8 @@ import { InviteQrCard } from '../components/ui/InviteQrCard'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
+import { Badge } from '../components/ui/badge'
+import { Input } from '../components/ui/input'
 
 type HostedGame = { id: string; name: string; closed_at: string | null; pot: number; rake: number }
 type PlayedGame = { id: string; name: string; closed_at: string | null; net: number; chip_ratio: '1:1' | '1:2' }
@@ -140,7 +142,7 @@ export function Home() {
   return (
     <div className="mx-auto max-w-sm p-6">
       <header className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-ink">
+        <h1 className="type-page-title text-ink">
           Hey{profile?.full_name ? ` ${profile.full_name}` : ''}
         </h1>
         <button className="text-xs text-muted underline" onClick={handleLogout}>
@@ -180,18 +182,15 @@ export function Home() {
           <TabsContent value="player" className="mt-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted">
-                  Lifetime net
-                </CardTitle>
+                <CardTitle>Lifetime net</CardTitle>
               </CardHeader>
               <CardContent>
-                <p
-                  className={`font-mono text-2xl font-bold tabular-nums ${
-                    lifetimeNet >= 0 ? 'text-win' : 'text-error'
-                  }`}
-                >
-                  {lifetimeNet} chips
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="type-figure-hero text-ink">{lifetimeNet} chips</p>
+                  <Badge variant={lifetimeNet >= 0 ? 'win' : 'error'}>
+                    {lifetimeNet >= 0 ? 'Winning' : 'Down overall'}
+                  </Badge>
+                </div>
                 <p className="mt-3 border-t border-hairline-soft pt-3 text-xs text-muted">
                   {wins} win{wins === 1 ? '' : 's'} · {playedGames.length} game
                   {playedGames.length === 1 ? '' : 's'} played
@@ -236,7 +235,7 @@ export function Home() {
                       >
                         <TableCell>{g.name}</TableCell>
                         <TableCell
-                          className={`text-right font-mono tabular-nums ${
+                          className={`type-figure-md text-right ${
                             g.net >= 0 ? 'text-win' : 'text-error'
                           }`}
                         >
@@ -258,14 +257,14 @@ export function Home() {
                 <CardContent>
                   <div className="flex items-center justify-between">
                     {nameEditing ? (
-                      <input
+                      <Input
                         autoFocus
                         defaultValue={entity.name}
                         onBlur={(e) => renameEntity(e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') renameEntity((e.target as HTMLInputElement).value)
                         }}
-                        className="h-8 flex-1 rounded-sm border border-hairline bg-surface-strong px-2 text-sm text-ink"
+                        className="h-8 flex-1"
                       />
                     ) : (
                       <span className="text-sm font-semibold text-ink">{entity.name}</span>
@@ -302,21 +301,27 @@ export function Home() {
 
             <div className="grid grid-cols-2 gap-2">
               <Card className="text-center">
+                <CardHeader>
+                  <CardTitle className="mx-auto">Games hosted</CardTitle>
+                </CardHeader>
                 <CardContent>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Games hosted</p>
-                  <p className="mt-1 font-mono text-lg font-bold tabular-nums text-ink">{hostedGames.length}</p>
+                  <p className="type-figure-md text-ink">{hostedGames.length}</p>
                 </CardContent>
               </Card>
               <Card className="text-center">
+                <CardHeader>
+                  <CardTitle className="mx-auto">Rake collected</CardTitle>
+                </CardHeader>
                 <CardContent>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Rake collected</p>
-                  <p className="mt-1 font-mono text-lg font-bold tabular-nums text-ink">{totalRake} banks</p>
+                  <p className="type-figure-md text-ink">{totalRake} banks</p>
                 </CardContent>
               </Card>
               <Card className="col-span-2 text-center">
+                <CardHeader>
+                  <CardTitle className="mx-auto">Average pot</CardTitle>
+                </CardHeader>
                 <CardContent>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Average pot</p>
-                  <p className="mt-1 font-mono text-lg font-bold tabular-nums text-ink">{avgPot} banks</p>
+                  <p className="type-figure-md text-ink">{avgPot} banks</p>
                 </CardContent>
               </Card>
             </div>
@@ -342,7 +347,7 @@ export function Home() {
                         onClick={() => navigate(`/games/${g.id}`)}
                       >
                         <TableCell>{g.name}</TableCell>
-                        <TableCell className="text-right font-mono tabular-nums text-muted">
+                        <TableCell className="type-figure-md text-right text-muted">
                           {g.pot} banks
                         </TableCell>
                       </TableRow>
