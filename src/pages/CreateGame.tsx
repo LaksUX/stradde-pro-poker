@@ -4,7 +4,9 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
-import { SegmentedControl } from '../components/ui/SegmentedControl'
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
 import { getOrCreateOwnEntity } from '../lib/entities'
 import type { ChipRatio } from '../lib/chips'
 
@@ -96,8 +98,8 @@ export function CreateGame() {
   if (!profile?.approved) {
     return (
       <div className="mx-auto max-w-sm p-6 text-center">
-        <h1 className="text-lg font-semibold text-ink">Pending approval</h1>
-        <p className="mt-2 text-muted">
+        <h1 className="type-page-title text-ink">Pending approval</h1>
+        <p className="type-body-md mt-2 text-body">
           Your account exists but isn't approved as a host yet. See the project README for the
           one-line SQL to approve yourself until the Admin screen is built.
         </p>
@@ -166,84 +168,88 @@ export function CreateGame() {
 
   return (
     <div className="mx-auto max-w-sm p-6">
-      <h1 className="mb-4 text-lg font-semibold text-ink">New game</h1>
+      <h1 className="type-page-title mb-4 text-ink">New game</h1>
 
-      <label className="block text-sm font-medium text-muted">Game name</label>
-      <input
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className="h-14 w-full rounded-sm border border-hairline bg-surface-strong px-3 text-ink"
-      />
-      <label className="mt-3 block text-sm font-medium text-muted">Venue</label>
-      <div className="relative">
-        <input
-          value={venue}
-          onChange={(e) => setVenue(e.target.value)}
-          placeholder="Kumar's house"
-          className="h-14 w-full rounded-sm border border-hairline bg-surface-strong px-3 text-ink"
-        />
-        {venueSuggestions.length > 0 && !selectedVenueId && (
-          <div className="absolute z-10 mt-1 w-full rounded-sm border border-hairline bg-canvas shadow-elevated">
-            {venueSuggestions.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                onClick={() => {
-                  justSelectedVenue.current = true
-                  setVenue(v.name)
-                  setSelectedVenueId(v.id)
-                  setVenueSuggestions([])
-                }}
-                className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-surface-strong"
-              >
-                {v.name}
-              </button>
-            ))}
-          </div>
-        )}
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="game-name">Game name</Label>
+        <Input id="game-name" className="h-14" value={name} onChange={(e) => setName(e.target.value)} />
+      </div>
+      <div className="mt-3 flex flex-col gap-1.5">
+        <Label htmlFor="game-venue">Venue</Label>
+        <div className="relative">
+          <Input
+            id="game-venue"
+            className="h-14"
+            value={venue}
+            onChange={(e) => setVenue(e.target.value)}
+            placeholder="Kumar's house"
+          />
+          {venueSuggestions.length > 0 && !selectedVenueId && (
+            <div className="absolute z-10 mt-1 w-full rounded-sm border border-hairline bg-canvas shadow-elevated">
+              {venueSuggestions.map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => {
+                    justSelectedVenue.current = true
+                    setVenue(v.name)
+                    setSelectedVenueId(v.id)
+                    setVenueSuggestions([])
+                  }}
+                  className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-surface-strong"
+                >
+                  {v.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
       <p className="mt-1 text-xs text-muted">
         {selectedVenueId
           ? 'Linked to this venue’s history.'
           : 'Pick a match above, or a new venue is created for this name.'}
       </p>
-      <label className="mt-3 block text-sm font-medium text-muted">
-        Buy-in amount (stake, banks)
-      </label>
-      <input
-        type="number"
-        value={stake}
-        onChange={(e) => setStake(Number(e.target.value) || 0)}
-        className="h-14 w-full rounded-sm border border-hairline bg-surface-strong px-3 text-ink"
-      />
-      <label className="mt-3 block text-sm font-medium text-muted">Chip ratio</label>
-      <SegmentedControl
-        value={chipRatio}
-        onChange={setChipRatio}
-        options={[
-          { value: '1:1' as const, label: '1:1' },
-          { value: '1:2' as const, label: '1:2' },
-        ]}
-      />
+
+      <div className="mt-3 flex flex-col gap-1.5">
+        <Label htmlFor="game-stake">Buy-in amount (stake, banks)</Label>
+        <Input
+          id="game-stake"
+          type="number"
+          className="h-14"
+          value={stake}
+          onChange={(e) => setStake(Number(e.target.value) || 0)}
+        />
+      </div>
+
+      <div className="mt-3 flex flex-col gap-1.5">
+        <Label>Chip ratio</Label>
+        <Tabs value={chipRatio} onValueChange={(v) => setChipRatio(v as ChipRatio)}>
+          <TabsList>
+            <TabsTrigger value="1:1">1:1</TabsTrigger>
+            <TabsTrigger value="1:2">1:2</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
       <p className="mt-1 text-xs text-muted">
         1 bank = {chipRatio === '1:2' ? '2 chips' : '1 chip'} — locked once the game starts.
       </p>
 
-      <label className="mt-3 block text-sm font-medium text-muted">When</label>
-      <SegmentedControl
-        value={scheduleMode}
-        onChange={setScheduleMode}
-        options={[
-          { value: 'now' as const, label: 'Now' },
-          { value: 'later' as const, label: 'Schedule for later' },
-        ]}
-      />
+      <div className="mt-3 flex flex-col gap-1.5">
+        <Label>When</Label>
+        <Tabs value={scheduleMode} onValueChange={(v) => setScheduleMode(v as 'now' | 'later')}>
+          <TabsList>
+            <TabsTrigger value="now">Now</TabsTrigger>
+            <TabsTrigger value="later">Schedule for later</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
       {scheduleMode === 'later' && (
-        <input
+        <Input
           type="datetime-local"
+          className="mt-2 h-14"
           value={scheduledFor}
           onChange={(e) => setScheduledFor(e.target.value)}
-          className="mt-2 h-14 w-full rounded-sm border border-hairline bg-surface-strong px-3 text-ink"
         />
       )}
 

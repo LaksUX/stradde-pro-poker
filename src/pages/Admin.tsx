@@ -5,6 +5,8 @@ import { useAuth } from '../hooks/useAuth'
 import { runWrite } from '../lib/errors'
 import { Button } from '../components/ui/Button'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
+import { Badge } from '../components/ui/badge'
 
 type ProfileRow = {
   id: string
@@ -49,36 +51,49 @@ export function Admin() {
 
   return (
     <div className="mx-auto max-w-sm p-6">
-      <h1 className="text-lg font-semibold text-ink">Admin</h1>
+      <h1 className="type-page-title text-ink">Admin</h1>
       {loadingRows && <InlineSpinner />}
       {!loadingRows && rows.length === 0 && (
         <p className="mt-4 text-center text-sm text-muted">No profiles yet.</p>
       )}
-      <div className="mt-4 rounded-lg border border-hairline bg-canvas">
-        {rows.map((r) => (
-          <div
-            key={r.id}
-            className="flex items-center justify-between border-b border-hairline-soft p-3 text-sm last:border-none"
-          >
-            <div>
-              <p className="text-ink">{r.full_name ?? '—'}</p>
-              <p className="text-xs text-muted">
-                {r.phone} · {r.role}
-                {r.role === 'host' ? (r.approved ? ' · approved' : ' · pending') : ''}
-              </p>
-            </div>
-            {r.role === 'host' && (
-              <Button
-                variant={r.approved ? 'danger' : 'primary'}
-                className="h-8 px-3 text-xs"
-                onClick={() => setApproval(r.id, !r.approved)}
-              >
-                {r.approved ? 'Revoke' : 'Approve'}
-              </Button>
-            )}
-          </div>
-        ))}
-      </div>
+      {!loadingRows && rows.length > 0 && (
+        <Table className="mt-4">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Person</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((r) => (
+              <TableRow key={r.id}>
+                <TableCell>
+                  <p className="text-ink">{r.full_name ?? '—'}</p>
+                  <p className="text-xs text-muted">{r.phone}</p>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={r.role === 'host' && r.approved ? 'win' : 'muted'}>
+                    {r.role}
+                    {r.role === 'host' ? (r.approved ? ' · approved' : ' · pending') : ''}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  {r.role === 'host' && (
+                    <Button
+                      variant={r.approved ? 'danger' : 'primary'}
+                      className="h-8 px-3 text-xs"
+                      onClick={() => setApproval(r.id, !r.approved)}
+                    >
+                      {r.approved ? 'Revoke' : 'Approve'}
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
     </div>
   )
 }

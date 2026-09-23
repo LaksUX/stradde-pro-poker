@@ -39,8 +39,8 @@ export function ApplyToHost() {
 
   return (
     <div className="mx-auto max-w-sm p-6 text-center">
-      <h1 className="text-lg font-semibold text-ink">Apply to host</h1>
-      <p className="mt-2 text-muted">
+      <h1 className="type-page-title text-ink">Apply to host</h1>
+      <p className="type-body-md mt-2 text-body">
         Run your own games instead of just joining them. An admin approves new hosts to keep
         random signups from spinning up games.
       </p>
