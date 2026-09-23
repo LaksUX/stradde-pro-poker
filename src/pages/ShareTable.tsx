@@ -210,6 +210,20 @@ export function ShareTable() {
     }
   }, [gameId, game?.status])
 
+  // A confirmed player landing on this link (re-scanning the QR, an old
+  // bookmark) has their own dedicated screen — this one's real job is the
+  // pre-join decision and the table-display kiosk view. Skip straight past
+  // it instead of making them tap "Go to my game" on a screen they don't
+  // need. Table-display mode is the deliberate exception — a device left on
+  // /t/:gameId?display=1 stays there even if it happens to be signed in as
+  // a confirmed player, since showing the shared roster is its whole point.
+  useEffect(() => {
+    if (displayMode || myStatus !== 'confirmed' || !myProfileId || !game || !gameId) return
+    navigate(myProfileId === game.host_id ? `/games/${gameId}/live` : `/games/${gameId}/my-game`, {
+      replace: true,
+    })
+  }, [displayMode, myStatus, myProfileId, game, gameId, navigate])
+
   if (!game) return <PageSpinner />
 
   if (game.status === 'scheduled') {
