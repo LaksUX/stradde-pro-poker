@@ -123,6 +123,16 @@ sync with whatever's decided here.
 > now. See the new Hosting entities section below. `club` as a type, staff
 > rosters, club-level approval, and any paid tier are designed but explicitly
 > not built yet — this revision is the foundation, not the club itself.
+>
+> **Fourteenth revision note — corrects the previous ratio direction.** `1:2`
+> was implemented (and documented, in the Money model section below) as "1
+> bank = 2 chips" — a bank worth *more* in chip terms. That was backwards.
+> `1:2` now means **2 banks = 1 chip** — a chip is the coarser, larger-value
+> unit, banks the finer one. `1:1` is unaffected (still numerically
+> identical). Fixed at the single source of truth (`chipMultiplier()` in
+> `src/lib/chips.ts`), so every screen's `toChips()` call already gets the
+> corrected conversion — no per-screen changes needed beyond the one place
+> that described the old direction in prose (Create Game's ratio caption).
 
 ## What this is
 
@@ -253,8 +263,10 @@ moment they type their phone number.)*
     still being immediately intuitive.
   - **Every game sets a ratio at creation: `1:1` or `1:2`.** `1:1` means 1 bank =
     1 chip (no scaling — chips and banks are numerically identical, chips is just
-    the settlement-facing name for the same number). `1:2` means 1 bank = 2 chips
-    (a bank is worth double in chip terms). **[decision] Defaults to `1:1`** so
+    the settlement-facing name for the same number). `1:2` means 2 banks = 1 chip
+    (a chip is worth double in bank terms — see the Fourteenth revision note,
+    which corrects this from the original, backwards direction).
+    **[decision] Defaults to `1:1`** so
     every game has a real, meaningful setting rather than an implied "off" state —
     this is no longer something most hosts will "never touch"; it's a real
     two-option choice made once per game, up front.

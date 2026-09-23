@@ -291,7 +291,7 @@ export function CreateGame() {
         </Tabs>
       </div>
       <p className="mt-1 text-xs text-muted">
-        1 bank = {chipRatio === '1:2' ? '2 chips' : '1 chip'} — locked once the game starts.
+        {chipRatio === '1:2' ? '2 banks = 1 chip' : '1 bank = 1 chip'} — locked once the game starts.
       </p>
 
       <div className="mt-3 flex flex-col gap-1.5">
