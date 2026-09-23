@@ -11,7 +11,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
-import { LineChart } from '../components/ui/line-chart'
+import { BarChart } from '../components/ui/bar-chart'
+import { Plus } from 'lucide-react'
 
 type HostedGame = {
   id: string
@@ -199,6 +200,11 @@ export function Home() {
   }
 
   const isApprovedHost = !!profile && isApprovedHostRole(profile) && profile.approved
+  // A plain player can never be host or admin — no tab chrome to switch
+  // between screens that will only ever show one of them "apply to host"
+  // or "pending" copy for. Only someone who's ever become a host or admin
+  // has more than one real tab to switch between.
+  const showTabSwitcher = profile?.role !== 'player'
   const lifetimeNet = playedGames.reduce((s, g) => s + toChips(g.net, g.chip_ratio), 0)
   const wins = playedGames.filter((g) => g.net > 0).length
   // Converted to chips PER GAME before summing/averaging — never sum raw
@@ -231,20 +237,22 @@ export function Home() {
       </header>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as 'host' | 'player' | 'admin')} className="mt-5">
-        <TabsList>
-          <TabsTrigger value="player">Player</TabsTrigger>
-          <TabsTrigger value="host">Host</TabsTrigger>
-          {profile?.role === 'admin' && (
-            <TabsTrigger value="admin" className="relative">
-              Admin
-              {pendingAdminCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white">
-                  {pendingAdminCount}
-                </span>
-              )}
-            </TabsTrigger>
-          )}
-        </TabsList>
+        {showTabSwitcher && (
+          <TabsList>
+            <TabsTrigger value="player">Player</TabsTrigger>
+            <TabsTrigger value="host">Host</TabsTrigger>
+            {profile?.role === 'admin' && (
+              <TabsTrigger value="admin" className="relative">
+                Admin
+                {pendingAdminCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white">
+                    {pendingAdminCount}
+                  </span>
+                )}
+              </TabsTrigger>
+            )}
+          </TabsList>
+        )}
 
         {loadingData && <InlineSpinner />}
 
@@ -266,7 +274,7 @@ export function Home() {
                   {playedGames.length === 1 ? '' : 's'} played
                 </p>
                 {netChartPoints.length > 0 && (
-                  <LineChart
+                  <BarChart
                     points={netChartPoints}
                     colorBySign
                     className="mt-3 h-16 border-t border-hairline-soft pt-3"
@@ -275,11 +283,26 @@ export function Home() {
               </CardContent>
             </Card>
 
-            <Tabs defaultValue="games" className="mt-5">
+            <Tabs defaultValue="upcoming" className="mt-5">
               <TabsList>
-                <TabsTrigger value="games">Games</TabsTrigger>
+                <TabsTrigger value="upcoming">Upcoming games</TabsTrigger>
+                <TabsTrigger value="games">My games</TabsTrigger>
                 <TabsTrigger value="settlements">Settlements</TabsTrigger>
               </TabsList>
+
+              {/* Not built yet — see this round's chat reply for the
+                  proposed design (query games where the player has a
+                  confirmed or pending game_players/invite row and
+                  status='scheduled', with a Confirm action per row). Kept
+                  as the same list shape as the two tabs beside it so all
+                  three read as one consistent component once it's wired
+                  up. */}
+              <TabsContent value="upcoming" className="mt-4">
+                <h2 className="type-label-caption mb-2 text-muted">Upcoming games</h2>
+                <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                  Coming soon — scheduled games you can confirm for will show up here.
+                </p>
+              </TabsContent>
 
               <TabsContent value="games" className="mt-4">
                 <h2 className="type-label-caption mb-2 text-muted">My games</h2>
@@ -292,7 +315,7 @@ export function Home() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Game</TableHead>
-                        <TableHead className="w-28 text-right">Net</TableHead>
+                        <TableHead className="w-36 text-right">Net</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -309,7 +332,7 @@ export function Home() {
                             </div>
                           </TableCell>
                           <TableCell
-                            className={`type-figure-md w-28 whitespace-nowrap text-right ${
+                            className={`type-figure-md w-36 whitespace-nowrap text-right ${
                               g.net >= 0 ? 'text-win' : 'text-error'
                             }`}
                           >
@@ -333,7 +356,7 @@ export function Home() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>With</TableHead>
-                        <TableHead className="w-28 text-right">Amount</TableHead>
+                        <TableHead className="w-36 text-right">Amount</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -347,15 +370,20 @@ export function Home() {
                             <div className="flex min-w-0 items-center gap-2">
                               <NamedAvatar name={r.otherName} className="shrink-0" />
                               <div className="min-w-0">
-                                <p className="truncate text-ink">
-                                  {r.direction === 'owe' ? `You owe ${r.otherName}` : `${r.otherName} owes you`}
-                                </p>
+                                <Badge variant={r.direction === 'owe' ? 'error' : 'win'} className="mb-1">
+                                  {r.direction === 'owe' ? 'You owe' : 'Owed to you'}
+                                </Badge>
+                                <p className="truncate text-ink">{r.otherName}</p>
                                 <p className="truncate text-xs text-muted">{r.gameName}</p>
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="w-28 text-right">
-                            <p className="type-figure-md whitespace-nowrap text-ink">
+                          <TableCell className="w-36 text-right">
+                            <p
+                              className={`type-figure-md whitespace-nowrap ${
+                                r.direction === 'owe' ? 'text-error' : 'text-win'
+                              }`}
+                            >
                               {toChips(r.amount, r.chip_ratio)} chips
                             </p>
                             <Badge
@@ -373,6 +401,17 @@ export function Home() {
                 )}
               </TabsContent>
             </Tabs>
+
+            {!showTabSwitcher && (
+              <div className="mt-5 rounded-lg border border-hairline bg-canvas p-4 text-center">
+                <p className="mb-3 text-sm text-muted">
+                  Run your own games instead of just joining them.
+                </p>
+                <Button variant="ghost" onClick={() => navigate('/apply-to-host')}>
+                  Apply to host
+                </Button>
+              </div>
+            )}
           </TabsContent>
         )}
 
@@ -380,15 +419,7 @@ export function Home() {
           <TabsContent value="host" className="mt-4">
             {isApprovedHost ? (
               <>
-                <div className="flex items-center justify-between">
-                  <h2 className="type-label-caption text-muted">Your games</h2>
-                  <Button
-                    className="h-9 rounded-full px-4 text-sm"
-                    onClick={() => navigate('/games/new')}
-                  >
-                    New game
-                  </Button>
-                </div>
+                <h2 className="type-label-caption text-muted">Your games</h2>
 
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <Card className="text-center">
@@ -427,7 +458,7 @@ export function Home() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Game</TableHead>
-                          <TableHead className="w-28 text-right">Buy-ins</TableHead>
+                          <TableHead className="w-36 text-right">Buy-ins</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -443,7 +474,7 @@ export function Home() {
                                 <span className="truncate">{g.name}</span>
                               </div>
                             </TableCell>
-                            <TableCell className="type-figure-md w-28 whitespace-nowrap text-right text-muted">
+                            <TableCell className="type-figure-md w-36 whitespace-nowrap text-right text-muted">
                               {toChips(g.buyins, g.chip_ratio)} chips
                             </TableCell>
                           </TableRow>
@@ -524,6 +555,17 @@ export function Home() {
           </TabsContent>
         )}
       </Tabs>
+
+      {tab === 'host' && isApprovedHost && (
+        <button
+          type="button"
+          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-elevated transition-colors hover:bg-primary-active"
+          onClick={() => navigate('/games/new')}
+          aria-label="New game"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      )}
     </div>
   )
 }

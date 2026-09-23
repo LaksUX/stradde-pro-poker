@@ -9,11 +9,8 @@ import { toast } from '../lib/toast'
 import { confirmDialog } from '../lib/confirmDialog'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { InviteQrCard } from '../components/ui/InviteQrCard'
-import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover'
 import { Card, CardContent } from '../components/ui/card'
-import { Badge } from '../components/ui/badge'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Table, TableBody, TableCell, TableRow } from '../components/ui/table'
@@ -21,6 +18,7 @@ import { NamedAvatar } from '../components/ui/avatar'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import { Slider } from '../components/ui/slider'
 import { Switch } from '../components/ui/switch'
+import { QrCode, ArrowUp, ArrowDown } from 'lucide-react'
 
 const MAX_BUYINS = 50
 
@@ -30,8 +28,6 @@ type Game = {
   stake: number
   chip_ratio: ChipRatio
   rake: number
-  table_size: number
-  table_status_override: 'full' | 'open' | null
 }
 type PendingRequest = {
   id: string
@@ -49,17 +45,6 @@ type PlayerRow = {
   confirmed_buyins: number
 }
 
-function QrIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="7" height="7" rx="1" />
-      <rect x="14" y="3" width="7" height="7" rx="1" />
-      <rect x="3" y="14" width="7" height="7" rx="1" />
-      <path d="M14 14h3v3h-3M19 14v2M14 19h2M19 19h2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
 // See PAGE_PROMPTS.md "Live Game". This pass wires the core loop that
 // matters most to get right end to end: the Pending requests queue and
 // confirm/decline — everything else on this screen (the full bottom sheet,
@@ -73,7 +58,7 @@ export function LiveGame() {
   const [pending, setPending] = useState<PendingRequest[]>([])
   const [players, setPlayers] = useState<PlayerRow[]>([])
   const [rakeRevealed, setRakeRevealed] = useState(false)
-  const [tableSizeEditing, setTableSizeEditing] = useState(false)
+  const [qrOpen, setQrOpen] = useState(false)
   const [sheetPlayerId, setSheetPlayerId] = useState<string | null>(null)
   const [sliderValue, setSliderValue] = useState(0)
   const [cashoutOn, setCashoutOn] = useState(false)
@@ -251,6 +236,7 @@ export function LiveGame() {
             count: delta,
             status: 'confirmed',
             confirmed_at: new Date().toISOString(),
+            is_direct_add: true,
           }),
         'Adding buy-ins'
       )
@@ -322,22 +308,6 @@ export function LiveGame() {
     await runWrite(() => supabase.from('games').update({ rake: value }).eq('id', gameId), 'Rake')
   }
 
-  async function setTableSize(value: number) {
-    if (!gameId) return
-    await runWrite(
-      () => supabase.from('games').update({ table_size: value }).eq('id', gameId),
-      'Table size'
-    )
-  }
-
-  async function setTableOverride(value: 'full' | 'open' | null) {
-    if (!gameId) return
-    await runWrite(
-      () => supabase.from('games').update({ table_status_override: value }).eq('id', gameId),
-      'Table status'
-    )
-  }
-
   async function closeAndSettle() {
     if (!gameId || !game) return
     const totalIn = players.reduce((s, p) => s + p.confirmed_buyins * game.stake, 0)
@@ -407,30 +377,38 @@ export function LiveGame() {
   if (!profile) return <div className="p-6 text-center text-muted">Sign in required.</div>
 
   const ratio = game.chip_ratio
-  const activeSeated = players.filter((p) => p.cashout == null).length
-  const full = game.table_status_override
-    ? game.table_status_override === 'full'
-    : activeSeated >= game.table_size
 
   return (
     <div className="mx-auto w-full max-w-md p-4 sm:p-6">
       <div className="flex items-center justify-between">
         <h1 className="type-page-title text-ink">{game.name}</h1>
         {gameId && (
-          <Popover>
-            <PopoverTrigger className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-hairline text-muted hover:bg-surface-strong hover:text-ink">
-              <QrIcon />
-            </PopoverTrigger>
-            <PopoverContent>
-              <InviteQrCard eyebrow="Live table" title={game.name} url={`${window.location.origin}/t/${gameId}`} />
-            </PopoverContent>
-          </Popover>
+          <>
+            <button
+              type="button"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-hairline text-muted hover:bg-surface-strong hover:text-ink"
+              onClick={() => setQrOpen(true)}
+              aria-label="Invite via QR"
+            >
+              <QrCode className="h-[18px] w-[18px]" />
+            </button>
+            <Sheet open={qrOpen} onOpenChange={setQrOpen}>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Invite walk-ins</SheetTitle>
+                </SheetHeader>
+                <div className="mt-4">
+                  <InviteQrCard eyebrow="Live table" title={game.name} url={`${window.location.origin}/t/${gameId}`} />
+                </div>
+              </SheetContent>
+            </Sheet>
+          </>
         )}
       </div>
 
       {/* Pending requests need action now — they lead the screen, ahead of
-          the always-there utility cards below (invite, table status, rake),
-          so a host opening mid-game sees what's waiting on them first. */}
+          the always-there utility cards below (invite, rake), so a host
+          opening mid-game sees what's waiting on them first. */}
       {pending.length > 0 && (
         <Card className="mt-3 border border-primary/40">
           <CardContent>
@@ -466,46 +444,6 @@ export function LiveGame() {
           </CardContent>
         </Card>
       )}
-
-      <Card className="mt-3">
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <Badge variant={full ? 'error' : 'win'}>
-              {full ? 'Full' : 'Open'} · {activeSeated}/{game.table_size}
-            </Badge>
-            <button
-              className="text-xs text-muted underline"
-              onClick={() => setTableSizeEditing((v) => !v)}
-            >
-              {tableSizeEditing ? 'Done' : 'Edit'}
-            </button>
-          </div>
-          {tableSizeEditing && (
-            <div className="mt-3 space-y-3">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="table-size">Table size</Label>
-                <Input
-                  id="table-size"
-                  type="number"
-                  className="h-9 w-16"
-                  defaultValue={game.table_size}
-                  onBlur={(e) => setTableSize(Number(e.target.value) || 9)}
-                />
-              </div>
-              <Tabs
-                value={game.table_status_override ?? 'auto'}
-                onValueChange={(v) => setTableOverride(v === 'auto' ? null : (v as 'open' | 'full'))}
-              >
-                <TabsList>
-                  <TabsTrigger value="auto">Auto</TabsTrigger>
-                  <TabsTrigger value="open">Open</TabsTrigger>
-                  <TabsTrigger value="full">Full</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       <Card className="mt-3">
         <CardContent>
@@ -561,11 +499,24 @@ export function LiveGame() {
                         {p.is_host ? ' (host)' : ''}
                       </span>
                     </div>
-                    <div className="type-figure-md text-xs text-muted">
-                      {p.cashout == null
-                        ? `${p.confirmed_buyins} buy-in${p.confirmed_buyins === 1 ? '' : 's'}`
-                        : `${toChips(p.cashout - p.confirmed_buyins * game.stake, ratio)} chips net`}
-                    </div>
+                    {p.cashout != null &&
+                      (() => {
+                        const net = toChips(p.cashout - p.confirmed_buyins * game.stake, ratio)
+                        return (
+                          <div
+                            className={`type-figure-md flex items-center gap-1 text-xs ${
+                              net >= 0 ? 'text-win' : 'text-error'
+                            }`}
+                          >
+                            {net >= 0 ? (
+                              <ArrowUp className="h-3 w-3" />
+                            ) : (
+                              <ArrowDown className="h-3 w-3" />
+                            )}
+                            {Math.abs(net)} chips
+                          </div>
+                        )
+                      })()}
                   </TableCell>
                   <TableCell className="w-16 text-right">
                     <span className="type-figure-md text-lg text-ink">{p.confirmed_buyins}</span>
@@ -602,9 +553,26 @@ export function LiveGame() {
 
               {!cashoutOn ? (
                 <div className="mt-5">
-                  <p className="text-xs text-muted">
-                    {sheetPlayer.confirmed_buyins} buy-in{sheetPlayer.confirmed_buyins === 1 ? '' : 's'} so far
-                  </p>
+                  <div className="flex items-center justify-between text-xs text-muted">
+                    <span>
+                      Previous: {sheetPlayer.confirmed_buyins} buy-in
+                      {sheetPlayer.confirmed_buyins === 1 ? '' : 's'}
+                    </span>
+                    {sliderValue !== sheetPlayer.confirmed_buyins && (
+                      <span
+                        className={`flex items-center gap-0.5 font-semibold ${
+                          sliderValue > sheetPlayer.confirmed_buyins ? 'text-win' : 'text-error'
+                        }`}
+                      >
+                        {sliderValue > sheetPlayer.confirmed_buyins ? (
+                          <ArrowUp className="h-3 w-3" />
+                        ) : (
+                          <ArrowDown className="h-3 w-3" />
+                        )}
+                        {Math.abs(sliderValue - sheetPlayer.confirmed_buyins)}
+                      </span>
+                    )}
+                  </div>
                   <p className="type-figure-hero mt-1 text-center text-ink">{sliderValue}</p>
                   <Slider
                     className="mt-3"
