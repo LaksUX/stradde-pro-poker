@@ -8,7 +8,7 @@ import { Button } from '../components/ui/Button'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
+import { ListGroup, ListRow } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
 import { BarChart } from '../components/ui/bar-chart'
@@ -46,6 +46,11 @@ type AdminRow = {
 // place on this screen that gates on "can this profile host" agrees.
 function isApprovedHostRole(profile: Profile): boolean {
   return profile.role === 'host' || profile.role === 'admin'
+}
+
+function formatClosedDate(closedAt: string | null): string | undefined {
+  if (!closedAt) return undefined
+  return new Date(closedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 // See PAGE_PROMPTS.md "Home". Player/Host/Admin all live as tabs on this one
@@ -311,37 +316,27 @@ export function Home() {
                     No closed games yet.
                   </p>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Game</TableHead>
-                        <TableHead className="w-36 text-right">Net</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {playedGames.map((g) => (
-                        <TableRow
-                          key={g.id}
-                          className="cursor-pointer"
-                          onClick={() => navigate(`/games/${g.id}`)}
-                        >
-                          <TableCell>
-                            <div className="flex min-w-0 items-center gap-2">
-                              <NamedAvatar name={g.name} className="shrink-0" />
-                              <span className="truncate">{g.name}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell
-                            className={`type-figure-md w-36 whitespace-nowrap text-right ${
+                  <ListGroup>
+                    {playedGames.map((g) => (
+                      <ListRow
+                        key={g.id}
+                        className="cursor-pointer"
+                        onClick={() => navigate(`/games/${g.id}`)}
+                        avatar={<NamedAvatar name={g.name} className="h-12 w-12" />}
+                        title={g.name}
+                        subtitle={formatClosedDate(g.closed_at)}
+                        trailing={
+                          <span
+                            className={`type-figure-md whitespace-nowrap ${
                               g.net >= 0 ? 'text-win' : 'text-error'
                             }`}
                           >
                             {toChips(g.net, g.chip_ratio)} chips
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                          </span>
+                        }
+                      />
+                    ))}
+                  </ListGroup>
                 )}
               </TabsContent>
 
@@ -352,40 +347,32 @@ export function Home() {
                     No settlements yet.
                   </p>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>With</TableHead>
-                        <TableHead className="w-36 text-right">Amount</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {settlementRows.map((r) => (
-                        <TableRow
-                          key={r.id}
-                          className="cursor-pointer"
-                          onClick={() => navigate(`/games/${r.gameId}`)}
-                        >
-                          <TableCell>
-                            <div className="flex min-w-0 items-center gap-2">
-                              <NamedAvatar name={r.otherName} className="shrink-0" />
-                              <div className="min-w-0">
-                                <Badge variant={r.direction === 'owe' ? 'error' : 'win'} className="mb-1">
-                                  {r.direction === 'owe' ? 'You owe' : 'Owed to you'}
-                                </Badge>
-                                <p className="truncate text-ink">{r.otherName}</p>
-                                <p className="truncate text-xs text-muted">{r.gameName}</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="w-36 text-right">
-                            <p
+                  <ListGroup>
+                    {settlementRows.map((r) => (
+                      <ListRow
+                        key={r.id}
+                        className="cursor-pointer"
+                        onClick={() => navigate(`/games/${r.gameId}`)}
+                        avatar={<NamedAvatar name={r.otherName} className="h-12 w-12" />}
+                        title={r.otherName}
+                        subtitle={
+                          <>
+                            <span className={r.direction === 'owe' ? 'text-error' : 'text-win'}>
+                              {r.direction === 'owe' ? 'You owe' : 'Owed to you'}
+                            </span>
+                            {' · '}
+                            {r.gameName}
+                          </>
+                        }
+                        trailing={
+                          <>
+                            <span
                               className={`type-figure-md whitespace-nowrap ${
                                 r.direction === 'owe' ? 'text-error' : 'text-win'
                               }`}
                             >
                               {toChips(r.amount, r.chip_ratio)} chips
-                            </p>
+                            </span>
                             <Badge
                               variant={
                                 r.status === 'confirmed' ? 'win' : r.status === 'disputed' ? 'error' : 'muted'
@@ -393,11 +380,11 @@ export function Home() {
                             >
                               {r.status}
                             </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                          </>
+                        }
+                      />
+                    ))}
+                  </ListGroup>
                 )}
               </TabsContent>
             </Tabs>
@@ -454,33 +441,23 @@ export function Home() {
                       No closed games yet.
                     </p>
                   ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Game</TableHead>
-                          <TableHead className="w-36 text-right">Buy-ins</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {hostedGames.map((g) => (
-                          <TableRow
-                            key={g.id}
-                            className="cursor-pointer"
-                            onClick={() => navigate(`/games/${g.id}`)}
-                          >
-                            <TableCell>
-                              <div className="flex min-w-0 items-center gap-2">
-                                <NamedAvatar name={g.name} className="shrink-0" />
-                                <span className="truncate">{g.name}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="type-figure-md w-36 whitespace-nowrap text-right text-muted">
+                    <ListGroup>
+                      {hostedGames.map((g) => (
+                        <ListRow
+                          key={g.id}
+                          className="cursor-pointer"
+                          onClick={() => navigate(`/games/${g.id}`)}
+                          avatar={<NamedAvatar name={g.name} className="h-12 w-12" />}
+                          title={g.name}
+                          subtitle={formatClosedDate(g.closed_at)}
+                          trailing={
+                            <span className="type-figure-md whitespace-nowrap text-ink">
                               {toChips(g.buyins, g.chip_ratio)} chips
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                            </span>
+                          }
+                        />
+                      ))}
+                    </ListGroup>
                   )}
                 </div>
               </>
@@ -508,35 +485,18 @@ export function Home() {
                 No profiles yet.
               </p>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Person</TableHead>
-                    <TableHead className="w-28">Status</TableHead>
-                    <TableHead className="w-24 text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {adminRows.map((r) => (
-                    <TableRow key={r.id}>
-                      <TableCell>
-                        <div className="flex min-w-0 items-center gap-2">
-                          <NamedAvatar name={r.full_name ?? '—'} className="shrink-0" />
-                          <div className="min-w-0">
-                            <p className="truncate text-ink">{r.full_name ?? '—'}</p>
-                            <p className="truncate text-xs text-muted">{r.phone}</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={r.role === 'host' && r.approved ? 'win' : 'muted'}
-                          className="max-w-full truncate"
-                        >
+              <ListGroup>
+                {adminRows.map((r) => (
+                  <ListRow
+                    key={r.id}
+                    avatar={<NamedAvatar name={r.full_name ?? '—'} className="h-12 w-12" />}
+                    title={r.full_name ?? '—'}
+                    subtitle={r.phone}
+                    trailing={
+                      <>
+                        <Badge variant={r.role === 'host' && r.approved ? 'win' : 'muted'}>
                           {r.role === 'host' ? (r.approved ? 'Approved' : 'Pending') : 'Player'}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
                         {r.role === 'host' && (
                           <Button
                             variant={r.approved ? 'danger' : 'primary'}
@@ -546,11 +506,11 @@ export function Home() {
                             {r.approved ? 'Revoke' : 'Approve'}
                           </Button>
                         )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </>
+                    }
+                  />
+                ))}
+              </ListGroup>
             )}
           </TabsContent>
         )}

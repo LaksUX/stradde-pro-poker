@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
@@ -7,6 +7,7 @@ import { runWrite } from '../lib/errors'
 import { Button } from '../components/ui/Button'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { ListGroup, ListRow } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { Input } from '../components/ui/input'
 import { NamedAvatar } from '../components/ui/avatar'
@@ -25,6 +26,7 @@ type Row = {
 // See PAGE_PROMPTS.md "My Settlements". Every transfer this identity has
 // been party to, across every game, not just the one just played.
 export function MySettlements() {
+  const navigate = useNavigate()
   const { session, profile, loading } = useAuth()
   const [rows, setRows] = useState<Row[]>([])
   const [loadingRows, setLoadingRows] = useState(true)
@@ -134,62 +136,78 @@ export function MySettlements() {
         <p className="mt-4 text-center text-sm text-muted">No settlements yet.</p>
       )}
 
-      {rows.map((r) => (
-        <Card key={r.id} className="mt-3">
-          <CardContent>
-            <Link to={`/games/${r.gameId}`} className="text-xs text-primary underline">
-              {r.gameName}
-            </Link>
-            <div className="mt-1 flex items-center gap-2">
-              <NamedAvatar name={r.otherName} className="h-6 w-6 shrink-0" />
-              <p className="min-w-0 text-ink">
-                {r.direction === 'owe' ? `You owe ${r.otherName}` : `${r.otherName} owes you`}
-              </p>
-            </div>
-            <div className="mt-1 flex items-center gap-2">
-              <span className="type-figure-md text-ink">{toChips(r.amount, r.chip_ratio)} chips</span>
-              <Badge
-                variant={
-                  r.status === 'confirmed' ? 'win' : r.status === 'disputed' ? 'error' : 'muted'
+      {rows.length > 0 && (
+        <ListGroup className="mt-3">
+          {rows.map((r) => (
+            <div key={r.id}>
+              <ListRow
+                className="cursor-pointer"
+                onClick={() => navigate(`/games/${r.gameId}`)}
+                avatar={<NamedAvatar name={r.otherName} className="h-12 w-12" />}
+                title={r.otherName}
+                subtitle={
+                  <>
+                    <span className={r.direction === 'owe' ? 'text-error' : 'text-win'}>
+                      {r.direction === 'owe' ? 'You owe' : 'Owed to you'}
+                    </span>
+                    {' · '}
+                    {r.gameName}
+                  </>
                 }
-              >
-                {r.status}
-              </Badge>
+                trailing={
+                  <>
+                    <span
+                      className={`type-figure-md whitespace-nowrap ${
+                        r.direction === 'owe' ? 'text-error' : 'text-win'
+                      }`}
+                    >
+                      {toChips(r.amount, r.chip_ratio)} chips
+                    </span>
+                    <Badge
+                      variant={
+                        r.status === 'confirmed' ? 'win' : r.status === 'disputed' ? 'error' : 'muted'
+                      }
+                    >
+                      {r.status}
+                    </Badge>
+                  </>
+                }
+              />
+              {r.status === 'pending' && (
+                <div className="flex gap-2 px-3 pb-3" onClick={(e) => e.stopPropagation()}>
+                  <Button variant="primary" className="h-8 px-3 text-xs" onClick={() => setStatus(r.id, 'confirmed')}>
+                    Confirm
+                  </Button>
+                  <Button
+                    variant="danger"
+                    className="h-8 px-3 text-xs"
+                    onClick={() => setNoteOpenId(noteOpenId === r.id ? null : r.id)}
+                  >
+                    Request change
+                  </Button>
+                </div>
+              )}
+              {noteOpenId === r.id && (
+                <div className="px-3 pb-3" onClick={(e) => e.stopPropagation()}>
+                  <Input
+                    className="h-9 text-sm"
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    placeholder="e.g. I think this should be 20 banks"
+                  />
+                  <Button
+                    variant="danger"
+                    className="mt-2 h-8 w-full text-xs"
+                    onClick={() => setStatus(r.id, 'disputed', noteText)}
+                  >
+                    Send request
+                  </Button>
+                </div>
+              )}
             </div>
-            {r.status === 'pending' && (
-              <div className="mt-2 flex gap-2">
-                <Button variant="primary" className="h-8 px-3 text-xs" onClick={() => setStatus(r.id, 'confirmed')}>
-                  Confirm
-                </Button>
-                <Button
-                  variant="danger"
-                  className="h-8 px-3 text-xs"
-                  onClick={() => setNoteOpenId(noteOpenId === r.id ? null : r.id)}
-                >
-                  Request change
-                </Button>
-              </div>
-            )}
-            {noteOpenId === r.id && (
-              <div className="mt-2">
-                <Input
-                  className="h-9 text-sm"
-                  value={noteText}
-                  onChange={(e) => setNoteText(e.target.value)}
-                  placeholder="e.g. I think this should be 20 banks"
-                />
-                <Button
-                  variant="danger"
-                  className="mt-2 h-8 w-full text-xs"
-                  onClick={() => setStatus(r.id, 'disputed', noteText)}
-                >
-                  Send request
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
+          ))}
+        </ListGroup>
+      )}
     </div>
   )
 }

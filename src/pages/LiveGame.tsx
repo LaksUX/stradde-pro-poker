@@ -13,7 +13,7 @@ import { InviteQrCard } from '../components/ui/InviteQrCard'
 import { Card, CardContent } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
+import { ListGroup, ListRow } from '../components/ui/list-row'
 import { NamedAvatar } from '../components/ui/avatar'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import { Slider } from '../components/ui/slider'
@@ -489,83 +489,66 @@ export function LiveGame() {
         {activePlayers.length > 0 && (
           <>
             <h2 className="type-label-caption mb-2 text-muted">Playing ({activePlayers.length})</h2>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Player</TableHead>
-                  <TableHead className="w-20 text-right">Buy-ins</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {activePlayers.map((p) => (
-                  <TableRow key={p.id} className="cursor-pointer" onClick={() => openPlayerSheet(p)}>
-                    <TableCell>
-                      <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-ink">
-                        <span className="relative shrink-0">
-                          <NamedAvatar name={p.full_name} className="h-8 w-8" />
-                          <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-canvas bg-win" />
-                        </span>
-                        <span className="truncate">
-                          {p.full_name}
-                          {p.is_host ? ' (host)' : ''}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="w-20 text-right">
+            <ListGroup>
+              {activePlayers.map((p) => (
+                <ListRow
+                  key={p.id}
+                  className="cursor-pointer"
+                  onClick={() => openPlayerSheet(p)}
+                  avatar={
+                    <span className="relative shrink-0">
+                      <NamedAvatar name={p.full_name} className="h-12 w-12" />
+                      <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-canvas bg-win" />
+                    </span>
+                  }
+                  title={`${p.full_name}${p.is_host ? ' (host)' : ''}`}
+                  trailing={
+                    <>
                       <span className="type-figure-md text-lg text-ink">{p.confirmed_buyins}</span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      <span className="text-[11px] text-muted">
+                        buy-in{p.confirmed_buyins === 1 ? '' : 's'}
+                      </span>
+                    </>
+                  }
+                />
+              ))}
+            </ListGroup>
           </>
         )}
 
         {cashedOutPlayers.length > 0 && (
           <>
             <h2 className="type-label-caption mb-2 mt-4 text-muted">Cashed out ({cashedOutPlayers.length})</h2>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Player</TableHead>
-                  <TableHead className="w-36 text-right">Net</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {cashedOutPlayers.map((p) => {
-                  const net = toChips(p.cashout! - p.confirmed_buyins * game.stake, ratio)
-                  return (
-                    <TableRow key={p.id} className="cursor-pointer opacity-80" onClick={() => openPlayerSheet(p)}>
-                      <TableCell>
-                        <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-ink">
-                          <span className="relative shrink-0">
-                            <NamedAvatar name={p.full_name} className="h-8 w-8" />
-                            <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-canvas bg-error" />
-                          </span>
-                          <span className="truncate">
-                            {p.full_name}
-                            {p.is_host ? ' (host)' : ''}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted">
-                          {p.confirmed_buyins} buy-in{p.confirmed_buyins === 1 ? '' : 's'}
-                        </p>
-                      </TableCell>
-                      <TableCell className="w-36 text-right">
-                        <div
-                          className={`type-figure-md flex items-center justify-end gap-1 whitespace-nowrap ${
-                            net >= 0 ? 'text-win' : 'text-error'
-                          }`}
-                        >
-                          {net >= 0 ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
-                          {Math.abs(net)} chips
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
+            <ListGroup>
+              {cashedOutPlayers.map((p) => {
+                const net = toChips(p.cashout! - p.confirmed_buyins * game.stake, ratio)
+                return (
+                  <ListRow
+                    key={p.id}
+                    className="cursor-pointer opacity-80"
+                    onClick={() => openPlayerSheet(p)}
+                    avatar={
+                      <span className="relative shrink-0">
+                        <NamedAvatar name={p.full_name} className="h-12 w-12" />
+                        <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-canvas bg-error" />
+                      </span>
+                    }
+                    title={`${p.full_name}${p.is_host ? ' (host)' : ''}`}
+                    subtitle={`${p.confirmed_buyins} buy-in${p.confirmed_buyins === 1 ? '' : 's'}`}
+                    trailing={
+                      <div
+                        className={`type-figure-md flex items-center gap-1 whitespace-nowrap ${
+                          net >= 0 ? 'text-win' : 'text-error'
+                        }`}
+                      >
+                        {net >= 0 ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
+                        {Math.abs(net)} chips
+                      </div>
+                    }
+                  />
+                )
+              })}
+            </ListGroup>
           </>
         )}
       </div>
@@ -580,9 +563,9 @@ export function LiveGame() {
             <>
               <SheetHeader>
                 <span className="relative shrink-0">
-                  <NamedAvatar name={sheetPlayer.full_name} className="h-8 w-8" />
+                  <NamedAvatar name={sheetPlayer.full_name} className="h-12 w-12" />
                   <span
-                    className={`absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-canvas ${
+                    className={`absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-canvas ${
                       sheetPlayer.cashout == null ? 'bg-win' : 'bg-error'
                     }`}
                   />

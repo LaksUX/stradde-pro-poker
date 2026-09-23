@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { runWrite } from '../lib/errors'
 import { Button } from '../components/ui/Button'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
+import { ListGroup, ListRow } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
 
@@ -58,33 +58,19 @@ export function Admin() {
         <p className="mt-4 text-center text-sm text-muted">No profiles yet.</p>
       )}
       {!loadingRows && rows.length > 0 && (
-        <Table className="mt-4">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Person</TableHead>
-              <TableHead className="w-28">Status</TableHead>
-              <TableHead className="w-24 text-right">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell>
-                  <div className="flex min-w-0 items-center gap-2">
-                    <NamedAvatar name={r.full_name ?? '—'} className="shrink-0" />
-                    <div className="min-w-0">
-                      <p className="truncate text-ink">{r.full_name ?? '—'}</p>
-                      <p className="truncate text-xs text-muted">{r.phone}</p>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={r.role === 'host' && r.approved ? 'win' : 'muted'} className="max-w-full truncate">
+        <ListGroup className="mt-4">
+          {rows.map((r) => (
+            <ListRow
+              key={r.id}
+              avatar={<NamedAvatar name={r.full_name ?? '—'} className="h-12 w-12" />}
+              title={r.full_name ?? '—'}
+              subtitle={r.phone}
+              trailing={
+                <>
+                  <Badge variant={r.role === 'host' && r.approved ? 'win' : 'muted'}>
                     {r.role}
                     {r.role === 'host' ? (r.approved ? ' · approved' : ' · pending') : ''}
                   </Badge>
-                </TableCell>
-                <TableCell className="text-right">
                   {r.role === 'host' && (
                     <Button
                       variant={r.approved ? 'danger' : 'primary'}
@@ -94,11 +80,11 @@ export function Admin() {
                       {r.approved ? 'Revoke' : 'Approve'}
                     </Button>
                   )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                </>
+              }
+            />
+          ))}
+        </ListGroup>
       )}
     </div>
   )

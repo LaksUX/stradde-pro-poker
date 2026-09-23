@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { PageSpinner } from '../components/ui/Spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
+import { ListGroup, ListRow } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
 import { LineChart } from '../components/ui/line-chart'
@@ -199,7 +199,7 @@ export function VenueDetail() {
               <CardContent className="space-y-3">
                 {regulars.map((r) => (
                   <div key={r.profile_id} className="flex items-center gap-2 text-sm">
-                    <NamedAvatar name={r.full_name} className="h-6 w-6" />
+                    <NamedAvatar name={r.full_name} className="h-8 w-8" />
                     <span className="w-20 flex-none truncate text-ink">{r.full_name}</span>
                     <div className="h-2 flex-1 rounded-full bg-surface-strong">
                       <div
@@ -222,44 +222,43 @@ export function VenueDetail() {
             </p>
           )}
           {myRows.length > 0 && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Game</TableHead>
-                  <TableHead className="w-36 text-right">Result</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {myRows.map((g) => {
-                  const role = myRoles[g.game_id]
-                  return (
-                    <TableRow key={g.game_id} className="cursor-pointer" onClick={() => navigate(`/games/${g.game_id}`)}>
-                      <TableCell>
-                        <div className="flex min-w-0 items-center gap-2">
-                          <NamedAvatar name={g.game_name} className="shrink-0" />
-                          <div className="min-w-0">
-                            <p className="truncate font-semibold text-ink">{g.game_name}</p>
-                            <p className="truncate text-xs text-muted">{new Date(g.closed_at).toLocaleDateString()}</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
+            <ListGroup>
+              {myRows.map((g) => {
+                const role = myRoles[g.game_id]
+                return (
+                  <ListRow
+                    key={g.game_id}
+                    className="cursor-pointer"
+                    onClick={() => navigate(`/games/${g.game_id}`)}
+                    avatar={<NamedAvatar name={g.game_name} className="h-12 w-12" />}
+                    title={g.game_name}
+                    subtitle={new Date(g.closed_at).toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                    trailing={
+                      <>
                         {role?.kind === 'hosted' && (
                           <>
-                            <p className="type-figure-md text-ink">
+                            <span className="type-figure-md whitespace-nowrap text-ink">
                               {toChips(g.confirmed_buyin_units * g.stake, g.chip_ratio)} chips
-                            </p>
-                            <p className="text-xs text-muted">
+                            </span>
+                            <span className="text-[11px] text-muted">
                               {role.confirmedTransfers}/{role.transfers} confirmed
-                            </p>
+                            </span>
                           </>
                         )}
                         {role?.kind === 'played' && (
                           <>
-                            <p className={`type-figure-md ${role.net >= 0 ? 'text-win' : 'text-error'}`}>
+                            <span
+                              className={`type-figure-md whitespace-nowrap ${
+                                role.net >= 0 ? 'text-win' : 'text-error'
+                              }`}
+                            >
                               {toChips(role.net, g.chip_ratio)} chips
-                            </p>
-                            <div className="mt-0.5 flex items-center justify-end gap-1 text-xs text-muted">
+                            </span>
+                            <div className="flex items-center gap-1 text-[11px] text-muted">
                               <span>{role.buyins} buy-ins</span>
                               {role.settlementStatus && (
                                 <Badge
@@ -277,12 +276,12 @@ export function VenueDetail() {
                             </div>
                           </>
                         )}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
+                      </>
+                    }
+                  />
+                )
+              })}
+            </ListGroup>
           )}
         </>
       )}
