@@ -6,12 +6,13 @@ import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
-import { Card, CardContent } from '../components/ui/card'
+import { ListGroup, ListRow } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { Select } from '../components/ui/select'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { NamedAvatar } from '../components/ui/avatar'
+import { ArrowRight, ChevronDown } from 'lucide-react'
 
 type Game = { id: string; name: string; chip_ratio: ChipRatio; settlement_published_at: string | null }
 type PlayerOpt = { id: string; name: string }
@@ -148,108 +149,114 @@ export function Settlement() {
         Computed as a starting point, deterministic tie-break. Reassign freely below.
       </p>
 
-      {transfers.map((t) => {
-        const fromName = nameById.get(t.from_player_id) ?? '—'
-        const toName = nameById.get(t.to_player_id) ?? '—'
-        const editing = editingId === t.id
-        return (
-          <Card key={t.id} className="mt-3">
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <NamedAvatar name={fromName} className="h-7 w-7" />
-                <span className="min-w-0 flex-1 truncate text-sm text-ink">{fromName}</span>
-                <svg
-                  className="mx-0.5 shrink-0 text-muted"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <NamedAvatar name={toName} className="h-7 w-7" />
-                <span className="min-w-0 flex-1 truncate text-sm text-ink">{toName}</span>
-              </div>
-
-              <div className="mt-2 flex items-center justify-between">
-                <Badge variant={t.status === 'confirmed' ? 'win' : t.status === 'disputed' ? 'error' : 'muted'}>
-                  {t.status}
-                </Badge>
-                <span className="type-figure-md text-ink">
-                  {toChips(t.amount, ratio)} chips
-                  <span className="ml-1 text-xs font-normal text-muted">({t.amount} banks)</span>
-                </span>
-              </div>
-
-              {t.request_note && (
-                <p className="mt-2 text-xs text-muted">Player's proposed change: "{t.request_note}"</p>
-              )}
-
-              <div className="mt-2 flex justify-end gap-3">
-                <button
-                  className="text-xs text-muted underline"
+      {transfers.length > 0 && (
+        <ListGroup className="mt-3">
+          {transfers.map((t) => {
+            const fromName = nameById.get(t.from_player_id) ?? '—'
+            const toName = nameById.get(t.to_player_id) ?? '—'
+            const editing = editingId === t.id
+            return (
+              <div key={t.id}>
+                <ListRow
+                  className="cursor-pointer"
                   onClick={() => setEditingId(editing ? null : t.id)}
-                >
-                  {editing ? 'Done' : 'Edit'}
-                </button>
-                <button className="text-xs text-error underline" onClick={() => removeTransfer(t.id)}>
-                  Remove
-                </button>
-              </div>
+                  avatar={
+                    <div className="flex items-center">
+                      <NamedAvatar name={fromName} className="h-10 w-10 border-2 border-canvas" />
+                      <NamedAvatar name={toName} className="-ml-3 h-10 w-10 border-2 border-canvas" />
+                    </div>
+                  }
+                  title={
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate">{fromName}</span>
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted" />
+                      <span className="truncate">{toName}</span>
+                    </span>
+                  }
+                  subtitle={
+                    t.request_note ? (
+                      <>Player's proposed change: "{t.request_note}"</>
+                    ) : (
+                      `${t.amount} banks`
+                    )
+                  }
+                  trailing={
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="type-figure-md whitespace-nowrap text-ink">
+                          {toChips(t.amount, ratio)} chips
+                        </span>
+                        <Badge
+                          variant={t.status === 'confirmed' ? 'win' : t.status === 'disputed' ? 'error' : 'muted'}
+                        >
+                          {t.status}
+                        </Badge>
+                      </div>
+                      <ChevronDown
+                        className={`h-4 w-4 shrink-0 text-muted transition-transform ${editing ? 'rotate-180' : ''}`}
+                      />
+                    </div>
+                  }
+                />
 
-              {editing && (
-                <div className="mt-3 border-t border-hairline-soft pt-3">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <Label htmlFor={`from-${t.id}`}>From</Label>
-                      <Select
-                        id={`from-${t.id}`}
-                        className="mt-1 h-9 text-sm"
-                        value={t.from_player_id}
-                        onChange={(e) => editTransfer(t.id, { from_player_id: e.target.value })}
-                      >
-                        {players.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </Select>
+                {editing && (
+                  <div className="px-3 pb-3" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <Label htmlFor={`from-${t.id}`}>From</Label>
+                        <Select
+                          id={`from-${t.id}`}
+                          className="mt-1 h-9 text-sm"
+                          value={t.from_player_id}
+                          onChange={(e) => editTransfer(t.id, { from_player_id: e.target.value })}
+                        >
+                          {players.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </Select>
+                      </div>
+                      <span className="mt-6 shrink-0 text-xs text-muted">owes</span>
+                      <div className="flex-1">
+                        <Label htmlFor={`to-${t.id}`}>To</Label>
+                        <Select
+                          id={`to-${t.id}`}
+                          className="mt-1 h-9 text-sm"
+                          value={t.to_player_id}
+                          onChange={(e) => editTransfer(t.id, { to_player_id: e.target.value })}
+                        >
+                          {players.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </Select>
+                      </div>
                     </div>
-                    <span className="mt-6 shrink-0 text-xs text-muted">owes</span>
-                    <div className="flex-1">
-                      <Label htmlFor={`to-${t.id}`}>To</Label>
-                      <Select
-                        id={`to-${t.id}`}
-                        className="mt-1 h-9 text-sm"
-                        value={t.to_player_id}
-                        onChange={(e) => editTransfer(t.id, { to_player_id: e.target.value })}
-                      >
-                        {players.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </Select>
+                    <div className="mt-2">
+                      <Label htmlFor={`amount-${t.id}`}>Amount (banks)</Label>
+                      <Input
+                        id={`amount-${t.id}`}
+                        type="number"
+                        className="mt-1 h-9"
+                        defaultValue={t.amount}
+                        onBlur={(e) => editTransfer(t.id, { amount: Number(e.target.value) || 0 })}
+                      />
                     </div>
+                    <button
+                      className="mt-2 text-xs text-error underline"
+                      onClick={() => removeTransfer(t.id)}
+                    >
+                      Remove transfer
+                    </button>
                   </div>
-                  <div className="mt-2">
-                    <Label htmlFor={`amount-${t.id}`}>Amount (banks)</Label>
-                    <Input
-                      id={`amount-${t.id}`}
-                      type="number"
-                      className="mt-1 h-9"
-                      defaultValue={t.amount}
-                      onBlur={(e) => editTransfer(t.id, { amount: Number(e.target.value) || 0 })}
-                    />
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )
-      })}
+                )}
+              </div>
+            )
+          })}
+        </ListGroup>
+      )}
 
       <Button variant="ghost" block className="mt-3" onClick={addCustomTransfer}>
         Add custom payment

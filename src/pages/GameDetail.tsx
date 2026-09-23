@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { ListGroup, ListRow } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
+import { ArrowRight } from 'lucide-react'
 
 type Game = {
   id: string
@@ -131,37 +132,38 @@ export function GameDetail() {
           {transfers.length > 0 && (
             <>
               <h2 className="type-label-caption mb-2 mt-5 text-muted">Settlement</h2>
-              <div className="space-y-3">
+              <ListGroup>
                 {transfers.map((t, i) => (
-                  <Card key={i}>
-                    <CardContent>
-                      <div className="flex items-center gap-2">
-                        <NamedAvatar name={t.from} className="h-7 w-7" />
-                        <span className="min-w-0 flex-1 truncate text-sm text-ink">{t.from}</span>
-                        <svg
-                          className="mx-0.5 shrink-0 text-muted"
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                        <NamedAvatar name={t.to} className="h-7 w-7" />
-                        <span className="min-w-0 flex-1 truncate text-sm text-ink">{t.to}</span>
+                  <ListRow
+                    key={i}
+                    avatar={
+                      <div className="flex items-center">
+                        <NamedAvatar name={t.from} className="h-10 w-10 border-2 border-canvas" />
+                        <NamedAvatar name={t.to} className="-ml-3 h-10 w-10 border-2 border-canvas" />
                       </div>
-                      <div className="mt-2 flex items-center justify-between">
-                        <Badge variant={t.status === 'confirmed' ? 'win' : t.status === 'disputed' ? 'error' : 'muted'}>
+                    }
+                    title={
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate">{t.from}</span>
+                        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted" />
+                        <span className="truncate">{t.to}</span>
+                      </span>
+                    }
+                    trailing={
+                      <>
+                        <span className="type-figure-md whitespace-nowrap text-ink">
+                          {toChips(t.amount, ratio)} chips
+                        </span>
+                        <Badge
+                          variant={t.status === 'confirmed' ? 'win' : t.status === 'disputed' ? 'error' : 'muted'}
+                        >
                           {t.status}
                         </Badge>
-                        <span className="type-figure-md text-ink">{toChips(t.amount, ratio)} chips</span>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </>
+                    }
+                  />
                 ))}
-              </div>
+              </ListGroup>
             </>
           )}
         </>
