@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { PageSpinner } from '../components/ui/Spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
+import { ListGroup, ListRow } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
 
@@ -105,40 +105,29 @@ export function GameDetail() {
 
       {isHost ? (
         <>
-          <Table className="mt-4">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Player</TableHead>
-                <TableHead className="w-36 text-right">Net</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {players.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell>
-                    <div className="flex min-w-0 items-center gap-2">
-                      <NamedAvatar name={p.full_name} className="shrink-0" />
-                      <span className="truncate">{p.full_name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <p className="text-xs text-muted">{p.buyins} buy-ins</p>
-                    {p.cashout == null ? (
-                      <p className="type-figure-md text-muted">in play</p>
-                    ) : (
-                      <p
-                        className={`type-figure-md ${
-                          p.cashout - p.buyins * game.stake >= 0 ? 'text-win' : 'text-error'
-                        }`}
-                      >
-                        {toChips(p.cashout - p.buyins * game.stake, ratio)} chips
-                      </p>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <ListGroup className="mt-4">
+            {players.map((p) => (
+              <ListRow
+                key={p.id}
+                avatar={<NamedAvatar name={p.full_name} className="h-12 w-12" />}
+                title={p.full_name}
+                subtitle={`${p.buyins} buy-in${p.buyins === 1 ? '' : 's'}`}
+                trailing={
+                  p.cashout == null ? (
+                    <span className="type-figure-md text-muted">In play</span>
+                  ) : (
+                    <span
+                      className={`type-figure-md ${
+                        p.cashout - p.buyins * game.stake >= 0 ? 'text-win' : 'text-error'
+                      }`}
+                    >
+                      {toChips(p.cashout - p.buyins * game.stake, ratio)} chips
+                    </span>
+                  )
+                }
+              />
+            ))}
+          </ListGroup>
           {transfers.length > 0 && (
             <>
               <h2 className="type-label-caption mb-2 mt-5 text-muted">Settlement</h2>

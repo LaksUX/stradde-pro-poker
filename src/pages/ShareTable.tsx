@@ -8,7 +8,7 @@ import { Button } from '../components/ui/Button'
 import { InviteQrCard } from '../components/ui/InviteQrCard'
 import { Card, CardContent } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
-import { Table, TableBody, TableCell, TableRow } from '../components/ui/table'
+import { ListGroup, ListRow } from '../components/ui/list-row'
 import { NamedAvatar } from '../components/ui/avatar'
 
 type GameSummary = {
@@ -369,28 +369,25 @@ export function ShareTable() {
           <p className="mb-2 text-center text-xs text-muted">
             Names only, ranked by buy-ins — no totals, no one else's numbers.
           </p>
-          <Table>
-            <TableBody>
-              {roster.map((r) => (
-                <TableRow key={r.profile_id}>
-                  <TableCell className="font-semibold text-ink">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <NamedAvatar name={r.full_name} className="shrink-0" />
-                      <span className="truncate">
-                        {r.full_name}
-                        {r.profile_id === myProfileId ? ' (you)' : ''}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="w-16 text-right">
-                    {r.profile_id === myProfileId && (
-                      <span className="type-figure-md text-ink">{r.buyin_count}</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <ListGroup>
+            {roster.map((r) => (
+              <ListRow
+                key={r.profile_id}
+                avatar={<NamedAvatar name={r.full_name} className="h-12 w-12" />}
+                title={
+                  <>
+                    {r.full_name}
+                    {r.profile_id === myProfileId ? ' (you)' : ''}
+                  </>
+                }
+                trailing={
+                  r.profile_id === myProfileId ? (
+                    <span className="type-figure-md text-ink">{r.buyin_count}</span>
+                  ) : undefined
+                }
+              />
+            ))}
+          </ListGroup>
         </div>
       )}
     </div>
