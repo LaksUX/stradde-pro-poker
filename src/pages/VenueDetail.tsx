@@ -172,7 +172,7 @@ export function VenueDetail() {
           <div className="mt-4 grid grid-cols-2 gap-2">
             <Card>
               <CardHeader>
-                <CardTitle>Average pot</CardTitle>
+                <CardTitle>Average buy-ins</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="type-figure-md text-ink">{avgPot} chips</p>
@@ -197,7 +197,7 @@ export function VenueDetail() {
             Hosted by {hostNames.join(', ')}
           </p>
 
-          <h2 className="type-label-caption mb-2 mt-5 text-muted">Pot trend</h2>
+          <h2 className="type-label-caption mb-2 mt-5 text-muted">Buy-ins trend</h2>
           <svg
             viewBox={`0 0 ${Math.max(rows.length * 24, 24)} 60`}
             preserveAspectRatio="none"
