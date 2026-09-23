@@ -7,9 +7,10 @@ import { runWrite } from '../lib/errors'
 import { type HostingEntity } from '../lib/entities'
 import { Button } from '../components/ui/Button'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
-import { StatCard } from '../components/ui/StatCard'
-import { SegmentedControl } from '../components/ui/SegmentedControl'
 import { InviteQrCard } from '../components/ui/InviteQrCard'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 
 type HostedGame = { id: string; name: string; closed_at: string | null; pot: number; rake: number }
 type PlayedGame = { id: string; name: string; closed_at: string | null; net: number; chip_ratio: '1:1' | '1:2' }
@@ -138,14 +139,14 @@ export function Home() {
 
   return (
     <div className="mx-auto max-w-sm p-6">
-      <div className="flex items-center justify-between">
+      <header className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-ink">
           Hey{profile?.full_name ? ` ${profile.full_name}` : ''}
         </h1>
         <button className="text-xs text-muted underline" onClick={handleLogout}>
           Log out
         </button>
-      </div>
+      </header>
 
       {profile?.role === 'admin' && (
         <Link to="/admin" className="mt-2 inline-block text-xs text-primary underline">
@@ -167,142 +168,192 @@ export function Home() {
         </Button>
       )}
 
-      <div className="mt-5">
-        <SegmentedControl
-          value={tab}
-          onChange={setTab}
-          options={[
-            { value: 'player', label: 'Player' },
-            ...(isApprovedHost ? [{ value: 'host' as const, label: 'Host' }] : []),
-          ]}
-        />
-      </div>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as 'host' | 'player')} className="mt-5">
+        <TabsList>
+          <TabsTrigger value="player">Player</TabsTrigger>
+          {isApprovedHost && <TabsTrigger value="host">Host</TabsTrigger>}
+        </TabsList>
 
-      {loadingData && <InlineSpinner />}
+        {loadingData && <InlineSpinner />}
 
-      {!loadingData && tab === 'player' && (
-        <div className="mt-4">
-          <StatCard
-            eyebrow="Lifetime net"
-            value={`${lifetimeNet} chips`}
-            valueClassName={lifetimeNet >= 0 ? 'text-win' : 'text-error'}
-          >
-            <p className="mt-3 border-t border-hairline-soft pt-3 text-xs text-muted">
-              {wins} win{wins === 1 ? '' : 's'} · {playedGames.length} game
-              {playedGames.length === 1 ? '' : 's'} played
-            </p>
-          </StatCard>
-          <div className="mt-4 flex gap-4">
-            <Link to="/my-settlements" className="flex flex-col items-center gap-1.5">
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-strong text-primary">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 7h6m-6 4h6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </span>
-              <span className="text-xs text-muted">Settlements</span>
-            </Link>
-          </div>
-          <div className="mt-4 rounded-lg border border-hairline bg-canvas">
-            {playedGames.length === 0 && (
-              <p className="p-4 text-center text-sm text-muted">No closed games yet.</p>
-            )}
-            {playedGames.map((g) => (
-              <Link
-                key={g.id}
-                to={`/games/${g.id}`}
-                className="flex items-center justify-between border-b border-hairline-soft p-3 text-sm last:border-none"
-              >
-                <span className="text-ink">{g.name}</span>
-                <span className={`font-mono tabular-nums ${g.net >= 0 ? 'text-win' : 'text-error'}`}>
-                  {toChips(g.net, g.chip_ratio)} chips
-                </span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {!loadingData && tab === 'host' && isApprovedHost && (
-        <div className="mt-4">
-          {entity && (
-            <div className="mb-4 rounded-lg border border-hairline bg-canvas p-3">
-              <div className="flex items-center justify-between">
-                {nameEditing ? (
-                  <input
-                    autoFocus
-                    defaultValue={entity.name}
-                    onBlur={(e) => renameEntity(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') renameEntity((e.target as HTMLInputElement).value)
-                    }}
-                    className="h-8 flex-1 rounded-sm border border-hairline bg-surface-strong px-2 text-sm text-ink"
-                  />
-                ) : (
-                  <span className="text-sm font-semibold text-ink">{entity.name}</span>
-                )}
-                <button
-                  className="ml-2 shrink-0 text-xs text-muted underline"
-                  onClick={() => setNameEditing((v) => !v)}
+        {!loadingData && (
+          <TabsContent value="player" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted">
+                  Lifetime net
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p
+                  className={`font-mono text-2xl font-bold tabular-nums ${
+                    lifetimeNet >= 0 ? 'text-win' : 'text-error'
+                  }`}
                 >
-                  {nameEditing ? 'Done' : 'Rename'}
-                </button>
-              </div>
-              <p className="mt-1 text-xs text-muted">
-                Your permanent link — always opens whatever game's live right now, never changes
-                night to night.
-              </p>
-              <button
-                className="mt-2 text-xs text-primary underline"
-                onClick={() => setEntityQrOpen((v) => !v)}
-              >
-                {entityQrOpen ? 'Hide' : 'Show QR'}
-              </button>
-              {entityQrOpen && (
-                <div className="mt-3">
-                  <InviteQrCard
-                    eyebrow="Permanent link"
-                    title={entity.name}
-                    url={`${window.location.origin}/e/${entity.slug}`}
-                  />
-                </div>
+                  {lifetimeNet} chips
+                </p>
+                <p className="mt-3 border-t border-hairline-soft pt-3 text-xs text-muted">
+                  {wins} win{wins === 1 ? '' : 's'} · {playedGames.length} game
+                  {playedGames.length === 1 ? '' : 's'} played
+                </p>
+              </CardContent>
+            </Card>
+
+            <div className="mt-4 flex gap-4">
+              <Link to="/my-settlements" className="flex flex-col items-center gap-1.5">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-strong text-primary">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 7h6m-6 4h6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+                <span className="text-xs text-muted">Settlements</span>
+              </Link>
+            </div>
+
+            <div className="mt-4">
+              {playedGames.length === 0 ? (
+                <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                  No closed games yet.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Game</TableHead>
+                      <TableHead className="text-right">Net</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {playedGames.map((g) => (
+                      <TableRow
+                        key={g.id}
+                        className="cursor-pointer"
+                        onClick={() => navigate(`/games/${g.id}`)}
+                      >
+                        <TableCell>{g.name}</TableCell>
+                        <TableCell
+                          className={`text-right font-mono tabular-nums ${
+                            g.net >= 0 ? 'text-win' : 'text-error'
+                          }`}
+                        >
+                          {toChips(g.net, g.chip_ratio)} chips
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </div>
-          )}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-lg border border-hairline bg-canvas p-3 text-center">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Games hosted</p>
-              <p className="mt-1 font-mono text-lg font-bold tabular-nums text-ink">{hostedGames.length}</p>
-            </div>
-            <div className="rounded-lg border border-hairline bg-canvas p-3 text-center">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Rake collected</p>
-              <p className="mt-1 font-mono text-lg font-bold tabular-nums text-ink">{totalRake} banks</p>
-            </div>
-            <div className="col-span-2 rounded-lg border border-hairline bg-canvas p-3 text-center">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Average pot</p>
-              <p className="mt-1 font-mono text-lg font-bold tabular-nums text-ink">{avgPot} banks</p>
-            </div>
-          </div>
-          <div className="mt-4 rounded-lg border border-hairline bg-canvas">
-            {hostedGames.length === 0 && (
-              <p className="p-4 text-center text-sm text-muted">No closed games yet.</p>
+          </TabsContent>
+        )}
+
+        {!loadingData && isApprovedHost && (
+          <TabsContent value="host" className="mt-4">
+            {entity && (
+              <Card className="mb-4">
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    {nameEditing ? (
+                      <input
+                        autoFocus
+                        defaultValue={entity.name}
+                        onBlur={(e) => renameEntity(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') renameEntity((e.target as HTMLInputElement).value)
+                        }}
+                        className="h-8 flex-1 rounded-sm border border-hairline bg-surface-strong px-2 text-sm text-ink"
+                      />
+                    ) : (
+                      <span className="text-sm font-semibold text-ink">{entity.name}</span>
+                    )}
+                    <button
+                      className="ml-2 shrink-0 text-xs text-muted underline"
+                      onClick={() => setNameEditing((v) => !v)}
+                    >
+                      {nameEditing ? 'Done' : 'Rename'}
+                    </button>
+                  </div>
+                  <p className="mt-1 text-xs text-muted">
+                    Your permanent link — always opens whatever game's live right now, never changes
+                    night to night.
+                  </p>
+                  <button
+                    className="mt-2 text-xs text-primary underline"
+                    onClick={() => setEntityQrOpen((v) => !v)}
+                  >
+                    {entityQrOpen ? 'Hide' : 'Show QR'}
+                  </button>
+                  {entityQrOpen && (
+                    <div className="mt-3">
+                      <InviteQrCard
+                        eyebrow="Permanent link"
+                        title={entity.name}
+                        url={`${window.location.origin}/e/${entity.slug}`}
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             )}
-            {hostedGames.map((g) => (
-              <Link
-                key={g.id}
-                to={`/games/${g.id}`}
-                className="flex items-center justify-between border-b border-hairline-soft p-3 text-sm last:border-none"
-              >
-                <span className="text-ink">{g.name}</span>
-                <span className="font-mono tabular-nums text-muted">{g.pot} banks pot</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
+
+            <div className="grid grid-cols-2 gap-2">
+              <Card className="text-center">
+                <CardContent>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Games hosted</p>
+                  <p className="mt-1 font-mono text-lg font-bold tabular-nums text-ink">{hostedGames.length}</p>
+                </CardContent>
+              </Card>
+              <Card className="text-center">
+                <CardContent>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Rake collected</p>
+                  <p className="mt-1 font-mono text-lg font-bold tabular-nums text-ink">{totalRake} banks</p>
+                </CardContent>
+              </Card>
+              <Card className="col-span-2 text-center">
+                <CardContent>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Average pot</p>
+                  <p className="mt-1 font-mono text-lg font-bold tabular-nums text-ink">{avgPot} banks</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="mt-4">
+              {hostedGames.length === 0 ? (
+                <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                  No closed games yet.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Game</TableHead>
+                      <TableHead className="text-right">Pot</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {hostedGames.map((g) => (
+                      <TableRow
+                        key={g.id}
+                        className="cursor-pointer"
+                        onClick={() => navigate(`/games/${g.id}`)}
+                      >
+                        <TableCell>{g.name}</TableCell>
+                        <TableCell className="text-right font-mono tabular-nums text-muted">
+                          {g.pot} banks
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   )
 }
