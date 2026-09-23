@@ -21,8 +21,8 @@ export function PendingApproval() {
 
   return (
     <div className="mx-auto max-w-sm p-6 text-center">
-      <h1 className="text-lg font-semibold text-ink">Pending approval</h1>
-      <p className="mt-2 text-muted">
+      <h1 className="type-page-title text-ink">Pending approval</h1>
+      <p className="type-body-md mt-2 text-body">
         Your host application exists — an admin needs to approve it before you can create
         games. This doesn't affect joining games other people host.
       </p>

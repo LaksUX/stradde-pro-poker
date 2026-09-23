@@ -7,6 +7,10 @@ import { BuyinPicker } from '../components/ui/BuyinPicker'
 import { Button } from '../components/ui/Button'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { PageSpinner } from '../components/ui/Spinner'
+import { Card, CardContent } from '../components/ui/card'
+import { Badge } from '../components/ui/badge'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
 
 type GameSummary = {
   id: string
@@ -56,8 +60,8 @@ export function Join() {
   if (game.status === 'scheduled') {
     return (
       <div className="mx-auto max-w-sm p-6 text-center">
-        <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
-        <p className="mt-2 text-muted">
+        <h1 className="type-page-title text-ink">{game.name}</h1>
+        <p className="type-body-md mt-2 text-body">
           Starts {new Date(game.scheduled_for).toLocaleString()} — the host hasn't opened this
           game yet.
         </p>
@@ -111,20 +115,18 @@ export function Join() {
 
   return (
     <div className="mx-auto max-w-sm p-6">
-      <div className="rounded-lg border border-hairline bg-canvas p-4">
-        <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
-        <p className="text-sm text-muted">{game.venue_freetext}</p>
-        <p className="text-sm text-muted">
-          {game.stake} banks buy-in ({toChips(game.stake, ratio)} chips)
-        </p>
-        <span
-          className={`mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-            full ? 'bg-error/10 text-error' : 'bg-win/10 text-win'
-          }`}
-        >
-          {full ? 'Table full' : 'Seats open'} · {seated}/{game.table_size}
-        </span>
-      </div>
+      <Card>
+        <CardContent>
+          <h1 className="type-page-title text-ink">{game.name}</h1>
+          <p className="text-sm text-muted">{game.venue_freetext}</p>
+          <p className="text-sm text-muted">
+            {game.stake} banks buy-in ({toChips(game.stake, ratio)} chips)
+          </p>
+          <Badge variant={full ? 'error' : 'win'} className="mt-2">
+            {full ? 'Table full' : 'Seats open'} · {seated}/{game.table_size}
+          </Badge>
+        </CardContent>
+      </Card>
 
       {full && (
         <p className="mt-3 text-sm text-muted">
@@ -132,19 +134,20 @@ export function Join() {
         </p>
       )}
 
-      <label className="mt-4 block text-sm font-medium text-muted">Name</label>
-      <input
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className="h-14 w-full rounded-sm border border-hairline bg-surface-strong px-3 text-ink"
-      />
-      <label className="mt-3 block text-sm font-medium text-muted">Phone</label>
-      <input
-        type="tel"
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
-        className="h-14 w-full rounded-sm border border-hairline bg-surface-strong px-3 text-ink"
-      />
+      <div className="mt-4 flex flex-col gap-1.5">
+        <Label htmlFor="join-name">Name</Label>
+        <Input id="join-name" className="h-14" value={name} onChange={(e) => setName(e.target.value)} />
+      </div>
+      <div className="mt-3 flex flex-col gap-1.5">
+        <Label htmlFor="join-phone">Phone</Label>
+        <Input
+          id="join-phone"
+          type="tel"
+          className="h-14"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+        />
+      </div>
 
       <p className="mt-4 text-sm font-medium text-muted">How many buy-ins?</p>
       <BuyinPicker value={count} onChange={setCount} />

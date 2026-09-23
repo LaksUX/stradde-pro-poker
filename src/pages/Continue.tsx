@@ -4,6 +4,8 @@ import { continueWithPhone, useAuth } from '../hooks/useAuth'
 import { withTimeout } from '../lib/errors'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
 
 // See PAGE_PROMPTS.md "Continue" — replaces Login. One entry point for
 // everyone, whether they're about to host or just wanted to open the app
@@ -70,29 +72,30 @@ export function Continue() {
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-on-primary">
           ♠
         </div>
-        <h1 className="text-xl font-semibold text-ink">Straddle</h1>
+        <h1 className="type-page-title text-ink">Straddle</h1>
       </div>
 
       {linkExpired && (
-        <p className="rounded-md border border-hairline bg-surface-strong p-3 text-center text-sm text-muted">
+        <p className="type-body-md rounded-md border border-hairline bg-surface-strong p-3 text-center text-body">
           That link has expired or already been used. Sign in below instead — no email needed
           anymore, just your name and phone.
         </p>
       )}
 
-      <label className="text-sm font-medium text-muted">Name</label>
-      <input
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className="h-14 rounded-sm border border-hairline bg-surface-strong px-3 text-ink"
-      />
-      <label className="text-sm font-medium text-muted">Phone</label>
-      <input
-        type="tel"
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
-        className="h-14 rounded-sm border border-hairline bg-surface-strong px-3 text-ink"
-      />
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="continue-name">Name</Label>
+        <Input id="continue-name" className="h-14" value={name} onChange={(e) => setName(e.target.value)} />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="continue-phone">Phone</Label>
+        <Input
+          id="continue-phone"
+          type="tel"
+          className="h-14"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+        />
+      </div>
 
       {error && <p className="text-sm text-error">{error}</p>}
 

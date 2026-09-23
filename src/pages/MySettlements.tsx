@@ -6,6 +6,9 @@ import { toChips, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
 import { Button } from '../components/ui/Button'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Badge } from '../components/ui/badge'
+import { Input } from '../components/ui/input'
 
 type Row = {
   id: string
@@ -104,17 +107,25 @@ export function MySettlements() {
 
   return (
     <div className="mx-auto max-w-sm p-6">
-      <h1 className="text-lg font-semibold text-ink">My settlements</h1>
+      <h1 className="type-page-title text-ink">My settlements</h1>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <div className="rounded-lg border border-hairline bg-canvas p-3">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Owed to you</p>
-          <p className="mt-1 font-mono text-lg font-bold tabular-nums text-win">{totalOwed} chips</p>
-        </div>
-        <div className="rounded-lg border border-hairline bg-canvas p-3">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-muted">You owe</p>
-          <p className="mt-1 font-mono text-lg font-bold tabular-nums text-error">{totalOwe} chips</p>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Owed to you</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="type-figure-md text-win">{totalOwed} chips</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>You owe</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="type-figure-md text-error">{totalOwe} chips</p>
+          </CardContent>
+        </Card>
       </div>
 
       {loadingRows && <InlineSpinner />}
@@ -123,59 +134,57 @@ export function MySettlements() {
       )}
 
       {rows.map((r) => (
-        <div key={r.id} className="mt-3 rounded-lg border border-hairline bg-canvas p-3">
-          <Link to={`/games/${r.gameId}`} className="text-xs text-primary underline">
-            {r.gameName}
-          </Link>
-          <p className="mt-1 text-ink">
-            {r.direction === 'owe' ? `You owe ${r.otherName}` : `${r.otherName} owes you`}
-          </p>
-          <div className="mt-1 flex items-center gap-2">
-            <span className="text-lg font-mono font-bold tabular-nums text-ink">{toChips(r.amount, r.chip_ratio)} chips</span>
-            <span
-              className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                r.status === 'confirmed'
-                  ? 'bg-win/10 text-win'
-                  : r.status === 'disputed'
-                    ? 'bg-error/10 text-error'
-                    : 'bg-surface-strong text-muted'
-              }`}
-            >
-              {r.status}
-            </span>
-          </div>
-          {r.status === 'pending' && (
-            <div className="mt-2 flex gap-2">
-              <Button variant="primary" className="h-8 px-3 text-xs" onClick={() => setStatus(r.id, 'confirmed')}>
-                Confirm
-              </Button>
-              <Button
-                variant="danger"
-                className="h-8 px-3 text-xs"
-                onClick={() => setNoteOpenId(noteOpenId === r.id ? null : r.id)}
+        <Card key={r.id} className="mt-3">
+          <CardContent>
+            <Link to={`/games/${r.gameId}`} className="text-xs text-primary underline">
+              {r.gameName}
+            </Link>
+            <p className="mt-1 text-ink">
+              {r.direction === 'owe' ? `You owe ${r.otherName}` : `${r.otherName} owes you`}
+            </p>
+            <div className="mt-1 flex items-center gap-2">
+              <span className="type-figure-md text-ink">{toChips(r.amount, r.chip_ratio)} chips</span>
+              <Badge
+                variant={
+                  r.status === 'confirmed' ? 'win' : r.status === 'disputed' ? 'error' : 'muted'
+                }
               >
-                Request change
-              </Button>
+                {r.status}
+              </Badge>
             </div>
-          )}
-          {noteOpenId === r.id && (
-            <div className="mt-2">
-              <input
-                value={noteText}
-                onChange={(e) => setNoteText(e.target.value)}
-                placeholder="e.g. I think this should be 20 banks"
-                className="h-9 w-full rounded-sm border border-hairline bg-surface-strong px-2 text-sm"
-              />
-              <Button
-                variant="danger"
-                className="mt-2 h-8 w-full text-xs"
-                onClick={() => setStatus(r.id, 'disputed', noteText)}
-              >
-                Send request
-              </Button>
-            </div>
-          )}
-        </div>
+            {r.status === 'pending' && (
+              <div className="mt-2 flex gap-2">
+                <Button variant="primary" className="h-8 px-3 text-xs" onClick={() => setStatus(r.id, 'confirmed')}>
+                  Confirm
+                </Button>
+                <Button
+                  variant="danger"
+                  className="h-8 px-3 text-xs"
+                  onClick={() => setNoteOpenId(noteOpenId === r.id ? null : r.id)}
+                >
+                  Request change
+                </Button>
+              </div>
+            )}
+            {noteOpenId === r.id && (
+              <div className="mt-2">
+                <Input
+                  className="h-9 text-sm"
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                  placeholder="e.g. I think this should be 20 banks"
+                />
+                <Button
+                  variant="danger"
+                  className="mt-2 h-8 w-full text-xs"
+                  onClick={() => setStatus(r.id, 'disputed', noteText)}
+                >
+                  Send request
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       ))}
     </div>
   )

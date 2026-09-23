@@ -8,7 +8,8 @@ import { toast } from '../lib/toast'
 import { BuyinPicker } from '../components/ui/BuyinPicker'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
-import { StatCard } from '../components/ui/StatCard'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Badge } from '../components/ui/badge'
 
 type Game = {
   id: string
@@ -160,42 +161,53 @@ export function MyGame() {
 
   return (
     <div className="mx-auto max-w-sm p-6">
-      <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
+      <h1 className="type-page-title text-ink">{game.name}</h1>
 
-      <StatCard
-        eyebrow="Your net"
-        value={netBanks == null ? 'In play' : `${toChips(netBanks, ratio)} chips`}
-        valueClassName={netBanks == null ? 'text-ink' : netBanks >= 0 ? 'text-win' : 'text-error'}
-      >
-        <p className="mt-2 text-xs text-muted">
-          {confirmedBuyins} confirmed buy-in{confirmedBuyins === 1 ? '' : 's'}
-        </p>
-
-        {myPlayer.cashout != null && (
-          <div className="mt-3 border-t border-hairline-soft pt-3">
-            <p className="text-xs text-muted">
-              Cashed out for {myPlayer.cashout} banks
-              {myPlayer.cashout_confirm_status ? ` — ${myPlayer.cashout_confirm_status}` : ''}
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle>Your net</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2">
+            <p className="type-figure-hero text-ink">
+              {netBanks == null ? 'In play' : `${toChips(netBanks, ratio)} chips`}
             </p>
-            {!myPlayer.cashout_confirm_status && (
-              <div className="mt-2 flex gap-2">
-                <button
-                  className="text-xs text-primary underline"
-                  onClick={() => setCashoutConfirm('confirmed')}
-                >
-                  Confirm
-                </button>
-                <button
-                  className="text-xs text-error underline"
-                  onClick={() => setCashoutConfirm('disputed')}
-                >
-                  Doesn't look right
-                </button>
-              </div>
+            {netBanks != null && (
+              <Badge variant={netBanks >= 0 ? 'win' : 'error'}>
+                {netBanks >= 0 ? 'Winning' : 'Down'}
+              </Badge>
             )}
           </div>
-        )}
-      </StatCard>
+          <p className="mt-2 text-xs text-muted">
+            {confirmedBuyins} confirmed buy-in{confirmedBuyins === 1 ? '' : 's'}
+          </p>
+
+          {myPlayer.cashout != null && (
+            <div className="mt-3 border-t border-hairline-soft pt-3">
+              <p className="text-xs text-muted">
+                Cashed out for {myPlayer.cashout} banks
+                {myPlayer.cashout_confirm_status ? ` — ${myPlayer.cashout_confirm_status}` : ''}
+              </p>
+              {!myPlayer.cashout_confirm_status && (
+                <div className="mt-2 flex gap-2">
+                  <button
+                    className="text-xs text-primary underline"
+                    onClick={() => setCashoutConfirm('confirmed')}
+                  >
+                    Confirm
+                  </button>
+                  <button
+                    className="text-xs text-error underline"
+                    onClick={() => setCashoutConfirm('disputed')}
+                  >
+                    Doesn't look right
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {myPlayer.cashout == null && (
         <div className="mt-3">
@@ -220,9 +232,7 @@ export function MyGame() {
       )}
 
       <div className="mt-5">
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
-          Your activity
-        </h2>
+        <h2 className="type-label-caption mb-2 text-muted">Your activity</h2>
         <div className="rounded-lg border border-hairline bg-canvas">
           {requests.length === 0 && (
             <p className="p-4 text-center text-sm text-muted">Nothing yet.</p>
@@ -239,17 +249,13 @@ export function MyGame() {
                     {r.count} buy-in{r.count > 1 ? 's' : ''}
                     {r.request_type === 'more_buyins' ? ' requested' : ' — join request'}
                   </span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                      r.status === 'confirmed'
-                        ? 'bg-win/10 text-win'
-                        : r.status === 'declined'
-                          ? 'bg-error/10 text-error'
-                          : 'bg-surface-strong text-muted'
-                    }`}
+                  <Badge
+                    variant={
+                      r.status === 'confirmed' ? 'win' : r.status === 'declined' ? 'error' : 'muted'
+                    }
                   >
                     {r.status}
-                  </span>
+                  </Badge>
                 </div>
                 <p className="mt-0.5 text-xs text-muted">
                   {new Date(r.requested_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}

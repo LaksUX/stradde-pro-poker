@@ -9,8 +9,13 @@ import { toast } from '../lib/toast'
 import { confirmDialog } from '../lib/confirmDialog'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
-import { SegmentedControl } from '../components/ui/SegmentedControl'
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { InviteQrCard } from '../components/ui/InviteQrCard'
+import { Card, CardContent } from '../components/ui/card'
+import { Badge } from '../components/ui/badge'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Table, TableBody, TableCell, TableRow } from '../components/ui/table'
 
 type Game = {
   id: string
@@ -298,186 +303,193 @@ export function LiveGame() {
 
   return (
     <div className="mx-auto max-w-md p-6">
-      <h1 className="text-lg font-semibold text-ink">{game.name}</h1>
+      <h1 className="type-page-title text-ink">{game.name}</h1>
 
       {/* Pending requests need action now — they lead the screen, ahead of
           the always-there utility cards below (invite, table status, rake),
           so a host opening mid-game sees what's waiting on them first. */}
       {pending.length > 0 && (
-        <div className="mt-3 rounded-lg border border-primary/40 bg-canvas p-3">
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-primary">
-            Pending requests ({pending.length})
-          </h2>
-          {pending.map((r) => (
-            <div
-              key={r.id}
-              className="mb-3 rounded-sm border border-hairline-soft bg-surface-strong p-3 last:mb-0"
-            >
-              <div className="text-sm font-semibold text-ink">
-                {r.requester_name}
-                {r.request_type === 'more_buyins' ? ' — more buy-ins' : ''}
+        <Card className="mt-3 border border-primary/40">
+          <CardContent>
+            <h2 className="type-label-caption mb-2 text-primary">
+              Pending requests ({pending.length})
+            </h2>
+            {pending.map((r) => (
+              <div
+                key={r.id}
+                className="mb-3 rounded-sm border border-hairline-soft bg-surface-strong p-3 last:mb-0"
+              >
+                <div className="text-sm font-semibold text-ink">
+                  {r.requester_name}
+                  {r.request_type === 'more_buyins' ? ' — more buy-ins' : ''}
+                </div>
+                <div className="mt-0.5 text-xs text-muted">
+                  {r.count} buy-in{r.count > 1 ? 's' : ''} · requested{' '}
+                  {new Date(r.requested_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                </div>
+                <div className="mt-3 flex flex-col gap-2">
+                  <Button variant="primary" block className="h-10" onClick={() => confirmRequest(r)}>
+                    Confirm
+                  </Button>
+                  <Button variant="danger" block className="h-10" onClick={() => declineRequest(r.id)}>
+                    Decline
+                  </Button>
+                </div>
               </div>
-              <div className="mt-0.5 text-xs text-muted">
-                {r.count} buy-in{r.count > 1 ? 's' : ''} · requested{' '}
-                {new Date(r.requested_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-              </div>
-              <div className="mt-3 flex flex-col gap-2">
-                <Button variant="primary" block className="h-10" onClick={() => confirmRequest(r)}>
-                  Confirm
-                </Button>
-                <Button variant="danger" block className="h-10" onClick={() => declineRequest(r.id)}>
-                  Decline
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </CardContent>
+        </Card>
       )}
 
-      <div className="mt-3 rounded-lg border border-hairline bg-canvas p-3">
-        <div className="flex items-center justify-between">
-          <span className="text-muted">Invite walk-ins</span>
-          <button
-            className="text-xs text-primary underline"
-            onClick={() => setInviteOpen((v) => !v)}
-          >
-            {inviteOpen ? 'Hide' : 'Show QR'}
-          </button>
-        </div>
-        {inviteOpen && gameId && (
-          <div className="mt-3">
-            <InviteQrCard eyebrow="Live table" title={game.name} url={`${window.location.origin}/t/${gameId}`} />
+      <Card className="mt-3">
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <span className="text-muted">Invite walk-ins</span>
+            <button
+              className="text-xs text-primary underline"
+              onClick={() => setInviteOpen((v) => !v)}
+            >
+              {inviteOpen ? 'Hide' : 'Show QR'}
+            </button>
           </div>
-        )}
-      </div>
+          {inviteOpen && gameId && (
+            <div className="mt-3">
+              <InviteQrCard eyebrow="Live table" title={game.name} url={`${window.location.origin}/t/${gameId}`} />
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      <div className="mt-3 rounded-lg border border-hairline bg-canvas p-3">
-        <div className="flex items-center justify-between">
-          <span
-            className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-              full ? 'bg-error/10 text-error' : 'bg-win/10 text-win'
-            }`}
-          >
-            {full ? 'Full' : 'Open'} · {activeSeated}/{game.table_size}
-          </span>
-          <button
-            className="text-xs text-muted underline"
-            onClick={() => setTableSizeEditing((v) => !v)}
-          >
-            {tableSizeEditing ? 'Done' : 'Edit'}
-          </button>
-        </div>
-        {tableSizeEditing && (
-          <div className="mt-3 space-y-3">
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-muted">Table size</label>
-              <input
+      <Card className="mt-3">
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <Badge variant={full ? 'error' : 'win'}>
+              {full ? 'Full' : 'Open'} · {activeSeated}/{game.table_size}
+            </Badge>
+            <button
+              className="text-xs text-muted underline"
+              onClick={() => setTableSizeEditing((v) => !v)}
+            >
+              {tableSizeEditing ? 'Done' : 'Edit'}
+            </button>
+          </div>
+          {tableSizeEditing && (
+            <div className="mt-3 space-y-3">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="table-size">Table size</Label>
+                <Input
+                  id="table-size"
+                  type="number"
+                  className="h-9 w-16"
+                  defaultValue={game.table_size}
+                  onBlur={(e) => setTableSize(Number(e.target.value) || 9)}
+                />
+              </div>
+              <Tabs
+                value={game.table_status_override ?? 'auto'}
+                onValueChange={(v) => setTableOverride(v === 'auto' ? null : (v as 'open' | 'full'))}
+              >
+                <TabsList>
+                  <TabsTrigger value="auto">Auto</TabsTrigger>
+                  <TabsTrigger value="open">Open</TabsTrigger>
+                  <TabsTrigger value="full">Full</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-3">
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <span className="text-muted">Rake</span>
+            <Tabs value={rakeRevealed ? 'revealed' : 'masked'} onValueChange={(v) => setRakeRevealed(v === 'revealed')}>
+              <TabsList>
+                <TabsTrigger value="masked">Masked</TabsTrigger>
+                <TabsTrigger value="revealed">Revealed</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          {rakeRevealed ? (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="type-figure-md text-ink">
+                {toChips(game.rake, ratio)} chips
+                <span className="ml-1 text-xs font-normal text-muted">({game.rake} banks)</span>
+              </span>
+              <Input
                 type="number"
-                defaultValue={game.table_size}
-                onBlur={(e) => setTableSize(Number(e.target.value) || 9)}
-                className="h-9 w-16 rounded-sm border border-hairline bg-surface-strong px-2 text-sm"
+                className="h-9 w-20"
+                defaultValue={game.rake}
+                onBlur={(e) => setRake(Number(e.target.value) || 0)}
               />
             </div>
-            <SegmentedControl
-              value={game.table_status_override ?? 'auto'}
-              onChange={(v) => setTableOverride(v === 'auto' ? null : v)}
-              options={[
-                { value: 'auto' as const, label: 'Auto' },
-                { value: 'open' as const, label: 'Open' },
-                { value: 'full' as const, label: 'Full' },
-              ]}
-            />
-          </div>
-        )}
-      </div>
+          ) : (
+            <p className="mt-1 text-xs text-muted">Masked — only you can see this.</p>
+          )}
+        </CardContent>
+      </Card>
 
-      <div className="mt-3 rounded-lg border border-hairline bg-canvas p-3">
-        <div className="flex items-center justify-between">
-          <span className="text-muted">Rake</span>
-          <SegmentedControl
-            value={rakeRevealed ? 'revealed' : 'masked'}
-            onChange={(v) => setRakeRevealed(v === 'revealed')}
-            options={[
-              { value: 'masked' as const, label: 'Masked' },
-              { value: 'revealed' as const, label: 'Revealed' },
-            ]}
-          />
-        </div>
-        {rakeRevealed ? (
-          <div className="mt-2 flex items-center gap-2">
-            <span className="text-lg font-mono font-bold tabular-nums text-ink">
-              {toChips(game.rake, ratio)} chips
-              <span className="ml-1 text-xs font-normal text-muted">({game.rake} banks)</span>
-            </span>
-            <input
-              type="number"
-              defaultValue={game.rake}
-              onBlur={(e) => setRake(Number(e.target.value) || 0)}
-              className="h-9 w-20 rounded-sm border border-hairline bg-surface-strong px-2 text-sm"
-            />
-          </div>
-        ) : (
-          <p className="mt-1 text-xs text-muted">Masked — only you can see this.</p>
-        )}
-      </div>
-
-      <div className="mt-4 rounded-lg border border-hairline bg-canvas">
+      <div className="mt-4">
         {players.length === 0 && (
-          <p className="p-4 text-center text-sm text-muted">
+          <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
             No one has joined yet — share the link.
           </p>
         )}
-        {players.map((p) => (
-          <div
-            key={p.id}
-            className="flex items-center justify-between border-b border-hairline-soft p-3 last:border-none"
-          >
-            <div className="flex-1">
-              <div className="text-sm font-semibold text-ink">
-                {p.full_name}
-                {p.is_host ? ' (host)' : ''}
-              </div>
-              {cashoutEditingId === p.id ? (
-                <div className="mt-1 flex items-center gap-2">
-                  <input
-                    type="number"
-                    autoFocus
-                    defaultValue={p.cashout ?? ''}
-                    placeholder="Cash out (banks)"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        setCashout(p.id, Number((e.target as HTMLInputElement).value) || 0)
-                        setCashoutEditingId(null)
-                      }
-                    }}
-                    onBlur={(e) => {
-                      if (e.target.value) setCashout(p.id, Number(e.target.value) || 0)
-                      setCashoutEditingId(null)
-                    }}
-                    className="h-9 w-28 rounded-sm border border-hairline bg-surface-strong px-2 text-sm"
-                  />
-                </div>
-              ) : (
-                <div className="font-mono text-xs tabular-nums text-muted">
-                  {p.cashout == null
-                    ? 'In play'
-                    : `${toChips(p.cashout - p.confirmed_buyins * game.stake, ratio)} chips net`}
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-mono font-bold tabular-nums text-ink">{p.confirmed_buyins}</span>
-              {cashoutEditingId !== p.id && (
-                <button
-                  className="text-xs text-muted underline"
-                  onClick={() => setCashoutEditingId(p.id)}
-                >
-                  {p.cashout == null ? 'Cash out' : 'Edit'}
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
+        {players.length > 0 && (
+          <Table>
+            <TableBody>
+              {players.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell>
+                    <div className="text-sm font-semibold text-ink">
+                      {p.full_name}
+                      {p.is_host ? ' (host)' : ''}
+                    </div>
+                    {cashoutEditingId === p.id ? (
+                      <Input
+                        type="number"
+                        autoFocus
+                        defaultValue={p.cashout ?? ''}
+                        placeholder="Cash out (banks)"
+                        className="mt-1 h-9 w-28"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            setCashout(p.id, Number((e.target as HTMLInputElement).value) || 0)
+                            setCashoutEditingId(null)
+                          }
+                        }}
+                        onBlur={(e) => {
+                          if (e.target.value) setCashout(p.id, Number(e.target.value) || 0)
+                          setCashoutEditingId(null)
+                        }}
+                      />
+                    ) : (
+                      <div className="type-figure-md text-xs text-muted">
+                        {p.cashout == null
+                          ? 'In play'
+                          : `${toChips(p.cashout - p.confirmed_buyins * game.stake, ratio)} chips net`}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <span className="type-figure-md text-lg text-ink">{p.confirmed_buyins}</span>
+                      {cashoutEditingId !== p.id && (
+                        <button
+                          className="text-xs text-muted underline"
+                          onClick={() => setCashoutEditingId(p.id)}
+                        >
+                          {p.cashout == null ? 'Cash out' : 'Edit'}
+                        </button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </div>
 
       <Button block className="mt-4" onClick={closeAndSettle}>

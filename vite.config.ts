@@ -6,6 +6,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 // See REQUIREMENTS.md "Stack" and "Theme" — Tailwind v4 CSS-first config
 // (no tailwind.config.js), PWA via vite-plugin-pwa, no dark mode variant.
 export default defineConfig({
+  resolve: {
+    alias: { '@': new URL('./src', import.meta.url).pathname },
+  },
   plugins: [
     react(),
     tailwindcss(),

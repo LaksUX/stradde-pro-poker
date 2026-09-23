@@ -827,6 +827,14 @@ app ("what's my net").
 ## Stack
 
 - React + Vite + Tailwind v4 (CSS-first config, no `tailwind.config.js`)
+- shadcn/ui (Base UI primitives) is the standard component library going forward —
+  new UI work should reach for a shadcn component (`pnpm dlx shadcn@latest add <name>`)
+  before hand-rolling one. Existing hand-rolled components in `src/components/ui/`
+  (`Button`, `StatCard`, etc.) are migrated over individually, not all at once — see
+  `PAGE_INVENTORY.md` for the current inventory of what's hand-rolled vs shadcn.
+  Note: components land case-sensitively in the same `src/components/ui/` folder as
+  the existing ones — check for a name collision (e.g. `Button` vs `button`, `Spinner`
+  vs `spinner`) before adding one that shares a name with something hand-rolled.
 - Supabase: Postgres + Auth + RLS (schema in `supabase/schema.sql`) — **note: the game
   screens are currently still on local React state, not wired to live Supabase data.**
   Only auth/profiles/admin-approval actually hit the database right now. See "No live
