@@ -59,17 +59,41 @@ Reference doc for UI sweeps — lists every route, what kind of screen it is, an
 
 ## Shared UI components (`src/components/ui/`)
 
+shadcn/ui (Base UI primitives) is the standard going forward — see REQUIREMENTS.md "Stack". Every screen in the app now draws from this set; there's no longer a parallel hand-rolled version of any of these (SegmentedControl and StatCard were retired once their last callers moved to Tabs/Card).
+
 | Component | Purpose | Used on |
 |---|---|---|
-| `Button.tsx` | primary/ghost/danger variants, `block` full-width mode | nearly every page |
-| `BuyinPicker.tsx` | stepper control for buy-in counts | Join, MyGame |
+| `Button.tsx` | primary/ghost/danger variants, `block` full-width mode — hand-rolled, not shadcn's `button.tsx` (name collision, see below) | nearly every page |
+| `card.tsx` | Card/CardHeader/CardTitle/CardContent/CardFooter/CardDescription/CardAction — the "stat-card" surface | nearly every page |
+| `tabs.tsx` | Tabs/TabsList/TabsTrigger/TabsContent (Base UI) — the "segmented-tab" control, stadium-shaped, solid-primary active state | Home, CreateGame, LiveGame |
+| `table.tsx` | Table/TableHeader/TableBody/TableRow/TableHead/TableCell — for genuinely tabular lists | Home, Admin, GameDetail, VenueDetail, ShareTable |
+| `badge.tsx` | status pills + the win/error "delta badge" that sits next to a figure | nearly every page |
+| `input.tsx` | styled text input | Continue, CreateGame, Join, LiveGame, Settlement, MySettlements |
+| `select.tsx` | styled native `<select>` (not Base UI's popup Select — a compact inline control was the right amount of machinery for the one call site) | Settlement |
+| `label.tsx` | form field label, `.type-label-caption` styled | Continue, CreateGame, Join, LiveGame, Settlement |
+| `separator.tsx` | Base UI Separator | available, not yet used by a page |
+| `BuyinPicker.tsx` | stepper control for buy-in counts (hand-rolled, no shadcn equivalent needed) | Join, MyGame |
 | `ConfirmDialogHost.tsx` | module-level pub/sub confirm dialog (`confirmDialog()`) | global, mounted once |
 | `InviteQrCard.tsx` | shared QR+link card (eyebrow/title/subtitle/url) | LiveGame, Home (entity), ScheduledGame, ShareTable |
 | `OfflineBanner.tsx` | global offline indicator | global, mounted once |
-| `SegmentedControl.tsx` | tab/toggle control | Home (Player/Host), CreateGame |
 | `Spinner.tsx` | exports `PageSpinner` (full-page) and `InlineSpinner` (inline loading) | nearly every page |
-| `StatCard.tsx` | eyebrow/value stat block | Home, GameDetail, MyGame |
 | `Toaster.tsx` | module-level pub/sub toast (`toast.success/error()`) | global, mounted once |
+
+A shadcn `button.tsx` was generated once and removed — it collided by case only with the existing hand-rolled `Button.tsx` (a hard TypeScript error, and silently broken on a case-insensitive filesystem). Check for this before adding a new shadcn component that shares a name with something already hand-rolled (`Spinner` was the other near-miss).
+
+## Typography scale (`src/index.css`)
+
+Formalized from `DESIGN-dashboard.md`'s "typography" section as real classes, deliberately prefixed `.type-` rather than `.text-` — the `cn` package's tailwind-merge-style engine treats an unrecognized `text-*` class as conflicting with real Tailwind text utilities and silently drops whichever comes first (e.g. `"text-figure-hero text-ink"` would merge down to just `"text-ink"`).
+
+| Class | Role |
+|---|---|
+| `.type-figure-hero` | the one big number a screen exists to show (40px/700/mono/tabular) |
+| `.type-figure-md` | inline/table numbers (16px/600/mono/tabular) |
+| `.type-page-title` | every page's `<h1>` (18px/700) |
+| `.type-label-caption` | eyebrows/section headings (11px/700/uppercase/1px tracking) — also `CardTitle`'s default and `Label`'s default |
+| `.type-body-md` | description/body copy (16px/400) |
+
+Figures stay `text-ink` (white) per DESIGN-dashboard.md's delta-badge convention — the win/loss signal goes on a small `Badge` next to the figure, not painted across the whole number. Always combine a `.type-*` class with a real Tailwind color utility (`text-ink`, `text-win`, etc.) in the same `className`, never rely on the `.type-*` class alone for color.
 
 ## Layout convention
 
@@ -80,4 +104,4 @@ Worth checking consistency of this choice during any sweep.
 
 ## Design tokens (`src/index.css`)
 
-Dark theme: `--color-canvas: #0a0e17`, primary orange `#ff7a29`, win `#34d399`, error `#f75466`. All numeric figures use `font-mono`/`tabular-nums`.
+Dark theme: `--color-canvas: #141a26` (elevated surface), `--color-surface-soft: #0a0e17` (page floor), primary orange `#ff7a29`, win `#34d399`, error `#f75466`. shadcn/Base UI's semantic tokens (`--color-background`, `--color-card`, `--color-border`, etc.) are bridged onto these same values rather than shadcn's own default palette — see the `@theme` block's comment in `src/index.css`.
