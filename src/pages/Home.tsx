@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { ListGroup, ListRow } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
-import { BarChart } from '../components/ui/bar-chart'
+import { LineChart } from '../components/ui/line-chart'
 import { Plus } from 'lucide-react'
 
 type HostedGame = {
@@ -279,7 +279,7 @@ export function Home() {
                   {playedGames.length === 1 ? '' : 's'} played
                 </p>
                 {netChartPoints.length > 0 && (
-                  <BarChart
+                  <LineChart
                     points={netChartPoints}
                     colorBySign
                     className="mt-3 h-16 border-t border-hairline-soft pt-3"
@@ -324,7 +324,7 @@ export function Home() {
                         onClick={() => navigate(`/games/${g.id}`)}
                         avatar={<NamedAvatar name={g.name} className="h-12 w-12" />}
                         title={g.name}
-                        subtitle={formatClosedDate(g.closed_at)}
+                        meta={formatClosedDate(g.closed_at)}
                         trailing={
                           <span
                             className={`type-figure-md whitespace-nowrap ${
@@ -449,7 +449,7 @@ export function Home() {
                           onClick={() => navigate(`/games/${g.id}`)}
                           avatar={<NamedAvatar name={g.name} className="h-12 w-12" />}
                           title={g.name}
-                          subtitle={formatClosedDate(g.closed_at)}
+                          meta={formatClosedDate(g.closed_at)}
                           trailing={
                             <span className="type-figure-md whitespace-nowrap text-ink">
                               {toChips(g.buyins, g.chip_ratio)} chips

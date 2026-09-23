@@ -231,12 +231,12 @@ export function VenueDetail() {
                     className="cursor-pointer"
                     onClick={() => navigate(`/games/${g.game_id}`)}
                     avatar={<NamedAvatar name={g.game_name} className="h-12 w-12" />}
-                    title={g.game_name}
-                    subtitle={new Date(g.closed_at).toLocaleDateString(undefined, {
+                    meta={new Date(g.closed_at).toLocaleDateString(undefined, {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',
                     })}
+                    title={g.game_name}
                     trailing={
                       <>
                         {role?.kind === 'hosted' && (
