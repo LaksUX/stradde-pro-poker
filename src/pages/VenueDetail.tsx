@@ -7,6 +7,7 @@ import { PageSpinner } from '../components/ui/Spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 import { Badge } from '../components/ui/badge'
+import { NamedAvatar } from '../components/ui/avatar'
 
 type GameRow = {
   game_id: string
@@ -225,8 +226,9 @@ export function VenueDetail() {
             <Card>
               <CardContent className="gap-2">
                 {regulars.map((r) => (
-                  <div key={r.profile_id} className="flex items-center gap-3 text-sm">
-                    <span className="w-24 flex-none truncate text-ink">{r.full_name}</span>
+                  <div key={r.profile_id} className="flex items-center gap-2 text-sm">
+                    <NamedAvatar name={r.full_name} className="h-6 w-6" />
+                    <span className="w-20 flex-none truncate text-ink">{r.full_name}</span>
                     <div className="h-2 flex-1 rounded-full bg-surface-strong">
                       <div
                         className="h-2 rounded-full bg-primary"
@@ -261,8 +263,13 @@ export function VenueDetail() {
                   return (
                     <TableRow key={g.game_id} className="cursor-pointer" onClick={() => navigate(`/games/${g.game_id}`)}>
                       <TableCell>
-                        <p className="font-semibold text-ink">{g.game_name}</p>
-                        <p className="text-xs text-muted">{new Date(g.closed_at).toLocaleDateString()}</p>
+                        <div className="flex items-center gap-2">
+                          <NamedAvatar name={g.game_name} />
+                          <div>
+                            <p className="font-semibold text-ink">{g.game_name}</p>
+                            <p className="text-xs text-muted">{new Date(g.closed_at).toLocaleDateString()}</p>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         {role?.kind === 'hosted' && (

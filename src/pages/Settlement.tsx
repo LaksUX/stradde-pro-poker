@@ -11,6 +11,7 @@ import { Badge } from '../components/ui/badge'
 import { Select } from '../components/ui/select'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
+import { NamedAvatar } from '../components/ui/avatar'
 
 type Game = { id: string; name: string; chip_ratio: ChipRatio; settlement_published_at: string | null }
 type PlayerOpt = { id: string; name: string }
@@ -68,7 +69,6 @@ export function Settlement() {
   if (!game) return <PageSpinner />
   const ratio = game.chip_ratio
   const nameById = new Map(players.map((p) => [p.id, p.name]))
-  const initials = (name: string) => name.trim().charAt(0).toUpperCase() || '?'
 
   async function editTransfer(id: string, patch: Partial<Transfer>) {
     // Optimistic update, but rolled back on failure — this money is real
@@ -156,9 +156,7 @@ export function Settlement() {
           <Card key={t.id} className="mt-3">
             <CardContent>
               <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-strong text-xs font-bold text-ink">
-                  {initials(fromName)}
-                </span>
+                <NamedAvatar name={fromName} className="h-7 w-7" />
                 <span className="truncate text-sm text-ink">{fromName}</span>
                 <svg
                   className="mx-0.5 shrink-0 text-muted"
@@ -171,9 +169,7 @@ export function Settlement() {
                 >
                   <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-strong text-xs font-bold text-ink">
-                  {initials(toName)}
-                </span>
+                <NamedAvatar name={toName} className="h-7 w-7" />
                 <span className="truncate text-sm text-ink">{toName}</span>
               </div>
 

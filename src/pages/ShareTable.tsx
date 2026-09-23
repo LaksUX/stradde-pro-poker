@@ -9,6 +9,7 @@ import { InviteQrCard } from '../components/ui/InviteQrCard'
 import { Card, CardContent } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Table, TableBody, TableCell, TableRow } from '../components/ui/table'
+import { NamedAvatar } from '../components/ui/avatar'
 
 type GameSummary = {
   id: string
@@ -373,8 +374,13 @@ export function ShareTable() {
               {roster.map((r) => (
                 <TableRow key={r.profile_id}>
                   <TableCell className="font-semibold text-ink">
-                    {r.full_name}
-                    {r.profile_id === myProfileId ? ' (you)' : ''}
+                    <div className="flex items-center gap-2">
+                      <NamedAvatar name={r.full_name} />
+                      <span>
+                        {r.full_name}
+                        {r.profile_id === myProfileId ? ' (you)' : ''}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     {r.profile_id === myProfileId && (

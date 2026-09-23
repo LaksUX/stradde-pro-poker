@@ -9,6 +9,7 @@ import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Input } from '../components/ui/input'
+import { NamedAvatar } from '../components/ui/avatar'
 
 type Row = {
   id: string
@@ -139,9 +140,12 @@ export function MySettlements() {
             <Link to={`/games/${r.gameId}`} className="text-xs text-primary underline">
               {r.gameName}
             </Link>
-            <p className="mt-1 text-ink">
-              {r.direction === 'owe' ? `You owe ${r.otherName}` : `${r.otherName} owes you`}
-            </p>
+            <div className="mt-1 flex items-center gap-2">
+              <NamedAvatar name={r.otherName} className="h-6 w-6" />
+              <p className="text-ink">
+                {r.direction === 'owe' ? `You owe ${r.otherName}` : `${r.otherName} owes you`}
+              </p>
+            </div>
             <div className="mt-1 flex items-center gap-2">
               <span className="type-figure-md text-ink">{toChips(r.amount, r.chip_ratio)} chips</span>
               <Badge
