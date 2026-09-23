@@ -48,8 +48,13 @@ export function AppShell() {
         <Outlet />
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 [padding-bottom:calc(env(safe-area-inset-bottom)+12px)]">
-        <div className="flex gap-1 rounded-full border border-hairline bg-canvas p-1.5 shadow-elevated">
+      {/* pointer-events-none on the wrapper, -auto on the pill: the wrapper
+          spans the full screen width (inset-x-0) so it can center the pill,
+          but only the pill itself should ever catch a click — otherwise its
+          transparent margins silently swallow taps meant for anything else
+          fixed near the bottom of the screen, like Home's FAB. */}
+      <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 [padding-bottom:calc(env(safe-area-inset-bottom)+12px)]">
+        <div className="pointer-events-auto flex gap-1 rounded-full border border-hairline bg-canvas p-1.5 shadow-elevated">
           <button
             onClick={() => navigate('/home')}
             className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors active:scale-95 ${
