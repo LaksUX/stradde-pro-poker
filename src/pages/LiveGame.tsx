@@ -68,6 +68,7 @@ export function LiveGame() {
   const [pending, setPending] = useState<PendingRequest[]>([])
   const [players, setPlayers] = useState<PlayerRow[]>([])
   const [rakeRevealed, setRakeRevealed] = useState(false)
+  const [closing, setClosing] = useState(false)
   const [qrOpen, setQrOpen] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [sheetPlayerId, setSheetPlayerId] = useState<string | null>(null)
@@ -363,68 +364,78 @@ export function LiveGame() {
   }
 
   async function closeAndSettle() {
-    if (!gameId || !game) return
-    const totalIn = players.reduce((s, p) => s + p.confirmed_buyins * game.stake, 0)
-    const totalOut = players.reduce((s, p) => s + (p.cashout ?? 0), 0)
-    if (totalOut + game.rake > totalIn) {
-      toast.error("Can't close — cash-outs plus rake exceed total buy-ins. Resolve the overpay first.")
-      return
-    }
-    const unfinished = players.filter((p) => p.cashout == null)
-    const confirmed = await confirmDialog(
-      unfinished.length > 0
-        ? `${unfinished.length} player(s) have no cash-out — their buy-ins will count as a loss to the table. Close and settle?`
-        : 'Close this game and compute settlement?',
-      { confirmLabel: 'Close & settle', danger: unfinished.length > 0 }
-    )
-    if (!confirmed) return
-
-    // Anyone still "in play" gets cashout = 0 — walked away, house absorbs it,
-    // per REQUIREMENTS.md's Game lifecycle. Fail fast on the first write
-    // that doesn't save (e.g. connection drops mid-close) rather than
-    // computing settlement against a mix of saved and unsaved cash-outs.
-    for (const p of unfinished) {
-      const ok = await runWrite(
-        () => supabase.from('game_players').update({ cashout: 0 }).eq('id', p.id),
-        `Closing out ${p.full_name}`
+    // Guards against a double-tap (or a slow network prompting a nervous
+    // second tap) firing this twice concurrently — without it, a race could
+    // insert a second, duplicate set of settlement_transfers rows. Set
+    // before the confirm dialog even opens, so a tap while it's already
+    // showing can't start a second run.
+    if (!gameId || !game || closing) return
+    setClosing(true)
+    try {
+      const totalIn = players.reduce((s, p) => s + p.confirmed_buyins * game.stake, 0)
+      const totalOut = players.reduce((s, p) => s + (p.cashout ?? 0), 0)
+      if (totalOut + game.rake > totalIn) {
+        toast.error("Can't close — cash-outs plus rake exceed total buy-ins. Resolve the overpay first.")
+        return
+      }
+      const unfinished = players.filter((p) => p.cashout == null)
+      const confirmed = await confirmDialog(
+        unfinished.length > 0
+          ? `${unfinished.length} player(s) have no cash-out — their buy-ins will count as a loss to the table. Close and settle?`
+          : 'Close this game and compute settlement?',
+        { confirmLabel: 'Close & settle', danger: unfinished.length > 0 }
       )
-      if (!ok) return
-    }
+      if (!confirmed) return
 
-    const settlementInput: PlayerForSettlement[] = players.map((p) => ({
-      gamePlayerId: p.id,
-      name: p.full_name,
-      netBanks: (unfinished.find((u) => u.id === p.id) ? 0 : (p.cashout ?? 0)) - p.confirmed_buyins * game.stake,
-    }))
-    const transfers = computeInitialSettlement(settlementInput)
+      // Anyone still "in play" gets cashout = 0 — walked away, house absorbs it,
+      // per REQUIREMENTS.md's Game lifecycle. Fail fast on the first write
+      // that doesn't save (e.g. connection drops mid-close) rather than
+      // computing settlement against a mix of saved and unsaved cash-outs.
+      for (const p of unfinished) {
+        const ok = await runWrite(
+          () => supabase.from('game_players').update({ cashout: 0 }).eq('id', p.id),
+          `Closing out ${p.full_name}`
+        )
+        if (!ok) return
+      }
 
-    if (transfers.length > 0) {
+      const settlementInput: PlayerForSettlement[] = players.map((p) => ({
+        gamePlayerId: p.id,
+        name: p.full_name,
+        netBanks: (unfinished.find((u) => u.id === p.id) ? 0 : (p.cashout ?? 0)) - p.confirmed_buyins * game.stake,
+      }))
+      const transfers = computeInitialSettlement(settlementInput)
+
+      if (transfers.length > 0) {
+        const ok = await runWrite(
+          () =>
+            supabase.from('settlement_transfers').insert(
+              transfers.map((t) => ({
+                game_id: gameId,
+                from_player_id: t.fromPlayerId,
+                to_player_id: t.toPlayerId,
+                amount: t.amountBanks,
+              }))
+            ),
+          'Settlement'
+        )
+        if (!ok) return
+      }
+
       const ok = await runWrite(
         () =>
-          supabase.from('settlement_transfers').insert(
-            transfers.map((t) => ({
-              game_id: gameId,
-              from_player_id: t.fromPlayerId,
-              to_player_id: t.toPlayerId,
-              amount: t.amountBanks,
-            }))
-          ),
-        'Settlement'
+          supabase
+            .from('games')
+            .update({ status: 'closed', closed_at: new Date().toISOString() })
+            .eq('id', gameId),
+        'Closing the game'
       )
       if (!ok) return
+
+      navigate(`/games/${gameId}/settlement`)
+    } finally {
+      setClosing(false)
     }
-
-    const ok = await runWrite(
-      () =>
-        supabase
-          .from('games')
-          .update({ status: 'closed', closed_at: new Date().toISOString() })
-          .eq('id', gameId),
-      'Closing the game'
-    )
-    if (!ok) return
-
-    navigate(`/games/${gameId}/settlement`)
   }
 
   if (!game) return <PageSpinner />
@@ -633,19 +644,20 @@ export function LiveGame() {
         )}
       </div>
 
-      {players.length > 0 && (
-        <>
-          {activePlayers.length > 0 && (
-            <p className="mt-4 text-center text-xs text-muted">
-              {activePlayers.length === 1 ? '1 player hasn\'t' : `${activePlayers.length} players haven't`}{' '}
-              cashed out yet — closing now counts their buy-ins as a loss to the table.
-            </p>
-          )}
-          <Button block className="mt-2" onClick={closeAndSettle}>
-            End game &amp; settle
-          </Button>
-        </>
+      {activePlayers.length > 0 && (
+        <p className="mt-4 text-center text-xs text-muted">
+          {activePlayers.length === 1 ? '1 player hasn\'t' : `${activePlayers.length} players haven't`}{' '}
+          cashed out yet — closing now counts their buy-ins as a loss to the table.
+        </p>
       )}
+      <Button
+        block
+        className={activePlayers.length > 0 ? 'mt-2' : 'mt-4'}
+        disabled={closing}
+        onClick={closeAndSettle}
+      >
+        {closing ? 'Closing…' : 'End game & settle'}
+      </Button>
 
       <Sheet open={sheetPlayerId != null} onOpenChange={(open) => !open && setSheetPlayerId(null)}>
         <SheetContent>
