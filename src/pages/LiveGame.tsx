@@ -76,7 +76,6 @@ export function LiveGame() {
   const [savingSheet, setSavingSheet] = useState(false)
   const [historyByPlayer, setHistoryByPlayer] = useState<Map<string, HistoryEntry[]>>(new Map())
   const [historyOpen, setHistoryOpen] = useState(false)
-  const [historyExpanded, setHistoryExpanded] = useState(false)
 
   const sheetPlayer = players.find((p) => p.id === sheetPlayerId) ?? null
   const sheetDelta = sheetPlayer ? sliderValue - sheetPlayer.confirmed_buyins : 0
@@ -87,7 +86,6 @@ export function LiveGame() {
     setCashoutOn(p.cashout != null)
     setCashoutValue(p.cashout != null ? String(p.cashout) : '')
     setHistoryOpen(false)
-    setHistoryExpanded(false)
   }
 
   useEffect(() => {
@@ -628,9 +626,18 @@ export function LiveGame() {
         )}
       </div>
 
-      <Button block className="mt-4" onClick={closeAndSettle}>
-        End game &amp; settle
-      </Button>
+      {players.length > 0 && activePlayers.length === 0 ? (
+        <Button block className="mt-4" onClick={closeAndSettle}>
+          End game &amp; settle
+        </Button>
+      ) : (
+        players.length > 0 && (
+          <p className="mt-4 text-center text-xs text-muted">
+            Cash out {activePlayers.length === 1 ? 'the last player' : `all ${activePlayers.length} remaining players`}{' '}
+            to end the game.
+          </p>
+        )
+      )}
 
       <Sheet open={sheetPlayerId != null} onOpenChange={(open) => !open && setSheetPlayerId(null)}>
         <SheetContent>
@@ -653,45 +660,52 @@ export function LiveGame() {
 
               {!cashoutOn ? (
                 <div className="mt-5">
-                  {/* Overall — the number that actually matters, since it's
-                      what the player owes into the table — leads, large and
-                      on its own. Previous/New are supporting context, kept
-                      small so they can't be mistaken for the headline
-                      figure. */}
-                  <div className="text-center">
-                    <p className="text-xs text-muted">Overall</p>
-                    <p className="type-figure-hero text-ink">{sliderValue}</p>
-                    <p className="text-xs text-muted">buy-in{sliderValue === 1 ? '' : 's'}</p>
-                  </div>
-                  <div className="mt-3 flex items-center justify-center gap-2">
-                    <span className="rounded-full bg-surface-strong px-2.5 py-1 text-xs text-muted">
-                      Previous <span className="font-semibold text-ink">{sheetPlayer.confirmed_buyins}</span>
-                    </span>
-                    {sheetDelta !== 0 && (
-                      <span
-                        className={`flex items-center gap-0.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          sheetDelta > 0 ? 'bg-win/10 text-win' : 'bg-error/10 text-error'
+                  {/* Previous/New/Overall are all shown at once, always —
+                      no pill that pops in only once you've moved the
+                      slider, so the three numbers that matter (where they
+                      started, what's changing, what it adds up to) read
+                      together from the first glance instead of shifting
+                      layout as you drag. Overall gets the accent treatment
+                      since it's the one that actually matters. */}
+                  <div className="grid grid-cols-3 gap-1.5 text-center">
+                    <div className="rounded-lg bg-surface-strong px-2 py-2.5">
+                      <p className="text-[11px] text-muted">Previous</p>
+                      <p className="type-figure-md mt-0.5 text-ink">{sheetPlayer.confirmed_buyins}</p>
+                    </div>
+                    <div className="rounded-lg bg-surface-strong px-2 py-2.5">
+                      <p className="text-[11px] text-muted">New</p>
+                      <p
+                        className={`type-figure-md mt-0.5 ${
+                          sheetDelta === 0 ? 'text-muted' : sheetDelta > 0 ? 'text-win' : 'text-error'
                         }`}
                       >
-                        {sheetDelta > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                        New {Math.abs(sheetDelta)}
-                      </span>
-                    )}
+                        {sheetDelta > 0 ? '+' : ''}
+                        {sheetDelta}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-primary/40 bg-primary/10 px-2 py-2.5">
+                      <p className="text-[11px] text-muted">Overall</p>
+                      <p className="type-figure-md mt-0.5 text-ink">{sliderValue}</p>
+                    </div>
                   </div>
+                  {/* min=0 on the slider already keeps the value itself
+                      from going negative — Math.max is a second guard so a
+                      stray onValueChange payload can never sneak a
+                      negative buy-in count into state. */}
                   <Slider
                     className="mt-4"
                     min={0}
                     max={MAX_BUYINS}
                     step={1}
                     value={sliderValue}
-                    onValueChange={(v) => setSliderValue(v as number)}
+                    onValueChange={(v) => setSliderValue(Math.max(0, v as number))}
                   />
                   <div className="mt-3 flex justify-center gap-1.5">
                     {QUICK_ADD.map((n) => (
                       <button
                         key={n}
                         type="button"
-                        onClick={() => setSliderValue((v) => Math.min(MAX_BUYINS, v + n))}
+                        onClick={() => setSliderValue((v) => Math.min(MAX_BUYINS, Math.max(0, v + n)))}
                         className="rounded-full bg-surface-strong px-3.5 py-1.5 text-sm font-semibold text-ink transition-colors hover:bg-surface-strong/70"
                       >
                         +{n}
@@ -730,10 +744,17 @@ export function LiveGame() {
                   <Input
                     id="sheet-cashout"
                     type="number"
+                    min={0}
                     className="h-12"
                     autoFocus
                     value={cashoutValue}
-                    onChange={(e) => setCashoutValue(e.target.value)}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      // A cash-out can never be negative — block the
+                      // keystroke rather than clamp after the fact, so
+                      // typing "-" never even shows on screen.
+                      if (v === '' || Number(v) >= 0) setCashoutValue(v)
+                    }}
                   />
                   {sheetPlayer.cashout != null && sheetPlayer.cashout_confirm_status === 'confirmed' && (
                     <p className="text-xs text-muted">
@@ -746,17 +767,6 @@ export function LiveGame() {
               {(() => {
                 const entries = historyByPlayer.get(sheetPlayer.id) ?? []
                 if (entries.length === 0) return null
-                const [latest, ...earlier] = entries
-                const formatEntry = (h: HistoryEntry) => ({
-                  title:
-                    h.requestType === 'join'
-                      ? `Joined with ${h.count} buy-in${h.count === 1 ? '' : 's'}`
-                      : `Bought in +${h.count} (total: ${h.runningTotal})`,
-                  subtitle: new Date(h.confirmedAt).toLocaleTimeString([], {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                  }),
-                })
                 return (
                   <div className="mt-5 border-t border-hairline-soft pt-4">
                     <button
@@ -783,19 +793,21 @@ export function LiveGame() {
                               year: 'numeric',
                             })}
                           </ListDate>
-                          <ListRow key={latest.id} {...formatEntry(latest)} />
-                          {historyExpanded &&
-                            earlier.map((h) => <ListRow key={h.id} {...formatEntry(h)} />)}
+                          {entries.map((h) => (
+                            <ListRow
+                              key={h.id}
+                              title={
+                                h.requestType === 'join'
+                                  ? `Joined with ${h.count} buy-in${h.count === 1 ? '' : 's'}`
+                                  : `Bought in +${h.count} (total: ${h.runningTotal})`
+                              }
+                              subtitle={new Date(h.confirmedAt).toLocaleTimeString([], {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                              })}
+                            />
+                          ))}
                         </ListGroup>
-                        {earlier.length > 0 && (
-                          <button
-                            type="button"
-                            className="mt-2 text-xs font-semibold text-primary"
-                            onClick={() => setHistoryExpanded((v) => !v)}
-                          >
-                            {historyExpanded ? 'Show less' : `Show ${earlier.length} earlier`}
-                          </button>
-                        )}
                       </div>
                     )}
                   </div>
