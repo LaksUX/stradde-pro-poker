@@ -451,7 +451,7 @@ export function ShareTable() {
           Table display
         </p>
       )}
-      {showQrByDefault ? (
+      {showQrByDefault && (
         <div className="mb-4">
           <InviteQrCard
             eyebrow={full ? 'Table full' : 'Seats open'}
@@ -469,16 +469,6 @@ export function ShareTable() {
             </p>
           )}
         </div>
-      ) : (
-        <button
-          onClick={() => {
-            navigator.clipboard.writeText(`${window.location.origin}/t/${gameId}`)
-            toast.success('Link copied')
-          }}
-          className="mb-4 block text-center text-xs text-primary underline"
-        >
-          Copy invite link
-        </button>
       )}
       <Card>
         <CardContent>
