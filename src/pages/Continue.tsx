@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { continueWithPhone, useAuth } from '../hooks/useAuth'
 import { withTimeout } from '../lib/errors'
 import { Button } from '../components/ui/Button'
@@ -106,9 +106,6 @@ export function Continue() {
         No password — just your name and phone. Want to host your own games? You can apply once
         you're in.
       </p>
-      <Link to="/find" className="text-center text-xs text-primary underline">
-        Have a game code instead of a link?
-      </Link>
       <p className="text-center text-[11px] text-muted-soft">v{__APP_VERSION__}</p>
     </div>
   )

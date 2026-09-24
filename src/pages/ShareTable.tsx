@@ -2,16 +2,11 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { toChips, type ChipRatio } from '../lib/chips'
-import { toast } from '../lib/toast'
-import { continueWithPhone } from '../hooks/useAuth'
-import { withTimeout } from '../lib/errors'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
 import { Button } from '../components/ui/Button'
 import { InviteQrCard } from '../components/ui/InviteQrCard'
 import { Card, CardContent } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
-import { Input } from '../components/ui/input'
-import { Label } from '../components/ui/label'
 import { ListGroup, ListRow } from '../components/ui/list-row'
 import { NamedAvatar } from '../components/ui/avatar'
 
@@ -25,10 +20,8 @@ type GameSummary = {
   table_size: number
   table_status_override: 'full' | 'open' | null
   host_id: string
-  join_code: string | null
 }
 type RosterRow = { profile_id: string; full_name: string; buyin_count: number }
-type RsvpRow = { profile_id: string; full_name: string }
 type MyTransfer = {
   id: string
   from_player_id: string
@@ -58,10 +51,6 @@ export function ShareTable() {
   )
   const [myPendingCount, setMyPendingCount] = useState<number | null>(null)
   const [myProfileId, setMyProfileId] = useState<string | null>(null)
-  const [rsvps, setRsvps] = useState<RsvpRow[]>([])
-  const [rsvpName, setRsvpName] = useState('')
-  const [rsvpPhone, setRsvpPhone] = useState('')
-  const [rsvpSubmitting, setRsvpSubmitting] = useState(false)
   // public_game_summary deliberately doesn't expose chip_ratio pre-join
   // (see 0002_rls_policies.sql's view comment) — but a closed-game viewer
   // is always a confirmed game_players row by this point, so RLS already
@@ -88,14 +77,6 @@ export function ShareTable() {
         .eq('game_id', gameId)
         .order('buyin_count', { ascending: false })
       setRoster((data ?? []) as RosterRow[])
-    }
-    async function loadRsvps() {
-      const { data } = await supabase
-        .from('public_game_rsvps')
-        .select('profile_id, full_name')
-        .eq('game_id', gameId)
-        .order('responded_at', { ascending: true })
-      setRsvps((data ?? []) as RsvpRow[])
     }
     async function loadMyStatus() {
       const { data: session } = await supabase.auth.getSession()
@@ -132,7 +113,6 @@ export function ShareTable() {
     loadGame()
     loadRoster()
     loadMyStatus()
-    loadRsvps()
 
     // Realtime: re-fetch on any change to this game's row or its buy-in
     // requests. Re-querying the views on each event is simple and correct;
@@ -160,11 +140,6 @@ export function ShareTable() {
           loadRoster()
           loadMyStatus()
         }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'game_rsvps', filter: `game_id=eq.${gameId}` },
-        loadRsvps
       )
       .subscribe()
 
@@ -244,7 +219,7 @@ export function ShareTable() {
   // Gated on status === 'live' too — the host is a confirmed game_players
   // row (is_host: true) from the moment they create the game, scheduled or
   // not, and without this check they'd get bounced straight to /live before
-  // ever seeing this screen's pre-game RSVP list and share code.
+  // ever seeing the "hasn't started yet" screen below.
   useEffect(() => {
     if (displayMode || myStatus !== 'confirmed' || !myProfileId || !game || !gameId || game.status !== 'live')
       return
@@ -253,133 +228,15 @@ export function ShareTable() {
     })
   }, [displayMode, myStatus, myProfileId, game, gameId, navigate])
 
-  async function rsvpGoing() {
-    if (!gameId) return
-    setRsvpSubmitting(true)
-    try {
-      let id = myProfileId
-      let name = rsvpName.trim()
-      if (!id) {
-        if (!rsvpName.trim() || !rsvpPhone.trim()) {
-          toast.error('Name and phone are both required')
-          return
-        }
-        const profile = await withTimeout(continueWithPhone(rsvpName.trim(), rsvpPhone.trim()))
-        id = profile.id
-        name = profile.full_name ?? rsvpName.trim()
-        setMyProfileId(id)
-      }
-      const { error } = await supabase
-        .from('game_rsvps')
-        .insert({ game_id: gameId, profile_id: id, full_name: name })
-      if (error) throw error
-      toast.success("You're in!")
-    } catch (e) {
-      toast.error(
-        e instanceof Error && navigator.onLine
-          ? e.message
-          : "Couldn't RSVP — you're offline. Reconnect and try again."
-      )
-    } finally {
-      setRsvpSubmitting(false)
-    }
-  }
-
-  async function rsvpCancel() {
-    if (!gameId || !myProfileId) return
-    const { error } = await supabase
-      .from('game_rsvps')
-      .delete()
-      .eq('game_id', gameId)
-      .eq('profile_id', myProfileId)
-    if (error) toast.error(navigator.onLine ? error.message : "You're offline. Reconnect and try again.")
-  }
-
   if (!game) return <PageSpinner />
 
   if (game.status === 'scheduled') {
-    const isHost = myProfileId === game.host_id
-    const iAmGoing = myProfileId != null && rsvps.some((r) => r.profile_id === myProfileId)
     return (
-      <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
-        <div className="text-center">
-          <h1 className="type-page-title text-ink">{game.name}</h1>
-          <p className="type-body-md mt-2 text-body">
-            Starts {new Date(game.scheduled_for).toLocaleString()} — hasn't started yet.
-          </p>
-        </div>
-
-        {isHost && (
-          <div className="mt-4">
-            <InviteQrCard
-              eyebrow="Starts"
-              title={new Date(game.scheduled_for).toLocaleString()}
-              subtitle={game.venue_freetext ?? undefined}
-              url={`${window.location.origin}/t/${gameId}`}
-            />
-            {game.join_code && (
-              <p className="mt-2 text-center text-sm text-muted">
-                Or share the code:{' '}
-                <span className="font-mono text-lg font-bold tracking-[0.2em] text-ink">
-                  {game.join_code}
-                </span>
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="mt-5 border-t border-hairline-soft pt-4">
-          <h2 className="type-label-caption mb-2 text-muted">Who's in ({rsvps.length})</h2>
-          {rsvps.length === 0 ? (
-            <p className="text-sm text-muted">No one yet — be the first.</p>
-          ) : (
-            <ListGroup>
-              {rsvps.map((r) => (
-                <ListRow
-                  key={r.profile_id}
-                  avatar={<NamedAvatar name={r.full_name} className="h-10 w-10" />}
-                  title={r.profile_id === myProfileId ? `${r.full_name} (you)` : r.full_name}
-                />
-              ))}
-            </ListGroup>
-          )}
-
-          {!isHost &&
-            (iAmGoing ? (
-              <Button variant="secondary" block className="mt-3" onClick={rsvpCancel}>
-                Can't make it anymore
-              </Button>
-            ) : (
-              <div className="mt-3">
-                {!myProfileId && (
-                  <>
-                    <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="rsvp-name">Name</Label>
-                      <Input
-                        id="rsvp-name"
-                        className="h-12"
-                        value={rsvpName}
-                        onChange={(e) => setRsvpName(e.target.value)}
-                      />
-                    </div>
-                    <div className="mt-2 flex flex-col gap-1.5">
-                      <Label htmlFor="rsvp-phone">Phone</Label>
-                      <Input
-                        id="rsvp-phone"
-                        type="tel"
-                        className="h-12"
-                        value={rsvpPhone}
-                        onChange={(e) => setRsvpPhone(e.target.value)}
-                      />
-                    </div>
-                  </>
-                )}
-                <Button block className="mt-3" disabled={rsvpSubmitting} onClick={rsvpGoing}>
-                  {rsvpSubmitting ? 'Saving…' : "I'm in"}
-                </Button>
-              </div>
-            ))}
-        </div>
+      <div className="mx-auto w-full max-w-sm p-4 sm:p-6 text-center">
+        <h1 className="type-page-title text-ink">{game.name}</h1>
+        <p className="type-body-md mt-2 text-body">
+          Starts {new Date(game.scheduled_for).toLocaleString()} — hasn't started yet.
+        </p>
       </div>
     )
   }
@@ -460,14 +317,6 @@ export function ShareTable() {
             url={`${window.location.origin}/t/${gameId}`}
             size={140}
           />
-          {game.join_code && (
-            <p className="mt-2 text-center text-sm text-muted">
-              Or share the code:{' '}
-              <span className="font-mono text-lg font-bold tracking-[0.2em] text-ink">
-                {game.join_code}
-              </span>
-            </p>
-          )}
         </div>
       )}
       <Card>
