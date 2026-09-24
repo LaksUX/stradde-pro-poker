@@ -231,7 +231,7 @@ export function CreateGame() {
           ? "You're offline — reconnect and try again."
           : e instanceof Error
             ? e.message
-            : 'Something went wrong'
+            : ((e as { message?: string })?.message ?? 'Something went wrong')
       )
     } finally {
       setCreating(false)
