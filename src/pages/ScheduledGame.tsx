@@ -6,6 +6,9 @@ import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
 import { InviteQrCard } from '../components/ui/InviteQrCard'
+import { InviteRegularsSheet } from '../components/ui/InviteRegularsSheet'
+import { ListGroup, ListRow } from '../components/ui/list-row'
+import { NamedAvatar } from '../components/ui/avatar'
 
 type Game = {
   id: string
@@ -17,6 +20,7 @@ type Game = {
   status: string
   join_code: string | null
 }
+type RsvpRow = { profile_id: string; full_name: string }
 
 // See PAGE_PROMPTS.md "Scheduled Game". A `scheduled` game accepts no
 // joins or buy-ins at all until the host explicitly starts it here.
@@ -26,6 +30,9 @@ export function ScheduledGame() {
   const { profile } = useAuth()
   const [game, setGame] = useState<Game | null>(null)
   const [starting, setStarting] = useState(false)
+  const [rsvps, setRsvps] = useState<RsvpRow[]>([])
+  const [existingIds, setExistingIds] = useState<string[]>([])
+  const [inviteOpen, setInviteOpen] = useState(false)
 
   useEffect(() => {
     if (!gameId) return
@@ -45,7 +52,21 @@ export function ScheduledGame() {
       // game went live except manually reloading.
       if (data.status === 'live') navigate(`/t/${gameId}`, { replace: true })
     }
+    async function loadRsvps() {
+      const { data } = await supabase
+        .from('public_game_rsvps')
+        .select('profile_id, full_name')
+        .eq('game_id', gameId)
+        .order('responded_at', { ascending: true })
+      if (!cancelled) setRsvps((data ?? []) as RsvpRow[])
+    }
+    async function loadExistingIds() {
+      const { data } = await supabase.from('game_players').select('profile_id').eq('game_id', gameId)
+      if (!cancelled) setExistingIds((data ?? []).map((r) => r.profile_id))
+    }
     load()
+    loadRsvps()
+    loadExistingIds()
 
     const channel = supabase
       .channel(`scheduled-game-${gameId}`)
@@ -53,6 +74,16 @@ export function ScheduledGame() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` },
         load
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'game_rsvps', filter: `game_id=eq.${gameId}` },
+        loadRsvps
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` },
+        loadExistingIds
       )
       .subscribe()
 
@@ -113,9 +144,41 @@ export function ScheduledGame() {
             </p>
           )}
 
+          <Button variant="secondary" block className="mt-3" onClick={() => setInviteOpen(true)}>
+            Invite regulars
+          </Button>
+
+          <div className="mt-5 border-t border-hairline-soft pt-4 text-left">
+            <h2 className="type-label-caption mb-2 text-muted">Who's in ({rsvps.length})</h2>
+            {rsvps.length === 0 ? (
+              <p className="text-center text-sm text-muted">No one yet.</p>
+            ) : (
+              <ListGroup>
+                {rsvps.map((r) => (
+                  <ListRow
+                    key={r.profile_id}
+                    avatar={<NamedAvatar name={r.full_name} className="h-10 w-10" />}
+                    title={r.full_name}
+                  />
+                ))}
+              </ListGroup>
+            )}
+          </div>
+
           <Button block className="mt-6" disabled={starting} onClick={handleStart}>
             {starting ? 'Starting…' : 'Start game'}
           </Button>
+
+          <InviteRegularsSheet
+            open={inviteOpen}
+            onOpenChange={setInviteOpen}
+            gameId={gameId!}
+            hostId={game.host_id}
+            existingProfileIds={existingIds}
+            onInvited={() => {
+              toast.success('Invited')
+            }}
+          />
         </>
       ) : (
         <p className="mt-8 text-sm text-muted">
