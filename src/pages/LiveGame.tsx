@@ -14,11 +14,11 @@ import { Card, CardContent } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { ListGroup, ListRow, ListDate } from '../components/ui/list-row'
-import { NamedAvatar, Avatar, AvatarFallback } from '../components/ui/avatar'
+import { NamedAvatar } from '../components/ui/avatar'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import { Slider } from '../components/ui/slider'
 import { Switch } from '../components/ui/switch'
-import { QrCode, ArrowUp, ArrowDown, Plus } from 'lucide-react'
+import { QrCode, ArrowUp, ArrowDown, ChevronDown } from 'lucide-react'
 
 const MAX_BUYINS = 50
 const QUICK_ADD = [1, 2, 3, 5]
@@ -73,14 +73,19 @@ export function LiveGame() {
   const [cashoutValue, setCashoutValue] = useState('')
   const [savingSheet, setSavingSheet] = useState(false)
   const [historyByPlayer, setHistoryByPlayer] = useState<Map<string, HistoryEntry[]>>(new Map())
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [historyExpanded, setHistoryExpanded] = useState(false)
 
   const sheetPlayer = players.find((p) => p.id === sheetPlayerId) ?? null
+  const sheetDelta = sheetPlayer ? sliderValue - sheetPlayer.confirmed_buyins : 0
 
   function openPlayerSheet(p: PlayerRow) {
     setSheetPlayerId(p.id)
     setSliderValue(p.confirmed_buyins)
     setCashoutOn(p.cashout != null)
     setCashoutValue(p.cashout != null ? String(p.cashout) : '')
+    setHistoryOpen(false)
+    setHistoryExpanded(false)
   }
 
   useEffect(() => {
@@ -607,29 +612,33 @@ export function LiveGame() {
 
               {!cashoutOn ? (
                 <div className="mt-5">
-                  <div className="flex items-center justify-between text-xs text-muted">
-                    <span>
-                      Previous: {sheetPlayer.confirmed_buyins} buy-in
-                      {sheetPlayer.confirmed_buyins === 1 ? '' : 's'}
+                  {/* Overall — the number that actually matters, since it's
+                      what the player owes into the table — leads, large and
+                      on its own. Previous/New are supporting context, kept
+                      small so they can't be mistaken for the headline
+                      figure. */}
+                  <div className="text-center">
+                    <p className="text-xs text-muted">Overall</p>
+                    <p className="type-figure-hero text-ink">{sliderValue}</p>
+                    <p className="text-xs text-muted">buy-in{sliderValue === 1 ? '' : 's'}</p>
+                  </div>
+                  <div className="mt-3 flex items-center justify-center gap-2">
+                    <span className="rounded-full bg-surface-strong px-2.5 py-1 text-xs text-muted">
+                      Previous <span className="font-semibold text-ink">{sheetPlayer.confirmed_buyins}</span>
                     </span>
-                    {sliderValue !== sheetPlayer.confirmed_buyins && (
+                    {sheetDelta !== 0 && (
                       <span
-                        className={`flex items-center gap-0.5 font-semibold ${
-                          sliderValue > sheetPlayer.confirmed_buyins ? 'text-win' : 'text-error'
+                        className={`flex items-center gap-0.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          sheetDelta > 0 ? 'bg-win/10 text-win' : 'bg-error/10 text-error'
                         }`}
                       >
-                        {sliderValue > sheetPlayer.confirmed_buyins ? (
-                          <ArrowUp className="h-3 w-3" />
-                        ) : (
-                          <ArrowDown className="h-3 w-3" />
-                        )}
-                        {Math.abs(sliderValue - sheetPlayer.confirmed_buyins)}
+                        {sheetDelta > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                        New {Math.abs(sheetDelta)}
                       </span>
                     )}
                   </div>
-                  <p className="type-figure-hero mt-1 text-center text-ink">{sliderValue}</p>
                   <Slider
-                    className="mt-3"
+                    className="mt-4"
                     min={0}
                     max={MAX_BUYINS}
                     step={1}
@@ -648,7 +657,6 @@ export function LiveGame() {
                       </button>
                     ))}
                   </div>
-                  <p className="mt-1 text-center text-xs text-muted">total buy-ins</p>
                 </div>
               ) : (
                 <div className="mt-5 rounded-lg border border-hairline-soft bg-surface-strong p-3 text-center">
@@ -681,44 +689,64 @@ export function LiveGame() {
                 </div>
               )}
 
-              {(historyByPlayer.get(sheetPlayer.id) ?? []).length > 0 && (
-                <div className="mt-5 border-t border-hairline-soft pt-4">
-                  <h2 className="type-label-caption mb-2 text-muted">Buy-in history</h2>
-                  <ListGroup>
-                    {/* One date for the whole log, not per row — this is a
-                        live session, so every entry is from today; repeating
-                        the date on each line would just be noise. */}
-                    <ListDate>
-                      {new Date().toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </ListDate>
-                    {(historyByPlayer.get(sheetPlayer.id) ?? []).map((h) => (
-                      <ListRow
-                        key={h.id}
-                        avatar={
-                          <Avatar className="h-10 w-10">
-                            <AvatarFallback>
-                              <Plus className="h-4 w-4" />
-                            </AvatarFallback>
-                          </Avatar>
-                        }
-                        title={
-                          h.requestType === 'join'
-                            ? `Joined with ${h.count} buy-in${h.count === 1 ? '' : 's'}`
-                            : `Bought in +${h.count} (total: ${h.runningTotal})`
-                        }
-                        subtitle={new Date(h.confirmedAt).toLocaleTimeString([], {
-                          hour: 'numeric',
-                          minute: '2-digit',
-                        })}
+              {(() => {
+                const entries = historyByPlayer.get(sheetPlayer.id) ?? []
+                if (entries.length === 0) return null
+                const [latest, ...earlier] = entries
+                const formatEntry = (h: HistoryEntry) => ({
+                  title:
+                    h.requestType === 'join'
+                      ? `Joined with ${h.count} buy-in${h.count === 1 ? '' : 's'}`
+                      : `Bought in +${h.count} (total: ${h.runningTotal})`,
+                  subtitle: new Date(h.confirmedAt).toLocaleTimeString([], {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  }),
+                })
+                return (
+                  <div className="mt-5 border-t border-hairline-soft pt-4">
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between text-left"
+                      onClick={() => setHistoryOpen((v) => !v)}
+                    >
+                      <h2 className="type-label-caption text-muted">Buy-in history</h2>
+                      <ChevronDown
+                        className={`h-4 w-4 text-muted transition-transform ${historyOpen ? 'rotate-180' : ''}`}
                       />
-                    ))}
-                  </ListGroup>
-                </div>
-              )}
+                    </button>
+                    {historyOpen && (
+                      <div className="mt-2">
+                        <ListGroup>
+                          {/* One date for the whole log, not per row — this
+                              is a live session, so every entry is from
+                              today; repeating the date on each line would
+                              just be noise. */}
+                          <ListDate>
+                            {new Date().toLocaleDateString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </ListDate>
+                          <ListRow key={latest.id} {...formatEntry(latest)} />
+                          {historyExpanded &&
+                            earlier.map((h) => <ListRow key={h.id} {...formatEntry(h)} />)}
+                        </ListGroup>
+                        {earlier.length > 0 && (
+                          <button
+                            type="button"
+                            className="mt-2 text-xs font-semibold text-primary"
+                            onClick={() => setHistoryExpanded((v) => !v)}
+                          >
+                            {historyExpanded ? 'Show less' : `Show ${earlier.length} earlier`}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
 
               <Button block className="mt-5" disabled={savingSheet} onClick={saveSheetChanges}>
                 {savingSheet ? 'Saving…' : 'Save'}

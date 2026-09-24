@@ -248,19 +248,31 @@ export function MyGame() {
           </SheetHeader>
 
           <div className="mt-5">
-            <p className="text-xs text-muted">
-              {confirmedBuyins} confirmed buy-in{confirmedBuyins === 1 ? '' : 's'} so far
-            </p>
-            <p className="type-figure-hero mt-1 text-center text-ink">{count}</p>
+            {/* Overall — the projected total after this request is
+                confirmed — leads, large and on its own, since that's the
+                number that actually matters. Previous/New are supporting
+                context underneath. */}
+            <div className="text-center">
+              <p className="text-xs text-muted">Overall</p>
+              <p className="type-figure-hero text-ink">{confirmedBuyins + count}</p>
+              <p className="text-xs text-muted">buy-in{confirmedBuyins + count === 1 ? '' : 's'}</p>
+            </div>
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <span className="rounded-full bg-surface-strong px-2.5 py-1 text-xs text-muted">
+                Previous <span className="font-semibold text-ink">{confirmedBuyins}</span>
+              </span>
+              <span className="rounded-full bg-win/10 px-2.5 py-1 text-xs font-semibold text-win">
+                New +{count}
+              </span>
+            </div>
             <Slider
-              className="mt-3"
+              className="mt-4"
               min={1}
               max={MAX_REQUEST}
               step={1}
               value={count}
               onValueChange={(v) => setCount(v as number)}
             />
-            <p className="mt-1 text-center text-xs text-muted">buy-ins requesting</p>
           </div>
 
           <Button block className="mt-5" disabled={submitting} onClick={requestMore}>
