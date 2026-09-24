@@ -15,6 +15,7 @@ type Game = {
   stake: number
   host_id: string
   status: string
+  join_code: string | null
 }
 
 // See PAGE_PROMPTS.md "Scheduled Game". A `scheduled` game accepts no
@@ -33,7 +34,7 @@ export function ScheduledGame() {
     async function load() {
       const { data } = await supabase
         .from('games')
-        .select('id, name, venue_freetext, scheduled_for, stake, host_id, status')
+        .select('id, name, venue_freetext, scheduled_for, stake, host_id, status, join_code')
         .eq('id', gameId)
         .single()
       if (cancelled || !data) return
@@ -103,6 +104,14 @@ export function ScheduledGame() {
           <p className="mt-2 text-xs text-muted">
             Share this link ahead of time — it shows "not started yet" until you start it.
           </p>
+          {game.join_code && (
+            <p className="mt-3 text-sm text-muted">
+              Or share the code:{' '}
+              <span className="font-mono text-lg font-bold tracking-[0.2em] text-ink">
+                {game.join_code}
+              </span>
+            </p>
+          )}
 
           <Button block className="mt-6" disabled={starting} onClick={handleStart}>
             {starting ? 'Starting…' : 'Start game'}

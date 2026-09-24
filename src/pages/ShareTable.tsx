@@ -21,6 +21,7 @@ type GameSummary = {
   table_size: number
   table_status_override: 'full' | 'open' | null
   host_id: string
+  join_code: string | null
 }
 type RosterRow = { profile_id: string; full_name: string; buyin_count: number }
 type MyTransfer = {
@@ -313,6 +314,14 @@ export function ShareTable() {
             url={`${window.location.origin}/t/${gameId}`}
             size={140}
           />
+          {game.join_code && (
+            <p className="mt-2 text-center text-sm text-muted">
+              Or share the code:{' '}
+              <span className="font-mono text-lg font-bold tracking-[0.2em] text-ink">
+                {game.join_code}
+              </span>
+            </p>
+          )}
         </div>
       ) : (
         <button
