@@ -14,6 +14,7 @@ import { Card, CardContent } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { ListGroup, ListRow, ListDate } from '../components/ui/list-row'
+import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import { Slider } from '../components/ui/slider'
@@ -42,6 +43,7 @@ type PlayerRow = {
   profile_id: string
   is_host: boolean
   cashout: number | null
+  cashout_confirm_status: 'confirmed' | 'disputed' | null
   full_name: string
   confirmed_buyins: number
 }
@@ -110,7 +112,7 @@ export function LiveGame() {
       // included) is the natural next refactor once this is proven correct.
       const { data: rows } = await supabase
         .from('game_players')
-        .select('id, profile_id, is_host, cashout, profiles(full_name)')
+        .select('id, profile_id, is_host, cashout, cashout_confirm_status, profiles(full_name)')
         .eq('game_id', gameId)
       const { data: reqs } = await supabase
         .from('buyin_requests')
@@ -148,6 +150,7 @@ export function LiveGame() {
           profile_id: row.profile_id,
           is_host: row.is_host,
           cashout: row.cashout,
+          cashout_confirm_status: row.cashout_confirm_status,
           full_name: row.profiles?.full_name ?? '—',
           confirmed_buyins: counts.get(row.id) ?? 0,
         }))
@@ -311,6 +314,20 @@ export function LiveGame() {
       )
       if (!confirmed) return
     }
+    // A cash-out the player already confirmed is theirs to trust — editing
+    // it out from under them without a heads-up would let a "fixed" number
+    // quietly stop matching what they agreed to. Only fires when the value
+    // is actually moving (or being cleared), not on every re-save of an
+    // untouched confirmed row.
+    const newCashout = cashoutOn ? Number(cashoutValue) || 0 : null
+    const cashoutValueChanging = sheetPlayer.cashout != null && newCashout !== sheetPlayer.cashout
+    if (cashoutValueChanging && sheetPlayer.cashout_confirm_status === 'confirmed') {
+      const confirmed = await confirmDialog(
+        `${sheetPlayer.full_name} already confirmed a cash-out of ${sheetPlayer.cashout} banks. Changing it will ask them to confirm the new amount instead.`,
+        { confirmLabel: 'Change cash-out' }
+      )
+      if (!confirmed) return
+    }
     setSavingSheet(true)
     try {
       if (sliderValue !== sheetPlayer.confirmed_buyins) {
@@ -319,13 +336,28 @@ export function LiveGame() {
       }
       if (cashoutOn) {
         const ok = await runWrite(
-          () => supabase.from('game_players').update({ cashout: Number(cashoutValue) || 0 }).eq('id', sheetPlayer.id),
+          () =>
+            supabase
+              .from('game_players')
+              .update({
+                cashout: newCashout,
+                // Stale confirm status is worse than no status — clear it
+                // whenever the number actually moves so the player is
+                // asked to confirm again, but leave it alone on a re-save
+                // of the same figure.
+                cashout_confirm_status: cashoutValueChanging ? null : sheetPlayer.cashout_confirm_status,
+              })
+              .eq('id', sheetPlayer.id),
           'Cash-out'
         )
         if (!ok) return
       } else if (sheetPlayer.cashout != null) {
         const ok = await runWrite(
-          () => supabase.from('game_players').update({ cashout: null }).eq('id', sheetPlayer.id),
+          () =>
+            supabase
+              .from('game_players')
+              .update({ cashout: null, cashout_confirm_status: null })
+              .eq('id', sheetPlayer.id),
           'Clearing cash-out'
         )
         if (!ok) return
@@ -568,16 +600,25 @@ export function LiveGame() {
                       </span>
                     }
                     title={`${p.full_name}${p.is_host ? ' (host)' : ''}`}
-                    subtitle={`${p.confirmed_buyins} buy-in${p.confirmed_buyins === 1 ? '' : 's'}`}
+                    subtitle={`${p.confirmed_buyins} buy-in${p.confirmed_buyins === 1 ? '' : 's'} · tap to edit`}
                     trailing={
-                      <div
-                        className={`type-figure-md flex items-center gap-1 whitespace-nowrap ${
-                          net >= 0 ? 'text-win' : 'text-error'
-                        }`}
-                      >
-                        {net >= 0 ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
-                        {Math.abs(net)} chips
-                      </div>
+                      <>
+                        <div
+                          className={`type-figure-md flex items-center gap-1 whitespace-nowrap ${
+                            net >= 0 ? 'text-win' : 'text-error'
+                          }`}
+                        >
+                          {net >= 0 ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
+                          {Math.abs(net)} chips
+                        </div>
+                        <Badge variant={p.cashout_confirm_status === 'confirmed' ? 'win' : p.cashout_confirm_status === 'disputed' ? 'error' : 'muted'}>
+                          {p.cashout_confirm_status === 'confirmed'
+                            ? 'Confirmed'
+                            : p.cashout_confirm_status === 'disputed'
+                              ? 'Disputed'
+                              : 'Awaiting'}
+                        </Badge>
+                      </>
                     }
                   />
                 )
@@ -664,6 +705,7 @@ export function LiveGame() {
                   <p className="type-figure-md text-ink">
                     {sheetPlayer.confirmed_buyins} buy-in{sheetPlayer.confirmed_buyins === 1 ? '' : 's'}
                   </p>
+                  <p className="mt-1 text-xs text-muted">Turn off Cashed out below to edit buy-ins again.</p>
                 </div>
               )}
 
@@ -677,7 +719,14 @@ export function LiveGame() {
 
               {cashoutOn && (
                 <div className="mt-3 flex flex-col gap-1.5">
-                  <Label htmlFor="sheet-cashout">Cash-out (banks)</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="sheet-cashout">Cash-out (banks)</Label>
+                    {sheetPlayer.cashout != null && sheetPlayer.cashout_confirm_status && (
+                      <Badge variant={sheetPlayer.cashout_confirm_status === 'confirmed' ? 'win' : 'error'}>
+                        {sheetPlayer.cashout_confirm_status === 'confirmed' ? 'Player confirmed' : 'Player disputed'}
+                      </Badge>
+                    )}
+                  </div>
                   <Input
                     id="sheet-cashout"
                     type="number"
@@ -686,6 +735,11 @@ export function LiveGame() {
                     value={cashoutValue}
                     onChange={(e) => setCashoutValue(e.target.value)}
                   />
+                  {sheetPlayer.cashout != null && sheetPlayer.cashout_confirm_status === 'confirmed' && (
+                    <p className="text-xs text-muted">
+                      Changing this will ask {sheetPlayer.full_name} to confirm the new amount instead.
+                    </p>
+                  )}
                 </div>
               )}
 
