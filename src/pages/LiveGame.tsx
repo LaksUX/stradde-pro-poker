@@ -633,17 +633,18 @@ export function LiveGame() {
         )}
       </div>
 
-      {players.length > 0 && activePlayers.length === 0 ? (
-        <Button block className="mt-4" onClick={closeAndSettle}>
-          End game &amp; settle
-        </Button>
-      ) : (
-        players.length > 0 && (
-          <p className="mt-4 text-center text-xs text-muted">
-            Cash out {activePlayers.length === 1 ? 'the last player' : `all ${activePlayers.length} remaining players`}{' '}
-            to end the game.
-          </p>
-        )
+      {players.length > 0 && (
+        <>
+          {activePlayers.length > 0 && (
+            <p className="mt-4 text-center text-xs text-muted">
+              {activePlayers.length === 1 ? '1 player hasn\'t' : `${activePlayers.length} players haven't`}{' '}
+              cashed out yet — closing now counts their buy-ins as a loss to the table.
+            </p>
+          )}
+          <Button block className="mt-2" onClick={closeAndSettle}>
+            End game &amp; settle
+          </Button>
+        </>
       )}
 
       <Sheet open={sheetPlayerId != null} onOpenChange={(open) => !open && setSheetPlayerId(null)}>
