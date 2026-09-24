@@ -10,6 +10,7 @@ import { confirmDialog } from '../lib/confirmDialog'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
 import { InviteQrCard } from '../components/ui/InviteQrCard'
+import { InviteRegularsSheet } from '../components/ui/InviteRegularsSheet'
 import { Card, CardContent } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -19,7 +20,7 @@ import { NamedAvatar } from '../components/ui/avatar'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import { Slider } from '../components/ui/slider'
 import { Switch } from '../components/ui/switch'
-import { QrCode, ArrowUp, ArrowDown, ChevronDown } from 'lucide-react'
+import { QrCode, UserPlus, ArrowUp, ArrowDown, ChevronDown } from 'lucide-react'
 
 const MAX_BUYINS = 50
 const QUICK_ADD = [1, 2, 3, 5]
@@ -30,6 +31,7 @@ type Game = {
   stake: number
   chip_ratio: ChipRatio
   rake: number
+  host_id: string
 }
 type PendingRequest = {
   id: string
@@ -67,6 +69,7 @@ export function LiveGame() {
   const [players, setPlayers] = useState<PlayerRow[]>([])
   const [rakeRevealed, setRakeRevealed] = useState(false)
   const [qrOpen, setQrOpen] = useState(false)
+  const [inviteOpen, setInviteOpen] = useState(false)
   const [sheetPlayerId, setSheetPlayerId] = useState<string | null>(null)
   const [sliderValue, setSliderValue] = useState(0)
   const [cashoutOn, setCashoutOn] = useState(false)
@@ -440,7 +443,15 @@ export function LiveGame() {
       <div className="flex items-center justify-between">
         <h1 className="type-page-title text-ink">{game.name}</h1>
         {gameId && (
-          <>
+          <div className="flex shrink-0 gap-2">
+            <button
+              type="button"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-hairline text-muted hover:bg-surface-strong hover:text-ink"
+              onClick={() => setInviteOpen(true)}
+              aria-label="Invite regulars"
+            >
+              <UserPlus className="h-[18px] w-[18px]" />
+            </button>
             <button
               type="button"
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-hairline text-muted hover:bg-surface-strong hover:text-ink"
@@ -459,7 +470,15 @@ export function LiveGame() {
                 </div>
               </SheetContent>
             </Sheet>
-          </>
+            <InviteRegularsSheet
+              open={inviteOpen}
+              onOpenChange={setInviteOpen}
+              gameId={gameId}
+              hostId={game.host_id}
+              existingProfileIds={players.map((p) => p.profile_id)}
+              onInvited={() => toast.success('Invited')}
+            />
+          </div>
         )}
       </div>
 
