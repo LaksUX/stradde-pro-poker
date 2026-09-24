@@ -5,7 +5,7 @@
 -- flow (still one tap, still works offline-scan) — the code is the fallback
 -- for "just tell people at the table."
 
-alter table games add column join_code text unique;
+alter table games add column if not exists join_code text unique;
 
 create or replace function generate_game_join_code() returns text as $$
 declare
@@ -35,6 +35,7 @@ begin
 end;
 $$ language plpgsql;
 
+drop trigger if exists games_set_join_code on games;
 create trigger games_set_join_code
   before insert on games
   for each row execute function set_game_join_code();
@@ -44,10 +45,15 @@ update games set join_code = generate_game_join_code() where join_code is null;
 
 -- Exposed the same way every other field on this view already is — meant to
 -- be shared with anyone the host gives it to, same trust level as the QR
--- code/link it sits next to.
+-- code/link it sits next to. CREATE OR REPLACE VIEW can only APPEND new
+-- output columns at the end, never drop/reorder/rename existing ones — this
+-- has to keep hosting_entity_id (added after this view's original
+-- definition, by 0008_hosting_entities.sql, and still read by
+-- EntityLink.tsx) in the same position or Postgres rejects the whole
+-- statement as an implicit rename.
 create or replace view public_game_summary as
   select id, name, venue_id, venue_freetext, scheduled_for, status, stake,
-         table_size, table_status_override, host_id, join_code
+         table_size, table_status_override, host_id, hosting_entity_id, join_code
   from games;
 
 alter view public_game_summary set (security_invoker = false);
