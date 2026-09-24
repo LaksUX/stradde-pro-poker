@@ -114,7 +114,11 @@ export function Settlement() {
         game_id: gameId,
         from_player_id: players[0].id,
         to_player_id: players[1].id,
-        amount: 0,
+        // amount must be > 0 (settlement_transfers' own check constraint) —
+        // this was inserting 0 and failing on every single click. 1 is a
+        // placeholder the host immediately edits via the row this opens
+        // straight into, same as any other transfer's amount.
+        amount: 1,
         status: 'pending',
       })
       .select('id, from_player_id, to_player_id, amount, status, request_note')
@@ -123,8 +127,10 @@ export function Settlement() {
       toast.error(navigator.onLine ? error.message : "Couldn't add — you're offline. Reconnect and try again.")
       return
     }
-    setTransfers((prev) => [...prev, data as Transfer])
+    const t = data as Transfer
+    setTransfers((prev) => [...prev, t])
     setDirty(true)
+    setEditingId(t.id)
   }
 
   async function publish() {
