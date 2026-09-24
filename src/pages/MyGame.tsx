@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, NamedAvatar } from '../components/ui/avatar'
 import { Badge } from '../components/ui/badge'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import { Slider } from '../components/ui/slider'
-import { Plus } from 'lucide-react'
+import { Plus, ChevronDown } from 'lucide-react'
 
 const MAX_REQUEST = 30
 
@@ -37,6 +37,7 @@ type Request = {
   requested_at: string
   confirmed_at: string | null
 }
+type RosterRow = { profile_id: string; full_name: string; buyin_count: number }
 
 const LOCK_MS = 60_000
 
@@ -54,6 +55,8 @@ export function MyGame() {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [count, setCount] = useState(1)
   const [submitting, setSubmitting] = useState(false)
+  const [roster, setRoster] = useState<RosterRow[]>([])
+  const [rosterOpen, setRosterOpen] = useState(false)
 
   useEffect(() => {
     if (!gameId || !profile) return
@@ -84,22 +87,41 @@ export function MyGame() {
         .order('requested_at', { ascending: false })
       setRequests((data ?? []) as Request[])
     }
+    // Same view ShareTable used for the pre-join roster, kept to the same
+    // "names only, ranked by buy-ins" shape here too — everyone's count is
+    // technically in the view already (RLS doesn't scope it per-viewer),
+    // but the UI still only ever renders a number next to your own row.
+    async function loadRoster() {
+      const { data } = await supabase
+        .from('public_live_roster')
+        .select('*')
+        .eq('game_id', gameId)
+        .order('buyin_count', { ascending: false })
+      setRoster((data ?? []) as RosterRow[])
+    }
 
     loadGame()
     loadMyPlayer()
     loadRequests()
+    loadRoster()
 
     const channel = supabase
       .channel(`my-game-${gameId}-${profile.id}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'buyin_requests', filter: `game_id=eq.${gameId}` },
-        loadRequests
+        () => {
+          loadRequests()
+          loadRoster()
+        }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` },
-        loadMyPlayer
+        () => {
+          loadMyPlayer()
+          loadRoster()
+        }
       )
       .on(
         'postgres_changes',
@@ -181,10 +203,11 @@ export function MyGame() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2">
-            <p className="type-figure-hero text-ink">
-              {netBanks == null
-                ? `${toChips(confirmedBuyins * game.stake, ratio)} chips`
-                : `${toChips(netBanks, ratio)} chips`}
+            <p className="flex items-baseline gap-1.5 text-ink">
+              <span className="type-figure-hero">
+                {netBanks == null ? toChips(confirmedBuyins * game.stake, ratio) : toChips(netBanks, ratio)}
+              </span>
+              <span className="text-sm text-muted">chips</span>
             </p>
             <Badge variant={netBanks == null || netBanks >= 0 ? 'win' : 'error'}>
               {netBanks == null ? 'Playing' : netBanks >= 0 ? 'Winning' : 'Down'}
@@ -280,6 +303,48 @@ export function MyGame() {
           </Button>
         </SheetContent>
       </Sheet>
+
+      {roster.length > 0 && (
+        <div className="mt-5 border-t border-hairline-soft pt-4">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between text-left"
+            onClick={() => setRosterOpen((v) => !v)}
+          >
+            <h2 className="type-label-caption text-muted">Live table ({roster.length})</h2>
+            <ChevronDown
+              className={`h-4 w-4 text-muted transition-transform ${rosterOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+          {rosterOpen && (
+            <div className="mt-2">
+              <p className="mb-2 text-xs text-muted">
+                Names only, ranked by buy-ins — no one else's numbers.
+              </p>
+              <ListGroup>
+                {roster.map((r) => {
+                  const isMe = r.profile_id === profile?.id
+                  return (
+                    <ListRow
+                      key={r.profile_id}
+                      avatar={<NamedAvatar name={r.full_name} className="h-10 w-10" />}
+                      title={isMe ? `${r.full_name} (you)` : r.full_name}
+                      trailing={
+                        isMe ? (
+                          <p className="flex items-baseline gap-1 text-ink">
+                            <span className="type-figure-md">{toChips(r.buyin_count * game.stake, ratio)}</span>
+                            <span className="text-[11px] text-muted">chips</span>
+                          </p>
+                        ) : undefined
+                      }
+                    />
+                  )
+                })}
+              </ListGroup>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="mt-5">
         <h2 className="type-label-caption mb-2 text-muted">Your activity</h2>
