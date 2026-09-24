@@ -13,14 +13,15 @@ import { InviteQrCard } from '../components/ui/InviteQrCard'
 import { Card, CardContent } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
-import { ListGroup, ListRow } from '../components/ui/list-row'
-import { NamedAvatar } from '../components/ui/avatar'
+import { ListGroup, ListRow, ListDate } from '../components/ui/list-row'
+import { NamedAvatar, Avatar, AvatarFallback } from '../components/ui/avatar'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import { Slider } from '../components/ui/slider'
 import { Switch } from '../components/ui/switch'
-import { QrCode, ArrowUp, ArrowDown } from 'lucide-react'
+import { QrCode, ArrowUp, ArrowDown, Plus } from 'lucide-react'
 
 const MAX_BUYINS = 50
+const QUICK_ADD = [1, 2, 3, 5]
 
 type Game = {
   id: string
@@ -44,6 +45,13 @@ type PlayerRow = {
   full_name: string
   confirmed_buyins: number
 }
+type HistoryEntry = {
+  id: string
+  count: number
+  runningTotal: number
+  requestType: 'join' | 'more_buyins'
+  confirmedAt: string
+}
 
 // See PAGE_PROMPTS.md "Live Game". This pass wires the core loop that
 // matters most to get right end to end: the Pending requests queue and
@@ -64,6 +72,7 @@ export function LiveGame() {
   const [cashoutOn, setCashoutOn] = useState(false)
   const [cashoutValue, setCashoutValue] = useState('')
   const [savingSheet, setSavingSheet] = useState(false)
+  const [historyByPlayer, setHistoryByPlayer] = useState<Map<string, HistoryEntry[]>>(new Map())
 
   const sheetPlayer = players.find((p) => p.id === sheetPlayerId) ?? null
 
@@ -100,15 +109,34 @@ export function LiveGame() {
         .eq('game_id', gameId)
       const { data: reqs } = await supabase
         .from('buyin_requests')
-        .select('game_player_id, count')
+        .select('id, game_player_id, count, request_type, confirmed_at')
         .eq('game_id', gameId)
         .eq('status', 'confirmed')
+        .order('confirmed_at', { ascending: true })
 
       const counts = new Map<string, number>()
+      // Built in the same ascending pass as the totals, so each entry's
+      // runningTotal reflects the balance right after that event — the
+      // rows themselves already come out oldest-first from the query, so
+      // there's no separate sort needed before computing it.
+      const history = new Map<string, HistoryEntry[]>()
       for (const r of reqs ?? []) {
         if (!r.game_player_id) continue
-        counts.set(r.game_player_id, (counts.get(r.game_player_id) ?? 0) + r.count)
+        const total = (counts.get(r.game_player_id) ?? 0) + r.count
+        counts.set(r.game_player_id, total)
+        const list = history.get(r.game_player_id) ?? []
+        list.push({
+          id: r.id,
+          count: r.count,
+          runningTotal: total,
+          requestType: r.request_type,
+          confirmedAt: r.confirmed_at,
+        })
+        history.set(r.game_player_id, list)
       }
+      // Newest first for display, once every entry's running total is set.
+      for (const list of history.values()) list.reverse()
+      setHistoryByPlayer(history)
       setPlayers(
         (rows ?? []).map((row: any) => ({
           id: row.id,
@@ -608,6 +636,18 @@ export function LiveGame() {
                     value={sliderValue}
                     onValueChange={(v) => setSliderValue(v as number)}
                   />
+                  <div className="mt-3 flex justify-center gap-1.5">
+                    {QUICK_ADD.map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setSliderValue((v) => Math.min(MAX_BUYINS, v + n))}
+                        className="rounded-full bg-surface-strong px-3.5 py-1.5 text-sm font-semibold text-ink transition-colors hover:bg-surface-strong/70"
+                      >
+                        +{n}
+                      </button>
+                    ))}
+                  </div>
                   <p className="mt-1 text-center text-xs text-muted">total buy-ins</p>
                 </div>
               ) : (
@@ -638,6 +678,45 @@ export function LiveGame() {
                     value={cashoutValue}
                     onChange={(e) => setCashoutValue(e.target.value)}
                   />
+                </div>
+              )}
+
+              {(historyByPlayer.get(sheetPlayer.id) ?? []).length > 0 && (
+                <div className="mt-5 border-t border-hairline-soft pt-4">
+                  <h2 className="type-label-caption mb-2 text-muted">Buy-in history</h2>
+                  <ListGroup>
+                    {/* One date for the whole log, not per row — this is a
+                        live session, so every entry is from today; repeating
+                        the date on each line would just be noise. */}
+                    <ListDate>
+                      {new Date().toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </ListDate>
+                    {(historyByPlayer.get(sheetPlayer.id) ?? []).map((h) => (
+                      <ListRow
+                        key={h.id}
+                        avatar={
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback>
+                              <Plus className="h-4 w-4" />
+                            </AvatarFallback>
+                          </Avatar>
+                        }
+                        title={
+                          h.requestType === 'join'
+                            ? `Joined with ${h.count} buy-in${h.count === 1 ? '' : 's'}`
+                            : `Bought in +${h.count} (total: ${h.runningTotal})`
+                        }
+                        subtitle={new Date(h.confirmedAt).toLocaleTimeString([], {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                      />
+                    ))}
+                  </ListGroup>
                 </div>
               )}
 
