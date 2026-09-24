@@ -1,11 +1,33 @@
+import { execSync } from 'node:child_process'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// "1.0" here, not package.json's "version" (which stays real semver,
+// "1.0.0") — this is a separate, display-only base so appending the build
+// number below gives "1.0.71", not "1.0.0.71".
+const VERSION_BASE = '1.0'
+
+// Total commit count is a build counter that only ever goes up, with no
+// state to track ourselves — every new commit on main is a new Vercel
+// build, so this increments exactly once per build. Falls back to a
+// timestamp if git isn't available (e.g. a from-scratch checkout with no
+// history), so a missing .git directory can't break the build.
+function buildNumber(): string {
+  try {
+    return execSync('git rev-list --count HEAD').toString().trim()
+  } catch {
+    return String(Date.now())
+  }
+}
+
 // See REQUIREMENTS.md "Stack" and "Theme" — Tailwind v4 CSS-first config
 // (no tailwind.config.js), PWA via vite-plugin-pwa, no dark mode variant.
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(`${VERSION_BASE}.${buildNumber()}`),
+  },
   resolve: {
     alias: { '@': new URL('./src', import.meta.url).pathname },
   },

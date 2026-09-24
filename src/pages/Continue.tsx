@@ -109,6 +109,7 @@ export function Continue() {
       <Link to="/find" className="text-center text-xs text-primary underline">
         Have a game code instead of a link?
       </Link>
+      <p className="text-center text-[11px] text-muted-soft">v{__APP_VERSION__}</p>
     </div>
   )
 }
