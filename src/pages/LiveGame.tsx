@@ -50,8 +50,6 @@ type PlayerRow = {
 type HistoryEntry = {
   id: string
   count: number
-  runningTotal: number
-  requestType: 'join' | 'more_buyins'
   confirmedAt: string
 }
 
@@ -114,32 +112,22 @@ export function LiveGame() {
         .eq('game_id', gameId)
       const { data: reqs } = await supabase
         .from('buyin_requests')
-        .select('id, game_player_id, count, request_type, confirmed_at')
+        .select('id, game_player_id, count, confirmed_at')
         .eq('game_id', gameId)
         .eq('status', 'confirmed')
         .order('confirmed_at', { ascending: true })
 
       const counts = new Map<string, number>()
-      // Built in the same ascending pass as the totals, so each entry's
-      // runningTotal reflects the balance right after that event — the
-      // rows themselves already come out oldest-first from the query, so
-      // there's no separate sort needed before computing it.
       const history = new Map<string, HistoryEntry[]>()
       for (const r of reqs ?? []) {
         if (!r.game_player_id) continue
-        const total = (counts.get(r.game_player_id) ?? 0) + r.count
-        counts.set(r.game_player_id, total)
+        counts.set(r.game_player_id, (counts.get(r.game_player_id) ?? 0) + r.count)
         const list = history.get(r.game_player_id) ?? []
-        list.push({
-          id: r.id,
-          count: r.count,
-          runningTotal: total,
-          requestType: r.request_type,
-          confirmedAt: r.confirmed_at,
-        })
+        list.push({ id: r.id, count: r.count, confirmedAt: r.confirmed_at })
         history.set(r.game_player_id, list)
       }
-      // Newest first for display, once every entry's running total is set.
+      // Rows come out oldest-first from the query (needed for the running
+      // counts above) — reverse per-player for newest-first display.
       for (const list of history.values()) list.reverse()
       setHistoryByPlayer(history)
       setPlayers(
@@ -796,11 +784,7 @@ export function LiveGame() {
                           {entries.map((h) => (
                             <ListRow
                               key={h.id}
-                              title={
-                                h.requestType === 'join'
-                                  ? `Joined with ${h.count} buy-in${h.count === 1 ? '' : 's'}`
-                                  : `Bought in +${h.count} (total: ${h.runningTotal})`
-                              }
+                              title={`${h.count * game.stake} banks`}
                               subtitle={new Date(h.confirmedAt).toLocaleTimeString([], {
                                 hour: 'numeric',
                                 minute: '2-digit',
