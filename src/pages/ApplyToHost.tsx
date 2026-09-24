@@ -30,7 +30,7 @@ export function ApplyToHost() {
           ? "You're offline — reconnect and try again."
           : e instanceof Error
             ? e.message
-            : 'Something went wrong'
+            : ((e as { message?: string })?.message ?? 'Something went wrong')
       )
     } finally {
       setSubmitting(false)
