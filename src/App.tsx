@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { Continue } from './pages/Continue'
+import { JoinByCode } from './pages/JoinByCode'
 import { ApplyToHost } from './pages/ApplyToHost'
 import { Home } from './pages/Home'
 import { PendingApproval } from './pages/PendingApproval'
@@ -45,6 +46,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/continue" element={<Continue />} />
+        <Route path="/find" element={<JoinByCode />} />
         <Route path="/join/:gameId" element={<Join />} />
         <Route path="/games/:gameId/scheduled" element={<ScheduledGame />} />
         <Route path="/t/:gameId" element={<ShareTable />} />
