@@ -23,6 +23,13 @@ type Game = {
   closed_at: string | null
 }
 type PlayerRow = { id: string; profile_id: string; full_name: string; cashout: number | null; buyins: number }
+type MyTransferRow = {
+  id: string
+  direction: 'owe' | 'owed'
+  otherName: string
+  amount: number
+  status: 'pending' | 'confirmed' | 'disputed'
+}
 
 // See PAGE_PROMPTS.md "Game Detail". The host/player visibility rule
 // enforced client-side here mirrors what RLS already enforces at the
@@ -38,6 +45,7 @@ export function GameDetail() {
   const [transfers, setTransfers] = useState<
     { from: string; to: string; amount: number; status: string }[]
   >([])
+  const [myTransfers, setMyTransfers] = useState<MyTransferRow[]>([])
 
   useEffect(() => {
     if (!gameId || !profile) return
@@ -83,6 +91,38 @@ export function GameDetail() {
             status: t.status,
           }))
         )
+      } else if (g?.status === 'closed') {
+        // Not the host — RLS only ever hands back our own game_players row
+        // above, so "me" below is the one row in `rows`. See PAGE_PROMPTS.md
+        // Global "who owes who is unclear" fix: this used to be entirely
+        // absent for a non-host player — the settlement existed but nowhere
+        // on this screen said so. Reused verbatim from MySettlements.tsx.
+        const myId = (rows ?? [])[0]?.id
+        if (myId) {
+          const { data: ts } = await supabase
+            .from('settlement_transfers')
+            .select('id, from_player_id, to_player_id, amount, status')
+            .eq('game_id', gameId)
+            .or(`from_player_id.eq.${myId},to_player_id.eq.${myId}`)
+          const results: MyTransferRow[] = []
+          for (const t of ts ?? []) {
+            const direction: 'owe' | 'owed' = t.from_player_id === myId ? 'owe' : 'owed'
+            const otherId = t.from_player_id === myId ? t.to_player_id : t.from_player_id
+            const { data: other } = await supabase
+              .from('game_players')
+              .select('profiles(full_name)')
+              .eq('id', otherId)
+              .maybeSingle()
+            results.push({
+              id: t.id,
+              direction,
+              otherName: (other as any)?.profiles?.full_name ?? '—',
+              amount: t.amount,
+              status: t.status,
+            })
+          }
+          setMyTransfers(results)
+        }
       }
     }
     load()
@@ -188,6 +228,47 @@ export function GameDetail() {
         </Card>
       ) : (
         <p className="mt-4 text-center text-sm text-muted">You weren't in this game.</p>
+      )}
+
+      {!isHost && me && game.status === 'closed' && (
+        <>
+          <h2 className="type-label-caption mb-2 mt-5 text-muted">Settlement</h2>
+          {myTransfers.length === 0 ? (
+            <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+              Nothing you owe or are owed here.
+            </p>
+          ) : (
+            <ListGroup>
+              {myTransfers.map((t) => (
+                <ListRow
+                  key={t.id}
+                  avatar={<NamedAvatar name={t.otherName} className="h-12 w-12" />}
+                  title={
+                    <span className={t.direction === 'owe' ? 'text-error' : 'text-win'}>
+                      {t.direction === 'owe' ? `You owe ${t.otherName}` : `${t.otherName} owes you`}
+                    </span>
+                  }
+                  trailing={
+                    <>
+                      <span
+                        className={`type-figure-md whitespace-nowrap ${
+                          t.direction === 'owe' ? 'text-error' : 'text-win'
+                        }`}
+                      >
+                        {toChips(t.amount, ratio)} chips
+                      </span>
+                      <Badge
+                        variant={t.status === 'confirmed' ? 'win' : t.status === 'disputed' ? 'error' : 'muted'}
+                      >
+                        {t.status}
+                      </Badge>
+                    </>
+                  }
+                />
+              ))}
+            </ListGroup>
+          )}
+        </>
       )}
     </div>
   )

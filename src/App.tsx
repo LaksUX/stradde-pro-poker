@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { Continue } from './pages/Continue'
-import { ApplyToHost } from './pages/ApplyToHost'
 import { Home } from './pages/Home'
 import { PendingApproval } from './pages/PendingApproval'
 import { Admin } from './pages/Admin'
@@ -56,7 +55,6 @@ export default function App() {
             or joining shouldn't see navigation for an app they haven't
             signed into. */}
         <Route element={<AppShell />}>
-          <Route path="/apply-to-host" element={<ApplyToHost />} />
           <Route path="/home" element={<Home />} />
           <Route path="/pending-approval" element={<PendingApproval />} />
           <Route path="/admin" element={<Admin />} />

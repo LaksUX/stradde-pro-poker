@@ -196,12 +196,25 @@ export function Home() {
     navigate('/continue')
   }
 
-  async function setApproval(id: string, approved: boolean) {
+  // The only way anyone becomes a host now — no more self-serve apply, so
+  // there's no "pending" state to approve into; this grants the role and
+  // approves it in the same step. Mirrors Admin.tsx's makeHost/removeHost —
+  // same two actions, kept in sync since this tab replaced that page as the
+  // place admins actually use day to day.
+  async function makeHost(id: string) {
     const ok = await runWrite(
-      () => supabase.from('profiles').update({ approved }).eq('id', id),
-      approved ? 'Approving host' : 'Revoking host'
+      () => supabase.from('profiles').update({ role: 'host', approved: true }).eq('id', id),
+      'Making host'
     )
-    if (ok) setAdminRows((prev) => prev.map((r) => (r.id === id ? { ...r, approved } : r)))
+    if (ok) setAdminRows((prev) => prev.map((r) => (r.id === id ? { ...r, role: 'host', approved: true } : r)))
+  }
+
+  async function removeHost(id: string) {
+    const ok = await runWrite(
+      () => supabase.from('profiles').update({ role: 'player', approved: false }).eq('id', id),
+      'Removing host'
+    )
+    if (ok) setAdminRows((prev) => prev.map((r) => (r.id === id ? { ...r, role: 'player', approved: false } : r)))
   }
 
   const isApprovedHost = !!profile && isApprovedHostRole(profile) && profile.approved
@@ -390,16 +403,6 @@ export function Home() {
               </TabsContent>
             </Tabs>
 
-            {!showTabSwitcher && (
-              <div className="mt-5 rounded-lg border border-hairline bg-canvas p-4 text-center">
-                <p className="mb-3 text-sm text-muted">
-                  Run your own games instead of just joining them.
-                </p>
-                <Button variant="ghost" onClick={() => navigate('/apply-to-host')}>
-                  Apply to host
-                </Button>
-              </div>
-            )}
           </TabsContent>
         )}
 
@@ -463,19 +466,10 @@ export function Home() {
                   )}
                 </div>
               </>
-            ) : profile?.role === 'host' ? (
-              <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
-                Your host application is pending approval.
-              </p>
             ) : (
-              <div className="rounded-lg border border-hairline bg-canvas p-4 text-center">
-                <p className="mb-3 text-sm text-muted">
-                  Run your own games instead of just joining them.
-                </p>
-                <Button variant="ghost" onClick={() => navigate('/apply-to-host')}>
-                  Apply to host
-                </Button>
-              </div>
+              <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                Hosting is granted by an admin — ask one to make you a host.
+              </p>
             )}
           </TabsContent>
         )}
@@ -499,11 +493,16 @@ export function Home() {
                         <Badge variant={r.role === 'host' && r.approved ? 'win' : 'muted'}>
                           {r.role === 'host' ? (r.approved ? 'Approved' : 'Pending') : 'Player'}
                         </Badge>
+                        {r.role === 'player' && (
+                          <Button variant="primary" className="h-8 px-3 text-xs" onClick={() => makeHost(r.id)}>
+                            Make host
+                          </Button>
+                        )}
                         {r.role === 'host' && (
                           <Button
                             variant={r.approved ? 'danger' : 'primary'}
                             className="h-8 px-3 text-xs"
-                            onClick={() => setApproval(r.id, !r.approved)}
+                            onClick={() => (r.approved ? removeHost(r.id) : makeHost(r.id))}
                           >
                             {r.approved ? 'Revoke' : 'Approve'}
                           </Button>

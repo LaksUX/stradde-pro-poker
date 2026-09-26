@@ -22,6 +22,7 @@ type Game = {
   name: string
   stake: number
   chip_ratio: ChipRatio
+  status: 'scheduled' | 'live' | 'closed'
 }
 type MyPlayer = {
   id: string
@@ -60,7 +61,7 @@ export function MyGame() {
     async function loadGame() {
       const { data } = await supabase
         .from('games')
-        .select('id, name, stake, chip_ratio')
+        .select('id, name, stake, chip_ratio, status')
         .eq('id', gameId)
         .maybeSingle()
       setGame(data as Game | null)
@@ -110,6 +111,13 @@ export function MyGame() {
       supabase.removeChannel(channel)
     }
   }, [gameId, profile])
+
+  // The host closing the game while a player is sitting on this exact
+  // screen used to leave them stuck on "Playing" forever — nothing here
+  // ever looked at game.status. This is the natural next screen: same
+  // redirect-on-status-change pattern ShareTable already uses for
+  // scheduled → live, just for live → closed instead.
+  if (session && game?.status === 'closed') return <Navigate to={`/games/${gameId}`} replace />
 
   if (loading) return <PageSpinner />
   if (!session) return <Navigate to="/continue" replace />

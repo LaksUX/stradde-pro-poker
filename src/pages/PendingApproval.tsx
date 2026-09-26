@@ -4,8 +4,10 @@ import { supabase } from '../lib/supabase'
 import { PageSpinner } from '../components/ui/Spinner'
 
 // See PAGE_PROMPTS.md "Pending Approval". Shown to a signed-in phone
-// identity with role: 'host' and approved: false — reached only via Apply
-// to Host, never as a side effect of merely signing in.
+// identity with role: 'host' and approved: false. Hosting is admin-granted
+// (see Admin.tsx's makeHost) and always approved on the spot, so this state
+// shouldn't occur in normal use anymore — kept as a defensive fallback in
+// case a host is ever demoted mid-way or a profile is edited directly.
 export function PendingApproval() {
   const { session, profile, loading } = useAuth()
   const navigate = useNavigate()
