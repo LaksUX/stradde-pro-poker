@@ -6,8 +6,8 @@ import { supabase } from '../lib/supabase'
 // mechanism for everyone now, not two. Phone number, entered by the person
 // themself, no password, no email, no OTP. Hosting is not a different sign-in
 // method — it's a `role` / `approved` pair on the same kind of profile
-// everyone gets, reached by an explicit "Apply to host" action (see
-// applyToHost below), not inferred from how someone signed in.
+// everyone gets, granted only by an admin (see Admin.tsx's makeHost), never
+// inferred from how someone signed in and never self-serve.
 
 export type Profile = {
   id: string
@@ -83,7 +83,7 @@ export function useAuth() {
  * in the function itself.
  *
  * New profiles default to `role: 'player'` — hosting is never inferred here,
- * only granted via applyToHost, below.
+ * only granted by an admin.
  */
 export async function continueWithPhone(name: string, phoneE164: string): Promise<Profile> {
   // The phone lookup this function used to do BEFORE signing in was
@@ -179,23 +179,3 @@ export async function continueWithPhone(name: string, phoneE164: string): Promis
   return created as Profile
 }
 
-/**
- * The explicit action that requests the host role — see pages/ApplyToHost.tsx.
- * Sets role/approved on the CURRENT session's own profile; relies on the
- * existing "update own profile" RLS policy (id = auth.uid()), which is
- * intentionally unrestricted on which columns a self-update can touch. Worth
- * tightening to a specific allowed-column set before this leaves prototype
- * status — flagged here rather than assumed safe.
- */
-export async function applyToHost(): Promise<Profile> {
-  const user = (await supabase.auth.getSession()).data.session?.user
-  if (!user) throw new Error('Not signed in')
-  const { data, error } = await supabase
-    .from('profiles')
-    .update({ role: 'host', approved: false })
-    .eq('id', user.id)
-    .select('id, full_name, phone, role, approved')
-    .single()
-  if (error) throw error
-  return data as Profile
-}
