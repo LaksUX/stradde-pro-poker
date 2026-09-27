@@ -372,8 +372,20 @@ export function LiveGame() {
     try {
       const totalIn = players.reduce((s, p) => s + p.confirmed_buyins * game.stake, 0)
       const totalOut = players.reduce((s, p) => s + (p.cashout ?? 0), 0)
-      if (totalOut + game.rake > totalIn) {
-        toast.error("Can't close — cash-outs plus rake exceed total buy-ins. Resolve the overpay first.")
+      const overageBanks = totalOut + game.rake - totalIn
+      if (overageBanks > 0) {
+        // Used to just say "resolve the overpay" with no numbers, leaving
+        // the host to guess how far off they were. Rake is the one number
+        // on this screen a host can freely adjust to reconcile a real cash
+        // count against what got tracked — showing exactly how much to
+        // lower it by (and revealing the field, which starts masked) turns
+        // this into something actionable instead of a dead end.
+        toast.error(
+          `Can't close — cash-outs plus rake are ${overageBanks} banks ` +
+            `(${toChips(overageBanks, game.chip_ratio)} chips) more than total buy-ins. ` +
+            `Lower rake by at least that much, or fix a player's buy-in/cash-out below.`
+        )
+        setRakeRevealed(true)
         return
       }
       const unfinished = players.filter((p) => p.cashout == null)
