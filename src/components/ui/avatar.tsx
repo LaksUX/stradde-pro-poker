@@ -1,4 +1,5 @@
 import { Avatar as AvatarPrimitive } from "@base-ui/react/avatar"
+import { User } from "lucide-react"
 import { cn } from "cn"
 
 function Avatar({ className, ...props }: AvatarPrimitive.Root.Props) {
@@ -45,18 +46,15 @@ function AvatarFallback({ className, ...props }: AvatarPrimitive.Fallback.Props)
   )
 }
 
-// The one call shape every row on the app actually needs — a name in,
-// initials out — rather than every page re-deriving initials() and
-// wiring up Root/Fallback itself (see Settlement.tsx before this).
-function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return '?'
-  if (parts.length === 1) return parts[0]!.charAt(0).toUpperCase()
-  return (parts[0]!.charAt(0) + parts[parts.length - 1]!.charAt(0)).toUpperCase()
-}
-
+// The one call shape every row on the app actually needs — a name in, a
+// fallback avatar out — rather than every page wiring up Root/Fallback
+// itself (see Settlement.tsx before this). Used to render initials, but two
+// different players can share initials at the same table (there's no
+// disambiguation beyond a first name in a home game), which read as the
+// same person at a glance — a plain icon never implies an identity the row
+// doesn't actually have.
 function NamedAvatar({
-  name,
+  name: _name,
   className,
 }: {
   name: string
@@ -64,9 +62,11 @@ function NamedAvatar({
 }) {
   return (
     <Avatar className={className}>
-      <AvatarFallback>{initialsOf(name)}</AvatarFallback>
+      <AvatarFallback>
+        <User className="h-1/2 w-1/2" />
+      </AvatarFallback>
     </Avatar>
   )
 }
 
-export { Avatar, AvatarImage, AvatarFallback, NamedAvatar, initialsOf }
+export { Avatar, AvatarImage, AvatarFallback, NamedAvatar }
