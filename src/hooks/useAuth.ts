@@ -96,6 +96,30 @@ export async function continueWithPhone(name: string, phoneE164: string): Promis
   // raw Postgrest error the UI never caught cleanly, showing a useless
   // generic message instead of a real explanation.
   let user: User | null = (await supabase.auth.getSession()).data.session?.user ?? null
+
+  // Join.tsx shows this same form to ANYONE who opens a game link,
+  // regardless of whether their browser already has an active session —
+  // e.g. a host testing their own game's join link on the same phone/tab
+  // they're hosting from. Reusing that session's id below would upsert the
+  // name/phone just typed straight onto the ALREADY-signed-in person's own
+  // profile row, silently renaming and re-phone-ing them (and, since a
+  // host/admin's self-update isn't blocked, demoting them too) — this is
+  // almost certainly why a freshly-appointed host's own game went blank
+  // for them mid-test. Only reuse the existing session when it's actually
+  // the same phone continuing; otherwise sign out first and fall through
+  // to a genuinely fresh anonymous identity below.
+  if (user) {
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('phone')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (existingProfile && existingProfile.phone !== phoneE164) {
+      await supabase.auth.signOut()
+      user = null
+    }
+  }
+
   if (!user) {
     const { data, error } = await supabase.auth.signInAnonymously()
     if (error) throw error
