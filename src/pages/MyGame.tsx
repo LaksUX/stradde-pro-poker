@@ -12,10 +12,12 @@ import { ListGroup, ListRow } from '../components/ui/list-row'
 import { Avatar, AvatarFallback, NamedAvatar } from '../components/ui/avatar'
 import { Badge } from '../components/ui/badge'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
-import { Slider } from '../components/ui/slider'
-import { Plus } from 'lucide-react'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Plus, X } from 'lucide-react'
 
 const MAX_REQUEST = 30
+const QUICK_ADD = [1, 2, 3, 5]
 
 type Game = {
   id: string
@@ -135,7 +137,7 @@ export function MyGame() {
   const pendingRequest = requests.find((r) => r.status === 'pending')
 
   async function requestMore() {
-    if (!gameId || !profile || !myPlayer) return
+    if (!gameId || !profile || !myPlayer || count < 1) return
     setSubmitting(true)
     try {
       const { error } = await supabase.from('buyin_requests').insert({
@@ -256,39 +258,65 @@ export function MyGame() {
             <SheetTitle>Request buy-ins</SheetTitle>
           </SheetHeader>
 
-          <div className="mt-5">
-            {/* Same always-visible Previous/New/Overall triad as the
-                host's sheet — no pill that only appears once you've moved
-                the slider, so all three numbers read together at a
-                glance. */}
-            <div className="grid grid-cols-3 gap-1.5 text-center">
-              <div className="rounded-lg bg-surface-strong px-2 py-2.5">
-                <p className="text-[11px] text-muted">Previous</p>
-                <p className="type-figure-md mt-0.5 text-ink">{confirmedBuyins}</p>
-              </div>
-              <div className="rounded-lg bg-surface-strong px-2 py-2.5">
-                <p className="text-[11px] text-muted">New</p>
-                <p className="type-figure-md mt-0.5 text-win">+{count}</p>
-              </div>
-              <div className="rounded-lg border border-primary/40 bg-primary/10 px-2 py-2.5">
-                <p className="text-[11px] text-muted">Overall</p>
-                <p className="type-figure-md mt-0.5 text-ink">{confirmedBuyins + count}</p>
-              </div>
-            </div>
-            {/* min=1 keeps a request from ever reaching zero or negative. */}
-            <Slider
-              className="mt-4"
-              min={1}
-              max={MAX_REQUEST}
-              step={1}
-              value={count}
-              onValueChange={(v) => setCount(Math.max(1, v as number))}
-            />
+          <div className="mt-5 rounded-lg bg-surface-strong px-4 py-3">
+            <p className="text-xs text-muted">Confirmed so far</p>
+            <p className="type-figure-hero mt-0.5 text-ink">
+              {confirmedBuyins} buy-in{confirmedBuyins === 1 ? '' : 's'}
+            </p>
           </div>
 
-          <Button block className="mt-5" disabled={submitting} onClick={requestMore}>
-            {submitting ? 'Sending…' : 'Send request'}
+          <div className="mt-4 flex flex-col gap-1.5">
+            <Label htmlFor="buyin-count">Buy-ins to request</Label>
+            <div className="relative">
+              {/* min=1 keeps a request from ever reaching zero or negative;
+                  clamped again on blur since typing can pass through an
+                  empty/out-of-range value while the field is being edited. */}
+              <Input
+                id="buyin-count"
+                type="number"
+                inputMode="numeric"
+                className="h-14 pr-11 text-lg"
+                value={count}
+                onChange={(e) => setCount(Number(e.target.value) || 0)}
+                onBlur={() => setCount((c) => Math.min(MAX_REQUEST, Math.max(1, c)))}
+              />
+              <button
+                type="button"
+                aria-label="Reset to 1"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink"
+                onClick={() => setCount(1)}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-3 flex justify-center gap-1.5">
+            {QUICK_ADD.map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setCount((c) => Math.min(MAX_REQUEST, Math.max(1, c) + n))}
+                className="rounded-full bg-surface-strong px-3.5 py-1.5 text-sm font-semibold text-ink transition-colors hover:bg-surface-strong/70"
+              >
+                +{n}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setCount(MAX_REQUEST)}
+            className="mt-2 w-full rounded-full bg-surface-strong py-1.5 text-sm font-semibold text-ink transition-colors hover:bg-surface-strong/70"
+          >
+            Maximum ({MAX_REQUEST})
+          </button>
+
+          <Button block className="mt-5 rounded-full" disabled={submitting || count < 1} onClick={requestMore}>
+            {submitting ? 'Sending…' : `Request ${count} buy-in${count === 1 ? '' : 's'}`}
           </Button>
+          <p className="mt-2 text-center text-xs text-muted">
+            Sent to the host to confirm — you'll have {confirmedBuyins + count} total once approved.
+          </p>
         </SheetContent>
       </Sheet>
 
