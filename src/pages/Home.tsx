@@ -4,6 +4,8 @@ import { useAuth, type Profile } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
+import { toast } from '../lib/toast'
+import { isPushSupported, isSubscribedToPush, subscribeToPush, unsubscribeFromPush } from '../lib/push'
 import { Button } from '../components/ui/Button'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
@@ -12,7 +14,7 @@ import { ListGroup, ListRow, ListDate } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
 import { LineChart } from '../components/ui/line-chart'
-import { Plus } from 'lucide-react'
+import { Plus, Bell, BellOff } from 'lucide-react'
 
 type HostedGame = {
   id: string
@@ -66,6 +68,32 @@ export function Home() {
   const [settlementRows, setSettlementRows] = useState<SettlementRow[]>([])
   const [adminRows, setAdminRows] = useState<AdminRow[]>([])
   const [loadingData, setLoadingData] = useState(true)
+  const [pushEnabled, setPushEnabled] = useState(false)
+  const [pushBusy, setPushBusy] = useState(false)
+
+  useEffect(() => {
+    if (isPushSupported()) isSubscribedToPush().then(setPushEnabled)
+  }, [])
+
+  async function togglePush() {
+    if (!profile || pushBusy) return
+    setPushBusy(true)
+    try {
+      if (pushEnabled) {
+        await unsubscribeFromPush()
+        setPushEnabled(false)
+        toast.success('Notifications turned off')
+      } else {
+        await subscribeToPush(profile.id)
+        setPushEnabled(true)
+        toast.success('Notifications turned on')
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not update notifications')
+    } finally {
+      setPushBusy(false)
+    }
+  }
 
   useEffect(() => {
     if (!profile) return
@@ -249,9 +277,22 @@ export function Home() {
             Hey{profile?.full_name ? ` ${profile.full_name}` : ''}
           </h1>
         </div>
-        <button className="text-xs text-muted underline" onClick={handleLogout}>
-          Log out
-        </button>
+        <div className="flex items-center gap-3">
+          {isPushSupported() && (
+            <button
+              type="button"
+              aria-label={pushEnabled ? 'Turn off notifications' : 'Turn on notifications'}
+              disabled={pushBusy}
+              onClick={togglePush}
+              className="text-muted hover:text-ink disabled:opacity-50"
+            >
+              {pushEnabled ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
+            </button>
+          )}
+          <button className="text-xs text-muted underline" onClick={handleLogout}>
+            Log out
+          </button>
+        </div>
       </header>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as 'host' | 'player' | 'admin')} className="mt-5">

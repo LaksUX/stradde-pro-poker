@@ -36,6 +36,14 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // injectManifest (not the default generateSW) so src/sw.ts can add
+      // push/notificationclick handlers — generateSW writes its own sw.js
+      // with no hook for custom code. src/sw.ts replicates the
+      // autoUpdate/navigateFallbackDenylist behavior generateSW used to
+      // give for free; see that file's own comment.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       // apple-touch-icon.png was listed here but never actually existed in
       // public/ — index.html now points iOS at pwa-192x192.png directly
       // instead (see its apple-touch-icon link), so this only needs to
@@ -65,12 +73,6 @@ export default defineConfig({
             purpose: 'maskable',
           },
         ],
-      },
-      workbox: {
-        // Share Table / RSVP and Join must always hit the network for fresh
-        // pending-request and live-table state — never serve a stale cached
-        // version of a page whose entire point is being live.
-        navigateFallbackDenylist: [/^\/t\//, /^\/join\//],
       },
     }),
   ],
