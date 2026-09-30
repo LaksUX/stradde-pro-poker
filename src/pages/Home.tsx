@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
+import { confirmDialog } from '../lib/confirmDialog'
 import { isPushSupported, isSubscribedToPush, subscribeToPush, unsubscribeFromPush } from '../lib/push'
 import { Button } from '../components/ui/Button'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
@@ -42,6 +43,12 @@ type AdminRow = {
   role: 'player' | 'host' | 'admin'
   approved: boolean
 }
+type AdminGameRow = {
+  id: string
+  name: string
+  status: 'scheduled' | 'live' | 'closed'
+  scheduled_for: string
+}
 
 // An admin can also act as a host (0009_admin_can_host.sql widens the
 // matching RLS insert policies to match) — kept as one helper so every
@@ -67,6 +74,7 @@ export function Home() {
   const [playedGames, setPlayedGames] = useState<PlayedGame[]>([])
   const [settlementRows, setSettlementRows] = useState<SettlementRow[]>([])
   const [adminRows, setAdminRows] = useState<AdminRow[]>([])
+  const [adminGames, setAdminGames] = useState<AdminGameRow[]>([])
   const [loadingData, setLoadingData] = useState(true)
   const [pushEnabled, setPushEnabled] = useState(false)
   const [pushBusy, setPushBusy] = useState(false)
@@ -208,6 +216,18 @@ export function Home() {
       if (!cancelled) setAdminRows((data ?? []) as AdminRow[])
     }
 
+    // Every game this profile hosts, any status — not just closed ones like
+    // loadHostTab's list — so a test game left scheduled or live is still
+    // reachable to delete, not just games that were actually finished.
+    async function loadAdminGames() {
+      if (profile!.role !== 'admin') return
+      const { data } = await supabase
+        .from('games')
+        .select('id, name, status, scheduled_for')
+        .order('scheduled_for', { ascending: false })
+      if (!cancelled) setAdminGames((data ?? []) as AdminGameRow[])
+    }
+
     // What the notification bell's badge counts — the same "new buy-in/join
     // request" event that actually triggers a push (see
     // 0015_push_notifications.sql), so the number on the bell always means
@@ -233,6 +253,7 @@ export function Home() {
       loadPlayerTab(),
       loadSettlements(),
       loadAdminRows(),
+      loadAdminGames(),
       loadPendingRequestCount(),
     ]).then(() => {
       if (!cancelled) setLoadingData(false)
@@ -269,6 +290,35 @@ export function Home() {
       'Removing host'
     )
     if (ok) setAdminRows((prev) => prev.map((r) => (r.id === id ? { ...r, role: 'player', approved: false } : r)))
+  }
+
+  // Cascades game_players/buyin_requests/settlement_transfers automatically
+  // (all reference games.id with on delete cascade — 0001_core_schema.sql) —
+  // deleting a test game cleans up everything tied to it in one action.
+  async function deleteGame(id: string) {
+    const confirmed = await confirmDialog(
+      'Delete this game? This removes all its buy-ins, cash-outs, and settlement data too — this cannot be undone.',
+      { confirmLabel: 'Delete game', danger: true }
+    )
+    if (!confirmed) return
+    const ok = await runWrite(() => supabase.from('games').delete().eq('id', id), 'Deleting game')
+    if (ok) setAdminGames((prev) => prev.filter((g) => g.id !== id))
+  }
+
+  // Unlike games, this does NOT cascade — venues.created_by, games.host_id,
+  // and hosting_entities.owner_profile_id all reference profiles with no
+  // cascade, so deleting a profile that ever hosted anything fails with a
+  // real FK error surfaced via runWrite's toast, telling the admin to
+  // delete those first rather than silently taking games/venues down with
+  // them.
+  async function deleteProfile(id: string) {
+    const confirmed = await confirmDialog(
+      "Delete this player's profile? This cannot be undone.",
+      { confirmLabel: 'Delete player', danger: true }
+    )
+    if (!confirmed) return
+    const ok = await runWrite(() => supabase.from('profiles').delete().eq('id', id), 'Deleting player')
+    if (ok) setAdminRows((prev) => prev.filter((r) => r.id !== id))
   }
 
   const isApprovedHost = !!profile && isApprovedHostRole(profile) && profile.approved
@@ -548,6 +598,36 @@ export function Home() {
 
         {!loadingData && profile?.role === 'admin' && (
           <TabsContent value="admin" className="mt-4">
+            <h2 className="type-label-caption mb-2 text-muted">Games</h2>
+            {adminGames.length === 0 ? (
+              <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                No games yet.
+              </p>
+            ) : (
+              <ListGroup>
+                {adminGames.map((g) => (
+                  <ListRow
+                    key={g.id}
+                    title={g.name}
+                    subtitle={new Date(g.scheduled_for).toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                    trailing={
+                      <>
+                        <Badge variant={g.status === 'live' ? 'win' : 'muted'}>{g.status}</Badge>
+                        <Button variant="danger" className="h-8 px-3 text-xs" onClick={() => deleteGame(g.id)}>
+                          Delete
+                        </Button>
+                      </>
+                    }
+                  />
+                ))}
+              </ListGroup>
+            )}
+
+            <h2 className="type-label-caption mb-2 mt-5 text-muted">Profiles</h2>
             {adminRows.length === 0 ? (
               <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
                 No profiles yet.
@@ -579,6 +659,9 @@ export function Home() {
                             {r.approved ? 'Revoke' : 'Approve'}
                           </Button>
                         )}
+                        <Button variant="danger" className="h-8 px-3 text-xs" onClick={() => deleteProfile(r.id)}>
+                          Delete
+                        </Button>
                       </>
                     }
                   />
