@@ -70,6 +70,7 @@ export function Home() {
   const [loadingData, setLoadingData] = useState(true)
   const [pushEnabled, setPushEnabled] = useState(false)
   const [pushBusy, setPushBusy] = useState(false)
+  const [pendingRequestCount, setPendingRequestCount] = useState(0)
 
   useEffect(() => {
     if (isPushSupported()) isSubscribedToPush().then(setPushEnabled)
@@ -207,8 +208,33 @@ export function Home() {
       if (!cancelled) setAdminRows((data ?? []) as AdminRow[])
     }
 
+    // What the notification bell's badge counts — the same "new buy-in/join
+    // request" event that actually triggers a push (see
+    // 0015_push_notifications.sql), so the number on the bell always means
+    // something a push already would have told a host about. RLS already
+    // scopes buyin_requests to games this profile hosts, so a plain player
+    // just gets 0 back with no extra guard needed.
+    async function loadPendingRequestCount() {
+      if (!isApprovedHostRole(profile!) || !profile!.approved) {
+        if (!cancelled) setPendingRequestCount(0)
+        return
+      }
+      const { count } = await supabase
+        .from('buyin_requests')
+        .select('id, games!inner(status)', { count: 'exact', head: true })
+        .eq('status', 'pending')
+        .eq('games.status', 'live')
+      if (!cancelled) setPendingRequestCount(count ?? 0)
+    }
+
     setLoadingData(true)
-    Promise.all([loadHostTab(), loadPlayerTab(), loadSettlements(), loadAdminRows()]).then(() => {
+    Promise.all([
+      loadHostTab(),
+      loadPlayerTab(),
+      loadSettlements(),
+      loadAdminRows(),
+      loadPendingRequestCount(),
+    ]).then(() => {
       if (!cancelled) setLoadingData(false)
     })
     return () => {
@@ -270,29 +296,34 @@ export function Home() {
 
   return (
     <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
-      <header className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <NamedAvatar name={profile?.full_name ?? '?'} />
-          <h1 className="type-page-title text-ink">
-            Hey{profile?.full_name ? ` ${profile.full_name}` : ''}
-          </h1>
-        </div>
-        <div className="flex items-center gap-3">
+      <header>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <NamedAvatar name={profile?.full_name ?? '?'} />
+            <h1 className="type-page-title text-ink">
+              Hey{profile?.full_name ? ` ${profile.full_name}` : ''}
+            </h1>
+          </div>
           {isPushSupported() && (
             <button
               type="button"
               aria-label={pushEnabled ? 'Turn off notifications' : 'Turn on notifications'}
               disabled={pushBusy}
               onClick={togglePush}
-              className="text-muted hover:text-ink disabled:opacity-50"
+              className="relative text-muted hover:text-ink disabled:opacity-50"
             >
               {pushEnabled ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
+              {pendingRequestCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white">
+                  {pendingRequestCount}
+                </span>
+              )}
             </button>
           )}
-          <button className="text-xs text-muted underline" onClick={handleLogout}>
-            Log out
-          </button>
         </div>
+        <button className="mt-2 text-xs text-muted underline" onClick={handleLogout}>
+          Log out
+        </button>
       </header>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as 'host' | 'player' | 'admin')} className="mt-5">
