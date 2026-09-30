@@ -127,12 +127,14 @@ export async function continueWithPhone(name: string, phoneE164: string): Promis
   }
   if (!user) throw new Error('Anonymous sign-in did not return a user')
 
+  // RPC, not a plain upsert — see 0016_preserve_role_on_signin.sql. A plain
+  // upsert() here always sends role/approved in the payload, which
+  // overwrites them back to 'player'/false on every single sign-in for an
+  // EXISTING profile, not just a new one. The RPC only applies those as
+  // defaults on a genuine insert; an existing row's role/approved are never
+  // touched by this call.
   const { data: created, error: upsertError } = await supabase
-    .from('profiles')
-    .upsert(
-      { id: user.id, full_name: name, phone: phoneE164, role: 'player', approved: false },
-      { onConflict: 'id' }
-    )
+    .rpc('upsert_own_profile', { p_full_name: name, p_phone: phoneE164 })
     .select('id, full_name, phone, role, approved')
     .single()
 
