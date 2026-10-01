@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
@@ -7,7 +7,9 @@ import { PageSpinner } from '../components/ui/Spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { ListGroup, ListRow } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
+import { Button } from '../components/ui/Button'
 import { NamedAvatar } from '../components/ui/avatar'
+import { LineChart } from '../components/ui/line-chart'
 import { ArrowRight } from 'lucide-react'
 
 type Game = {
@@ -30,6 +32,7 @@ type MyTransferRow = {
   amount: number
   status: 'pending' | 'confirmed' | 'disputed'
 }
+type VenueOther = { profile_id: string; full_name: string }
 
 // See PAGE_PROMPTS.md "Game Detail". The host/player visibility rule
 // enforced client-side here mirrors what RLS already enforces at the
@@ -39,6 +42,7 @@ type MyTransferRow = {
 // boundary (RLS is).
 export function GameDetail() {
   const { gameId } = useParams()
+  const navigate = useNavigate()
   const { profile } = useAuth()
   const [game, setGame] = useState<Game | null>(null)
   const [players, setPlayers] = useState<PlayerRow[]>([])
@@ -46,6 +50,8 @@ export function GameDetail() {
     { from: string; to: string; amount: number; status: string }[]
   >([])
   const [myTransfers, setMyTransfers] = useState<MyTransferRow[]>([])
+  const [venueTrend, setVenueTrend] = useState<number[]>([])
+  const [venueOthers, setVenueOthers] = useState<VenueOther[]>([])
 
   useEffect(() => {
     if (!gameId || !profile) return
@@ -124,6 +130,31 @@ export function GameDetail() {
           setMyTransfers(results)
         }
       }
+
+      // Replaces the old standalone Venue Detail page — a trimmed version
+      // of it (buy-ins trend, other players by name only, no pot/rake
+      // averages or a second games list) lives below this game's own
+      // content instead. venue_game_rows/venue_regulars (0006 migration)
+      // only have rows for a matched venue_id, same gap the old page had
+      // for a venue_freetext-only game.
+      if (g?.venue_id) {
+        const [{ data: trendRows }, { data: regularRows }] = await Promise.all([
+          supabase
+            .from('venue_game_rows')
+            .select('closed_at, stake, chip_ratio, confirmed_buyin_units')
+            .eq('venue_id', g.venue_id)
+            .order('closed_at', { ascending: true }),
+          supabase
+            .from('venue_regulars')
+            .select('profile_id, full_name')
+            .eq('venue_id', g.venue_id)
+            .neq('profile_id', profile!.id),
+        ])
+        setVenueTrend(
+          (trendRows ?? []).map((r) => toChips(r.confirmed_buyin_units * r.stake, r.chip_ratio as ChipRatio))
+        )
+        setVenueOthers((regularRows ?? []) as VenueOther[])
+      }
     }
     load()
   }, [gameId, profile])
@@ -136,13 +167,7 @@ export function GameDetail() {
   return (
     <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
       <h1 className="type-page-title text-ink">{game.name}</h1>
-      {game.venue_id ? (
-        <Link to={`/venues/${game.venue_id}`} className="text-sm text-primary underline">
-          {game.venue_freetext}
-        </Link>
-      ) : (
-        <p className="text-sm text-muted">{game.venue_freetext}</p>
-      )}
+      {game.venue_freetext && <p className="text-sm text-muted">{game.venue_freetext}</p>}
 
       {isHost ? (
         <>
@@ -206,6 +231,16 @@ export function GameDetail() {
               </ListGroup>
             </>
           )}
+          {game.status === 'closed' && (
+            <Button
+              variant="secondary"
+              block
+              className="mt-5"
+              onClick={() => navigate(`/games/${gameId}/live`)}
+            >
+              Adjust buy-ins, cash-outs, or rake
+            </Button>
+          )}
         </>
       ) : me ? (
         <Card className="mt-4">
@@ -267,6 +302,34 @@ export function GameDetail() {
                 />
               ))}
             </ListGroup>
+          )}
+        </>
+      )}
+
+      {game.venue_id && (
+        <>
+          <h2 className="type-label-caption mb-2 mt-5 text-muted">Buy-ins trend at this venue</h2>
+          {venueTrend.length > 0 ? (
+            <LineChart points={venueTrend} height={60} />
+          ) : (
+            <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+              Not enough games yet.
+            </p>
+          )}
+
+          {venueOthers.length > 0 && (
+            <>
+              <h2 className="type-label-caption mb-2 mt-5 text-muted">Other players here</h2>
+              <ListGroup>
+                {venueOthers.map((p) => (
+                  <ListRow
+                    key={p.profile_id}
+                    avatar={<NamedAvatar name={p.full_name} className="h-10 w-10" />}
+                    title={p.full_name}
+                  />
+                ))}
+              </ListGroup>
+            </>
           )}
         </>
       )}

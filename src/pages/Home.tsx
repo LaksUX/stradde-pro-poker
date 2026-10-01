@@ -25,7 +25,14 @@ type HostedGame = {
   rake: number
   chip_ratio: ChipRatio
 }
-type PlayedGame = { id: string; name: string; closed_at: string | null; net: number; chip_ratio: ChipRatio }
+type PlayedGame = {
+  id: string
+  name: string
+  closed_at: string | null
+  net: number
+  chip_ratio: ChipRatio
+  venue: string | null
+}
 type SettlementRow = {
   id: string
   gameId: string
@@ -141,7 +148,9 @@ export function Home() {
     async function loadPlayerTab() {
       const { data: myRows } = await supabase
         .from('game_players')
-        .select('id, cashout, game_id, games(id, name, closed_at, status, stake, chip_ratio)')
+        .select(
+          'id, cashout, game_id, games(id, name, closed_at, status, stake, chip_ratio, venue_freetext)'
+        )
         .eq('profile_id', profile!.id)
       if (!myRows || cancelled) return
 
@@ -156,7 +165,14 @@ export function Home() {
           .eq('status', 'confirmed')
         const invested = (reqs ?? []).reduce((s, r) => s + r.count, 0) * g.stake
         const net = (row.cashout ?? 0) - invested
-        results.push({ id: g.id, name: g.name, closed_at: g.closed_at, net, chip_ratio: g.chip_ratio })
+        results.push({
+          id: g.id,
+          name: g.name,
+          closed_at: g.closed_at,
+          net,
+          chip_ratio: g.chip_ratio,
+          venue: g.venue_freetext,
+        })
       }
       results.sort((a, b) => (b.closed_at ?? '').localeCompare(a.closed_at ?? ''))
       if (!cancelled) setPlayedGames(results)
@@ -331,7 +347,7 @@ export function Home() {
   const wins = playedGames.filter((g) => g.net > 0).length
   // Converted to chips PER GAME before summing/averaging — never sum raw
   // banks across games and convert once, since different games here can be
-  // on different chip ratios (same pitfall VenueDetail's equivalent stat
+  // on different chip ratios (same pitfall GameDetail's venue trend chart
   // already guards against).
   const totalRake = hostedGames.reduce((s, g) => s + toChips(g.rake, g.chip_ratio), 0)
   const avgBuyins = hostedGames.length
@@ -404,7 +420,10 @@ export function Home() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-2">
-                  <p className="type-figure-hero text-ink">{lifetimeNet} chips</p>
+                  <p className="flex items-baseline gap-1.5">
+                    <span className="type-figure-hero text-ink">{lifetimeNet}</span>
+                    <span className="text-sm text-muted">chips</span>
+                  </p>
                   <Badge variant={lifetimeNet >= 0 ? 'win' : 'error'}>
                     {lifetimeNet >= 0 ? 'Winning' : 'Down overall'}
                   </Badge>
@@ -460,6 +479,7 @@ export function Home() {
                           onClick={() => navigate(`/games/${g.id}`)}
                           avatar={<NamedAvatar name={g.name} className="h-12 w-12" />}
                           title={g.name}
+                          subtitle={g.venue && <Badge variant="muted">{g.venue}</Badge>}
                           trailing={
                             <span
                               className={`type-figure-md whitespace-nowrap ${
