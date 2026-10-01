@@ -142,7 +142,7 @@ export function MySettlements() {
             <div key={r.id}>
               <ListRow
                 className="cursor-pointer"
-                onClick={() => navigate(`/games/${r.gameId}`)}
+                onClick={() => navigate(`/games/${r.gameId}/my-game`)}
                 avatar={<NamedAvatar name={r.otherName} className="h-12 w-12" />}
                 title={r.otherName}
                 subtitle={

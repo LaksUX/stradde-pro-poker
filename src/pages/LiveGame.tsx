@@ -46,6 +46,7 @@ type PlayerRow = {
   is_host: boolean
   cashout: number | null
   cashout_confirm_status: 'confirmed' | 'disputed' | null
+  cashout_requested: number | null
   full_name: string
   confirmed_buyins: number
 }
@@ -84,8 +85,13 @@ export function LiveGame() {
   function openPlayerSheet(p: PlayerRow) {
     setSheetPlayerId(p.id)
     setSliderValue(p.confirmed_buyins)
-    setCashoutOn(p.cashout != null)
-    setCashoutValue(p.cashout != null ? String(p.cashout) : '')
+    // A player's own cash-out request pre-fills this the moment the host
+    // opens the sheet — they still have to tap save to make it real, same
+    // as typing it in themselves, but it saves re-keying a number the
+    // player already sent.
+    const hasRequest = p.cashout == null && p.cashout_requested != null
+    setCashoutOn(p.cashout != null || hasRequest)
+    setCashoutValue(p.cashout != null ? String(p.cashout) : hasRequest ? String(p.cashout_requested) : '')
     setHistoryOpen(false)
   }
 
@@ -111,7 +117,9 @@ export function LiveGame() {
       // included) is the natural next refactor once this is proven correct.
       const { data: rows } = await supabase
         .from('game_players')
-        .select('id, profile_id, is_host, cashout, cashout_confirm_status, profiles(full_name)')
+        .select(
+          'id, profile_id, is_host, cashout, cashout_confirm_status, cashout_requested, profiles(full_name)'
+        )
         .eq('game_id', gameId)
       const { data: reqs } = await supabase
         .from('buyin_requests')
@@ -140,6 +148,7 @@ export function LiveGame() {
           is_host: row.is_host,
           cashout: row.cashout,
           cashout_confirm_status: row.cashout_confirm_status,
+          cashout_requested: row.cashout_requested,
           full_name: row.profiles?.full_name ?? '—',
           confirmed_buyins: counts.get(row.id) ?? 0,
         }))
@@ -335,17 +344,21 @@ export function LiveGame() {
                 // asked to confirm again, but leave it alone on a re-save
                 // of the same figure.
                 cashout_confirm_status: cashoutValueChanging ? null : sheetPlayer.cashout_confirm_status,
+                // The request (if any) is resolved the moment a real
+                // cashout is set — whether the host used the player's
+                // number as-is or typed a different one.
+                cashout_requested: null,
               })
               .eq('id', sheetPlayer.id),
           'Cash-out'
         )
         if (!ok) return
-      } else if (sheetPlayer.cashout != null) {
+      } else if (sheetPlayer.cashout != null || sheetPlayer.cashout_requested != null) {
         const ok = await runWrite(
           () =>
             supabase
               .from('game_players')
-              .update({ cashout: null, cashout_confirm_status: null })
+              .update({ cashout: null, cashout_confirm_status: null, cashout_requested: null })
               .eq('id', sheetPlayer.id),
           'Clearing cash-out'
         )
@@ -772,6 +785,9 @@ export function LiveGame() {
                       <Badge variant={sheetPlayer.cashout_confirm_status === 'confirmed' ? 'win' : 'error'}>
                         {sheetPlayer.cashout_confirm_status === 'confirmed' ? 'Player confirmed' : 'Player disputed'}
                       </Badge>
+                    )}
+                    {sheetPlayer.cashout == null && sheetPlayer.cashout_requested != null && (
+                      <Badge variant="muted">Player requested</Badge>
                     )}
                   </div>
                   <Input
