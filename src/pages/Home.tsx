@@ -30,6 +30,8 @@ type PlayedGame = {
   name: string
   closed_at: string | null
   net: number
+  buyins: number
+  cashout: number
   chip_ratio: ChipRatio
   venue: string | null
 }
@@ -170,6 +172,8 @@ export function Home() {
           name: g.name,
           closed_at: g.closed_at,
           net,
+          buyins: invested,
+          cashout: row.cashout ?? 0,
           chip_ratio: g.chip_ratio,
           venue: g.venue_freetext,
         })
@@ -344,6 +348,8 @@ export function Home() {
   // has more than one real tab to switch between.
   const showTabSwitcher = profile?.role !== 'player'
   const lifetimeNet = playedGames.reduce((s, g) => s + toChips(g.net, g.chip_ratio), 0)
+  const lifetimeBuyins = playedGames.reduce((s, g) => s + toChips(g.buyins, g.chip_ratio), 0)
+  const lifetimeCashout = playedGames.reduce((s, g) => s + toChips(g.cashout, g.chip_ratio), 0)
   const wins = playedGames.filter((g) => g.net > 0).length
   // Converted to chips PER GAME before summing/averaging — never sum raw
   // banks across games and convert once, since different games here can be
@@ -432,6 +438,16 @@ export function Home() {
                   {wins} win{wins === 1 ? '' : 's'} · {playedGames.length} game
                   {playedGames.length === 1 ? '' : 's'} played
                 </p>
+                <div className="mt-3 grid grid-cols-2 gap-1.5 text-center">
+                  <div className="rounded-lg bg-surface-strong px-2 py-2.5">
+                    <p className="text-[11px] text-muted">Buy-ins</p>
+                    <p className="type-figure-md mt-0.5 text-ink">{lifetimeBuyins} chips</p>
+                  </div>
+                  <div className="rounded-lg bg-surface-strong px-2 py-2.5">
+                    <p className="text-[11px] text-muted">Cash-out</p>
+                    <p className="type-figure-md mt-0.5 text-ink">{lifetimeCashout} chips</p>
+                  </div>
+                </div>
                 {netChartPoints.length > 0 && (
                   <LineChart
                     points={netChartPoints}
@@ -476,7 +492,7 @@ export function Home() {
                         <ListDate>{formatClosedDate(g.closed_at)}</ListDate>
                         <ListRow
                           className="cursor-pointer"
-                          onClick={() => navigate(`/games/${g.id}`)}
+                          onClick={() => navigate(`/games/${g.id}/my-game`)}
                           avatar={<NamedAvatar name={g.name} className="h-12 w-12" />}
                           title={g.name}
                           subtitle={g.venue && <Badge variant="muted">{g.venue}</Badge>}
@@ -508,7 +524,7 @@ export function Home() {
                       <ListRow
                         key={r.id}
                         className="cursor-pointer"
-                        onClick={() => navigate(`/games/${r.gameId}`)}
+                        onClick={() => navigate(`/games/${r.gameId}/my-game`)}
                         avatar={<NamedAvatar name={r.otherName} className="h-12 w-12" />}
                         title={r.otherName}
                         subtitle={

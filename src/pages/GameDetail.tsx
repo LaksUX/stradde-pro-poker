@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { PageSpinner } from '../components/ui/Spinner'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { ListGroup, ListRow } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/Button'
@@ -25,21 +24,14 @@ type Game = {
   closed_at: string | null
 }
 type PlayerRow = { id: string; profile_id: string; full_name: string; cashout: number | null; buyins: number }
-type MyTransferRow = {
-  id: string
-  direction: 'owe' | 'owed'
-  otherName: string
-  amount: number
-  status: 'pending' | 'confirmed' | 'disputed'
-}
 type VenueOther = { profile_id: string; full_name: string }
 
-// See PAGE_PROMPTS.md "Game Detail". The host/player visibility rule
-// enforced client-side here mirrors what RLS already enforces at the
-// database layer for game_players — a non-host querying this only ever
-// gets their own row back regardless of what this component asks for, so
-// the role check below is a UI convenience, not the actual security
-// boundary (RLS is).
+// See PAGE_PROMPTS.md "Game Detail" — now the HOST's own view only. A
+// player's equivalent (buy-ins/cash-out/net, settlement, the same venue
+// section below) lives at My Game instead, for both a live and a closed
+// game — see that page's own header comment. Redirects a non-host there
+// rather than rendering anything, so an old bookmark or shared link still
+// lands somewhere useful.
 export function GameDetail() {
   const { gameId } = useParams()
   const navigate = useNavigate()
@@ -49,7 +41,6 @@ export function GameDetail() {
   const [transfers, setTransfers] = useState<
     { from: string; to: string; amount: number; status: string }[]
   >([])
-  const [myTransfers, setMyTransfers] = useState<MyTransferRow[]>([])
   const [venueTrend, setVenueTrend] = useState<number[]>([])
   const [venueOthers, setVenueOthers] = useState<VenueOther[]>([])
 
@@ -97,38 +88,6 @@ export function GameDetail() {
             status: t.status,
           }))
         )
-      } else if (g?.status === 'closed') {
-        // Not the host — RLS only ever hands back our own game_players row
-        // above, so "me" below is the one row in `rows`. See PAGE_PROMPTS.md
-        // Global "who owes who is unclear" fix: this used to be entirely
-        // absent for a non-host player — the settlement existed but nowhere
-        // on this screen said so. Reused verbatim from MySettlements.tsx.
-        const myId = (rows ?? [])[0]?.id
-        if (myId) {
-          const { data: ts } = await supabase
-            .from('settlement_transfers')
-            .select('id, from_player_id, to_player_id, amount, status')
-            .eq('game_id', gameId)
-            .or(`from_player_id.eq.${myId},to_player_id.eq.${myId}`)
-          const results: MyTransferRow[] = []
-          for (const t of ts ?? []) {
-            const direction: 'owe' | 'owed' = t.from_player_id === myId ? 'owe' : 'owed'
-            const otherId = t.from_player_id === myId ? t.to_player_id : t.from_player_id
-            const { data: other } = await supabase
-              .from('game_players')
-              .select('profiles(full_name)')
-              .eq('id', otherId)
-              .maybeSingle()
-            results.push({
-              id: t.id,
-              direction,
-              otherName: (other as any)?.profiles?.full_name ?? '—',
-              amount: t.amount,
-              status: t.status,
-            })
-          }
-          setMyTransfers(results)
-        }
       }
 
       // Replaces the old standalone Venue Detail page — a trimmed version
@@ -160,150 +119,78 @@ export function GameDetail() {
   }, [gameId, profile])
 
   if (!game || !profile) return <PageSpinner />
+  if (game.host_id !== profile.id) return <Navigate to={`/games/${gameId}/my-game`} replace />
   const ratio = game.chip_ratio
-  const isHost = game.host_id === profile.id
-  const me = players.find((p) => p.profile_id === profile.id)
 
   return (
     <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
       <h1 className="type-page-title text-ink">{game.name}</h1>
       {game.venue_freetext && <p className="text-sm text-muted">{game.venue_freetext}</p>}
 
-      {isHost ? (
+      <ListGroup className="mt-4">
+        {players.map((p) => (
+          <ListRow
+            key={p.id}
+            avatar={<NamedAvatar name={p.full_name} className="h-12 w-12" />}
+            title={p.full_name}
+            subtitle={`${p.buyins} buy-in${p.buyins === 1 ? '' : 's'}`}
+            trailing={
+              p.cashout == null ? (
+                <span className="type-figure-md text-muted">In play</span>
+              ) : (
+                <span
+                  className={`type-figure-md ${
+                    p.cashout - p.buyins * game.stake >= 0 ? 'text-win' : 'text-error'
+                  }`}
+                >
+                  {toChips(p.cashout - p.buyins * game.stake, ratio)} chips
+                </span>
+              )
+            }
+          />
+        ))}
+      </ListGroup>
+      {transfers.length > 0 && (
         <>
-          <ListGroup className="mt-4">
-            {players.map((p) => (
+          <h2 className="type-label-caption mb-2 mt-5 text-muted">Settlement</h2>
+          <ListGroup>
+            {transfers.map((t, i) => (
               <ListRow
-                key={p.id}
-                avatar={<NamedAvatar name={p.full_name} className="h-12 w-12" />}
-                title={p.full_name}
-                subtitle={`${p.buyins} buy-in${p.buyins === 1 ? '' : 's'}`}
+                key={i}
+                avatar={
+                  <div className="flex items-center">
+                    <NamedAvatar name={t.from} className="h-10 w-10 border-2 border-canvas" />
+                    <NamedAvatar name={t.to} className="-ml-3 h-10 w-10 border-2 border-canvas" />
+                  </div>
+                }
+                title={
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <span>{t.from}</span>
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted" />
+                    <span>{t.to}</span>
+                  </span>
+                }
                 trailing={
-                  p.cashout == null ? (
-                    <span className="type-figure-md text-muted">In play</span>
-                  ) : (
-                    <span
-                      className={`type-figure-md ${
-                        p.cashout - p.buyins * game.stake >= 0 ? 'text-win' : 'text-error'
-                      }`}
-                    >
-                      {toChips(p.cashout - p.buyins * game.stake, ratio)} chips
+                  <>
+                    <span className="type-figure-md whitespace-nowrap text-ink">
+                      {toChips(t.amount, ratio)} chips
                     </span>
-                  )
+                    <Badge
+                      variant={t.status === 'confirmed' ? 'win' : t.status === 'disputed' ? 'error' : 'muted'}
+                    >
+                      {t.status}
+                    </Badge>
+                  </>
                 }
               />
             ))}
           </ListGroup>
-          {transfers.length > 0 && (
-            <>
-              <h2 className="type-label-caption mb-2 mt-5 text-muted">Settlement</h2>
-              <ListGroup>
-                {transfers.map((t, i) => (
-                  <ListRow
-                    key={i}
-                    avatar={
-                      <div className="flex items-center">
-                        <NamedAvatar name={t.from} className="h-10 w-10 border-2 border-canvas" />
-                        <NamedAvatar name={t.to} className="-ml-3 h-10 w-10 border-2 border-canvas" />
-                      </div>
-                    }
-                    title={
-                      <span className="flex flex-wrap items-center gap-1.5">
-                        <span>{t.from}</span>
-                        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted" />
-                        <span>{t.to}</span>
-                      </span>
-                    }
-                    trailing={
-                      <>
-                        <span className="type-figure-md whitespace-nowrap text-ink">
-                          {toChips(t.amount, ratio)} chips
-                        </span>
-                        <Badge
-                          variant={t.status === 'confirmed' ? 'win' : t.status === 'disputed' ? 'error' : 'muted'}
-                        >
-                          {t.status}
-                        </Badge>
-                      </>
-                    }
-                  />
-                ))}
-              </ListGroup>
-            </>
-          )}
-          {game.status === 'closed' && (
-            <Button
-              variant="secondary"
-              block
-              className="mt-5"
-              onClick={() => navigate(`/games/${gameId}/live`)}
-            >
-              Adjust buy-ins, cash-outs, or rake
-            </Button>
-          )}
         </>
-      ) : me ? (
-        <Card className="mt-4">
-          <CardHeader>
-            <CardTitle>Your net</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <p className="type-figure-hero text-ink">
-                {me.cashout == null ? 'In play' : `${toChips(me.cashout - me.buyins * game.stake, ratio)} chips`}
-              </p>
-              {me.cashout != null && (
-                <Badge variant={me.cashout - me.buyins * game.stake >= 0 ? 'win' : 'error'}>
-                  {me.cashout - me.buyins * game.stake >= 0 ? 'Winning' : 'Down'}
-                </Badge>
-              )}
-            </div>
-            <p className="mt-2 text-xs text-muted">{me.buyins} buy-in{me.buyins === 1 ? '' : 's'}</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <p className="mt-4 text-center text-sm text-muted">You weren't in this game.</p>
       )}
-
-      {!isHost && me && game.status === 'closed' && (
-        <>
-          <h2 className="type-label-caption mb-2 mt-5 text-muted">Settlement</h2>
-          {myTransfers.length === 0 ? (
-            <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
-              Nothing you owe or are owed here.
-            </p>
-          ) : (
-            <ListGroup>
-              {myTransfers.map((t) => (
-                <ListRow
-                  key={t.id}
-                  avatar={<NamedAvatar name={t.otherName} className="h-12 w-12" />}
-                  title={
-                    <span className={t.direction === 'owe' ? 'text-error' : 'text-win'}>
-                      {t.direction === 'owe' ? `You owe ${t.otherName}` : `${t.otherName} owes you`}
-                    </span>
-                  }
-                  trailing={
-                    <>
-                      <span
-                        className={`type-figure-md whitespace-nowrap ${
-                          t.direction === 'owe' ? 'text-error' : 'text-win'
-                        }`}
-                      >
-                        {toChips(t.amount, ratio)} chips
-                      </span>
-                      <Badge
-                        variant={t.status === 'confirmed' ? 'win' : t.status === 'disputed' ? 'error' : 'muted'}
-                      >
-                        {t.status}
-                      </Badge>
-                    </>
-                  }
-                />
-              ))}
-            </ListGroup>
-          )}
-        </>
+      {game.status === 'closed' && (
+        <Button variant="secondary" block className="mt-5" onClick={() => navigate(`/games/${gameId}/live`)}>
+          Adjust buy-ins, cash-outs, or rake
+        </Button>
       )}
 
       {game.venue_id && (
