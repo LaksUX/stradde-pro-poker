@@ -31,6 +31,7 @@ type Game = {
   chip_ratio: ChipRatio
   rake: number
   host_id: string
+  status: 'scheduled' | 'live' | 'closed'
 }
 type PendingRequest = {
   id: string
@@ -463,7 +464,7 @@ export function LiveGame() {
     <div className="mx-auto w-full max-w-md p-4 sm:p-6">
       <div className="flex items-center justify-between">
         <h1 className="type-page-title text-ink">{game.name}</h1>
-        {gameId && (
+        {gameId && game.status !== 'closed' && (
           <>
             <button
               type="button"
@@ -638,20 +639,38 @@ export function LiveGame() {
         )}
       </div>
 
-      {activePlayers.length > 0 && (
-        <p className="mt-4 text-center text-xs text-muted">
-          {activePlayers.length === 1 ? '1 player hasn\'t' : `${activePlayers.length} players haven't`}{' '}
-          cashed out yet — closing now counts their buy-ins as a loss to the table.
-        </p>
+      {game.status === 'closed' ? (
+        <>
+          <p className="mt-4 text-center text-xs text-muted">
+            Game closed — buy-ins, cash-outs, and rake above are still editable anytime.
+          </p>
+          <Button
+            variant="secondary"
+            block
+            className="mt-2"
+            onClick={() => navigate(`/games/${gameId}/settlement`)}
+          >
+            Go to settlement
+          </Button>
+        </>
+      ) : (
+        <>
+          {activePlayers.length > 0 && (
+            <p className="mt-4 text-center text-xs text-muted">
+              {activePlayers.length === 1 ? '1 player hasn\'t' : `${activePlayers.length} players haven't`}{' '}
+              cashed out yet — closing now counts their buy-ins as a loss to the table.
+            </p>
+          )}
+          <Button
+            block
+            className={activePlayers.length > 0 ? 'mt-2' : 'mt-4'}
+            disabled={closing}
+            onClick={closeAndSettle}
+          >
+            {closing ? 'Closing…' : 'End game & settle'}
+          </Button>
+        </>
       )}
-      <Button
-        block
-        className={activePlayers.length > 0 ? 'mt-2' : 'mt-4'}
-        disabled={closing}
-        onClick={closeAndSettle}
-      >
-        {closing ? 'Closing…' : 'End game & settle'}
-      </Button>
 
       <Sheet open={sheetPlayerId != null} onOpenChange={(open) => !open && setSheetPlayerId(null)}>
         <SheetContent>

@@ -14,7 +14,6 @@ import { Settlement } from './pages/Settlement'
 import { GameDetail } from './pages/GameDetail'
 import { MySettlements } from './pages/MySettlements'
 import { MyGame } from './pages/MyGame'
-import { VenueDetail } from './pages/VenueDetail'
 import { OfflineBanner } from './components/ui/OfflineBanner'
 import { Toaster } from './components/ui/Toaster'
 import { ConfirmDialogHost } from './components/ui/ConfirmDialogHost'
@@ -64,7 +63,6 @@ export default function App() {
           <Route path="/my-settlements" element={<MySettlements />} />
           <Route path="/games/:gameId" element={<GameDetail />} />
           <Route path="/games/:gameId/my-game" element={<MyGame />} />
-          <Route path="/venues/:venueId" element={<VenueDetail />} />
         </Route>
       </Routes>
     </BrowserRouter>
