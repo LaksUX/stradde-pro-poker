@@ -17,9 +17,10 @@ import { ListGroup, ListRow, ListDate } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
+import { InvitePlayersSheet } from '../components/ui/InvitePlayersSheet'
 import { Slider } from '../components/ui/slider'
 import { Switch } from '../components/ui/switch'
-import { QrCode, ArrowUp, ArrowDown, ChevronDown } from 'lucide-react'
+import { QrCode, UserPlus, ArrowUp, ArrowDown, ChevronDown } from 'lucide-react'
 
 const MAX_BUYINS = 50
 const QUICK_ADD = [1, 2, 3, 5]
@@ -71,6 +72,7 @@ export function LiveGame() {
   const [rakeRevealed, setRakeRevealed] = useState(false)
   const [closing, setClosing] = useState(false)
   const [qrOpen, setQrOpen] = useState(false)
+  const [addPlayersOpen, setAddPlayersOpen] = useState(false)
   const [sheetPlayerId, setSheetPlayerId] = useState<string | null>(null)
   const [sliderValue, setSliderValue] = useState(0)
   const [cashoutOn, setCashoutOn] = useState(false)
@@ -478,7 +480,15 @@ export function LiveGame() {
       <div className="flex items-center justify-between">
         <h1 className="type-page-title text-ink">{game.name}</h1>
         {gameId && game.status !== 'closed' && (
-          <>
+          <div className="flex shrink-0 gap-2">
+            <button
+              type="button"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-hairline text-muted hover:bg-surface-strong hover:text-ink"
+              onClick={() => setAddPlayersOpen(true)}
+              aria-label="Add players you've played with before"
+            >
+              <UserPlus className="h-[18px] w-[18px]" />
+            </button>
             <button
               type="button"
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-hairline text-muted hover:bg-surface-strong hover:text-ink"
@@ -497,7 +507,13 @@ export function LiveGame() {
                 </div>
               </SheetContent>
             </Sheet>
-          </>
+            <InvitePlayersSheet
+              open={addPlayersOpen}
+              onOpenChange={setAddPlayersOpen}
+              gameId={gameId}
+              existingProfileIds={players.map((p) => p.profile_id)}
+            />
+          </div>
         )}
       </div>
 
