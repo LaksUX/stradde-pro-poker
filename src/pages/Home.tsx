@@ -17,7 +17,7 @@ import { NamedAvatar } from '../components/ui/avatar'
 import { ChipsFigure } from '../components/ui/chips-figure'
 import { SettlementRow } from '../components/ui/SettlementRow'
 import { LineChart } from '../components/ui/line-chart'
-import { Plus, Bell, BellOff } from 'lucide-react'
+import { Plus, Bell, BellOff, Trash2 } from 'lucide-react'
 
 type HostedGame = {
   id: string
@@ -563,76 +563,133 @@ export function Home() {
 
         {!loadingData && profile?.role === 'admin' && (
           <TabsContent value="admin" className="mt-4">
-            <h2 className="type-label-caption mb-2 text-muted">Games</h2>
-            {adminGames.length === 0 ? (
-              <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
-                No games yet.
-              </p>
-            ) : (
-              <ListGroup>
-                {adminGames.map((g) => (
-                  <ListRow
-                    key={g.id}
-                    title={g.name}
-                    subtitle={new Date(g.scheduled_for).toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                    trailing={
-                      <>
-                        <Badge variant={g.status === 'live' ? 'win' : 'muted'}>{g.status}</Badge>
-                        <Button variant="danger" className="h-8 px-3 text-xs" onClick={() => deleteGame(g.id)}>
-                          Delete
-                        </Button>
-                      </>
-                    }
-                  />
-                ))}
-              </ListGroup>
-            )}
+            <Tabs defaultValue="admin-games">
+              <TabsList>
+                <TabsTrigger value="admin-games">Games</TabsTrigger>
+                <TabsTrigger value="admin-people">People</TabsTrigger>
+              </TabsList>
 
-            <h2 className="type-label-caption mb-2 mt-5 text-muted">Profiles</h2>
-            {adminRows.length === 0 ? (
-              <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
-                No profiles yet.
-              </p>
-            ) : (
-              <ListGroup>
-                {adminRows.map((r) => (
-                  <ListRow
-                    key={r.id}
-                    avatar={<NamedAvatar name={r.full_name ?? '—'} className="h-12 w-12" />}
-                    title={r.full_name ?? '—'}
-                    subtitle={r.phone}
-                    trailing={
-                      <>
-                        <Badge variant={r.role === 'host' && r.approved ? 'win' : 'muted'}>
-                          {r.role === 'host' ? (r.approved ? 'Approved' : 'Pending') : 'Player'}
-                        </Badge>
-                        {r.role === 'player' && (
-                          <Button variant="primary" className="h-8 px-3 text-xs" onClick={() => makeHost(r.id)}>
-                            Make host
-                          </Button>
-                        )}
-                        {r.role === 'host' && (
-                          <Button
-                            variant={r.approved ? 'danger' : 'primary'}
-                            className="h-8 px-3 text-xs"
-                            onClick={() => (r.approved ? removeHost(r.id) : makeHost(r.id))}
+              <TabsContent value="admin-games" className="mt-4">
+                {adminGames.length === 0 ? (
+                  <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                    No games yet.
+                  </p>
+                ) : (
+                  <ListGroup>
+                    {adminGames.map((g) => (
+                      <ListRow
+                        key={g.id}
+                        className="cursor-pointer"
+                        onClick={() => navigate(`/games/${g.id}`)}
+                        title={g.name}
+                        subtitle={
+                          <span className="flex items-center gap-1.5">
+                            {new Date(g.scheduled_for).toLocaleDateString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                            <Badge variant={g.status === 'live' ? 'win' : 'muted'} className="text-[10px]">
+                              {g.status}
+                            </Badge>
+                          </span>
+                        }
+                        trailing={
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteGame(g.id) }}
+                            className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-error/10 hover:text-error"
+                            aria-label="Delete game"
                           >
-                            {r.approved ? 'Revoke' : 'Approve'}
-                          </Button>
-                        )}
-                        <Button variant="danger" className="h-8 px-3 text-xs" onClick={() => deleteProfile(r.id)}>
-                          Delete
-                        </Button>
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        }
+                      />
+                    ))}
+                  </ListGroup>
+                )}
+              </TabsContent>
+
+              <TabsContent value="admin-people" className="mt-4">
+                {adminRows.length === 0 ? (
+                  <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                    No profiles yet.
+                  </p>
+                ) : (
+                  <>
+                    {adminRows.some((r) => r.role === 'host') && (
+                      <>
+                        <h3 className="type-label-caption mb-2 text-muted">Hosts</h3>
+                        <ListGroup>
+                          {adminRows.filter((r) => r.role === 'host').map((r) => (
+                            <ListRow
+                              key={r.id}
+                              avatar={<NamedAvatar name={r.full_name ?? '—'} />}
+                              title={r.full_name ?? '—'}
+                              subtitle={
+                                <span className="flex items-center gap-1.5">
+                                  {r.phone}
+                                  <Badge variant={r.approved ? 'win' : 'muted'} className="text-[10px]">
+                                    {r.approved ? 'Approved' : 'Pending'}
+                                  </Badge>
+                                </span>
+                              }
+                              trailing={
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant={r.approved ? 'danger' : 'primary'}
+                                    className="h-7 px-2.5 text-xs"
+                                    onClick={() => (r.approved ? removeHost(r.id) : makeHost(r.id))}
+                                  >
+                                    {r.approved ? 'Revoke' : 'Approve'}
+                                  </Button>
+                                  <button
+                                    onClick={() => deleteProfile(r.id)}
+                                    className="flex h-7 w-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-error/10 hover:text-error"
+                                    aria-label="Delete profile"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              }
+                            />
+                          ))}
+                        </ListGroup>
                       </>
-                    }
-                  />
-                ))}
-              </ListGroup>
-            )}
+                    )}
+
+                    <h3 className={`type-label-caption mb-2 text-muted ${adminRows.some((r) => r.role === 'host') ? 'mt-5' : ''}`}>Players</h3>
+                    <ListGroup>
+                      {adminRows.filter((r) => r.role === 'player').map((r) => (
+                        <ListRow
+                          key={r.id}
+                          avatar={<NamedAvatar name={r.full_name ?? '—'} />}
+                          title={r.full_name ?? '—'}
+                          subtitle={r.phone}
+                          trailing={
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="primary"
+                                className="h-7 px-2.5 text-xs"
+                                onClick={() => makeHost(r.id)}
+                              >
+                                Make host
+                              </Button>
+                              <button
+                                onClick={() => deleteProfile(r.id)}
+                                className="flex h-7 w-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-error/10 hover:text-error"
+                                aria-label="Delete profile"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          }
+                        />
+                      ))}
+                    </ListGroup>
+                  </>
+                )}
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         )}
       </Tabs>
