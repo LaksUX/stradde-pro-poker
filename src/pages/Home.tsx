@@ -426,63 +426,68 @@ export function Home() {
               </CardContent>
             </Card>
 
-            <section className="mt-5">
-              <h2 className="type-label-caption mb-2 text-muted">Upcoming</h2>
-              <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
-                Coming soon — scheduled games you can confirm for will show up here.
-              </p>
-            </section>
+            <Tabs defaultValue="games" className="mt-5">
+              <TabsList>
+                <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+                <TabsTrigger value="games">My games</TabsTrigger>
+                <TabsTrigger value="settlements">Settlements</TabsTrigger>
+              </TabsList>
 
-            <section className="mt-5">
-              <h2 className="type-label-caption mb-2 text-muted">My games</h2>
-              {playedGames.length === 0 ? (
+              <TabsContent value="upcoming" className="mt-4">
                 <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
-                  No closed games yet.
+                  Coming soon — scheduled games you can confirm for will show up here.
                 </p>
-              ) : (
-                <ListGroup>
-                  {playedGames.map((g) => (
-                    <div key={g.id}>
-                      <ListDate>{formatClosedDate(g.closed_at)}</ListDate>
-                      <ListRow
-                        className="cursor-pointer"
-                        onClick={() => navigate(`/games/${g.id}/my-game`)}
-                        avatar={<NamedAvatar name={g.name} className="h-12 w-12" />}
-                        title={g.name}
-                        subtitle={g.venue && <Badge variant="muted">{g.venue}</Badge>}
-                        trailing={
-                          <ChipsFigure amount={g.net} ratio={g.chip_ratio} tone={g.net >= 0 ? 'win' : 'error'} />
-                        }
+              </TabsContent>
+
+              <TabsContent value="games" className="mt-4">
+                {playedGames.length === 0 ? (
+                  <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                    No closed games yet.
+                  </p>
+                ) : (
+                  <ListGroup>
+                    {playedGames.map((g) => (
+                      <div key={g.id}>
+                        <ListDate>{formatClosedDate(g.closed_at)}</ListDate>
+                        <ListRow
+                          className="cursor-pointer"
+                          onClick={() => navigate(`/games/${g.id}/my-game`)}
+                          avatar={<NamedAvatar name={g.name} className="h-12 w-12" />}
+                          title={g.name}
+                          subtitle={g.venue && <Badge variant="muted">{g.venue}</Badge>}
+                          trailing={
+                            <ChipsFigure amount={g.net} ratio={g.chip_ratio} tone={g.net >= 0 ? 'win' : 'error'} />
+                          }
+                        />
+                      </div>
+                    ))}
+                  </ListGroup>
+                )}
+              </TabsContent>
+
+              <TabsContent value="settlements" className="mt-4">
+                {settlementRows.length === 0 ? (
+                  <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                    No settlements yet.
+                  </p>
+                ) : (
+                  <ListGroup>
+                    {settlementRows.map((r) => (
+                      <SettlementRow
+                        key={r.id}
+                        onClick={() => navigate(`/games/${r.gameId}/my-game`)}
+                        otherName={r.otherName}
+                        direction={r.direction}
+                        amount={r.amount}
+                        ratio={r.chip_ratio}
+                        status={r.status}
+                        context={r.gameName}
                       />
-                    </div>
-                  ))}
-                </ListGroup>
-              )}
-            </section>
-
-            <section className="mt-5">
-              <h2 className="type-label-caption mb-2 text-muted">Settlements</h2>
-              {settlementRows.length === 0 ? (
-                <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
-                  No settlements yet.
-                </p>
-              ) : (
-                <ListGroup>
-                  {settlementRows.map((r) => (
-                    <SettlementRow
-                      key={r.id}
-                      onClick={() => navigate(`/games/${r.gameId}/my-game`)}
-                      otherName={r.otherName}
-                      direction={r.direction}
-                      amount={r.amount}
-                      ratio={r.chip_ratio}
-                      status={r.status}
-                      context={r.gameName}
-                    />
-                  ))}
-                </ListGroup>
-              )}
-            </section>
+                    ))}
+                  </ListGroup>
+                )}
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         )}
 
