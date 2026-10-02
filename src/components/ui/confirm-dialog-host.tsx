@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react'
 import { resolveConfirm, subscribeConfirm, type ConfirmRequest } from '../../lib/confirmDialog'
-import { Button } from './Button'
+import { Button } from './button'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+} from './alert-dialog'
 
 // Mounted once at the app root (see App.tsx) — a promise-based confirm()
 // replacement so any async handler can `await confirmDialog(...)` and get a
-// real modal (with the app's 50%-black scrim, per DESIGN-mercury.md) instead
-// of the browser's native, unstyleable confirm() dialog.
+// real modal instead of the browser's native confirm().
 export function ConfirmDialogHost() {
   const [request, setRequest] = useState<ConfirmRequest | null>(null)
 
@@ -14,14 +19,10 @@ export function ConfirmDialogHost() {
   if (!request) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center">
-      <div
-        role="alertdialog"
-        aria-modal="true"
-        className="w-full max-w-sm rounded-t-xl border border-hairline bg-canvas p-5 shadow-elevated sm:rounded-xl [padding-bottom:env(safe-area-inset-bottom)]"
-      >
-        <p className="text-[15px] leading-relaxed text-ink">{request.message}</p>
-        <div className="mt-5 flex gap-2">
+    <AlertDialog open onOpenChange={(open) => !open && resolveConfirm(false)}>
+      <AlertDialogContent>
+        <AlertDialogDescription>{request.message}</AlertDialogDescription>
+        <AlertDialogFooter>
           <Button variant="ghost" block onClick={() => resolveConfirm(false)}>
             {request.cancelLabel}
           </Button>
@@ -32,8 +33,8 @@ export function ConfirmDialogHost() {
           >
             {request.confirmLabel}
           </Button>
-        </div>
-      </div>
-    </div>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }

@@ -4,12 +4,12 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
-import { Button } from '../components/ui/Button'
-import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
+import { Button } from '../components/ui/button'
+import { PageSpinner, InlineSpinner } from '../components/ui/spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { ListGroup } from '../components/ui/list-row'
 import { Input } from '../components/ui/input'
-import { SettlementRow } from '../components/ui/SettlementRow'
+import { SettlementRow } from '../components/ui/settlement-row'
 
 type Row = {
   id: string

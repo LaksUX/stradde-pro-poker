@@ -1,7 +1,7 @@
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { PageSpinner } from '../components/ui/Spinner'
+import { PageSpinner } from '../components/ui/spinner'
 
 // See PAGE_PROMPTS.md "Pending Approval". Shown to a signed-in phone
 // identity with role: 'host' and approved: false. Hosting is admin-granted
