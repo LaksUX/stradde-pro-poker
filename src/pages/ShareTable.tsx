@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { toChips, type ChipRatio } from '../lib/chips'
+import { formatChips, type ChipRatio } from '../lib/chips'
 import { PageSpinner, InlineSpinner } from '../components/ui/spinner'
 import { Button } from '../components/ui/button'
 import { InviteQrCard } from '../components/ui/invite-qr-card'
@@ -274,7 +274,7 @@ export function ShareTable() {
               </p>
               <div className="mt-1 flex items-center gap-2">
                 <p className="type-figure-hero text-ink">
-                  {toChips(myTransfer.amount, closedGameRatio)} chips
+                  {formatChips(myTransfer.amount, closedGameRatio)} chips
                 </p>
                 <Badge
                   variant={
@@ -332,7 +332,7 @@ export function ShareTable() {
           <h1 className="type-page-title text-ink">{game.name}</h1>
           <p className="text-sm text-muted">{game.venue_freetext}</p>
           <p className="text-sm text-muted">
-            {game.stake} banks buy-in ({toChips(game.stake, ratio)} chips)
+            {game.stake} banks buy-in ({formatChips(game.stake, ratio)} chips)
           </p>
           <Badge variant={full ? 'error' : 'win'} className="mt-2">
             {full ? 'Table full' : 'Seats open'} · {seated}/{game.table_size}

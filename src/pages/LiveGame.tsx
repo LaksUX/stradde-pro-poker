@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { toChips, type ChipRatio } from '../lib/chips'
+import { formatChips, type ChipRatio } from '../lib/chips'
 import { computeInitialSettlement, type PlayerForSettlement } from '../lib/settlement'
 import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
@@ -166,9 +166,10 @@ export function LiveGame() {
           id: row.id,
           profile_id: row.profile_id,
           is_host: row.is_host,
-          cashout: row.cashout,
+          // Number() so sums add instead of concatenating if numeric arrives as text.
+          cashout: row.cashout == null ? null : Number(row.cashout),
           cashout_confirm_status: row.cashout_confirm_status,
-          cashout_requested: row.cashout_requested,
+          cashout_requested: row.cashout_requested == null ? null : Number(row.cashout_requested),
           full_name: row.profiles?.full_name ?? '—',
           confirmed_buyins: counts.get(row.id) ?? 0,
         }))
@@ -441,7 +442,7 @@ export function LiveGame() {
         // this into something actionable instead of a dead end.
         toast.error(
           `Can't close — cash-outs plus rake are ${overageBanks} banks ` +
-            `(${toChips(overageBanks, game.chip_ratio)} chips) more than total buy-ins. ` +
+            `(${formatChips(overageBanks, game.chip_ratio)} chips) more than total buy-ins. ` +
             `Lower rake by at least that much, or fix a player's buy-in/cash-out below.`
         )
         openRakeSheet()
@@ -658,7 +659,7 @@ export function LiveGame() {
               </p>
               {requestedBanks > 0 && (
                 <p className="mt-0.5 text-[11px] text-primary">
-                  +{toChips(requestedBanks, ratio)} requested
+                  +{formatChips(requestedBanks, ratio)} requested
                 </p>
               )}
             </div>
@@ -708,7 +709,7 @@ export function LiveGame() {
               value={rakeValue}
               onChange={(e) => setRakeValue(e.target.value)}
             />
-            <p className="text-xs text-muted">{toChips(Math.max(0, Number(rakeValue) || 0), ratio)} chips</p>
+            <p className="text-xs text-muted">{formatChips(Math.max(0, Number(rakeValue) || 0), ratio)} chips</p>
           </div>
 
           <Button block className="mt-5" disabled={savingRake} onClick={saveRake}>
@@ -772,7 +773,7 @@ export function LiveGame() {
                       </span>
                     }
                     title={`${p.full_name}${p.is_host ? ' (host)' : managerIds.has(p.profile_id) ? ' (manager)' : ''}`}
-                    subtitle={`${p.confirmed_buyins} buy-in${p.confirmed_buyins === 1 ? '' : 's'} · tap to edit`}
+                    subtitle={`${p.confirmed_buyins} buy-in${p.confirmed_buyins === 1 ? '' : 's'} · cashed out ${formatChips(p.cashout!, ratio)}`}
                     trailing={
                       <>
                         <ChipsFigure

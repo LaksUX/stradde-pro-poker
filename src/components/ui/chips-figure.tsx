@@ -1,4 +1,4 @@
-import { toChips, type ChipRatio } from '../../lib/chips'
+import { formatChips, type ChipRatio } from '../../lib/chips'
 import { cn } from 'cn'
 
 // The one place a chips amount is ever rendered as a figure. Win/loss color
@@ -30,7 +30,7 @@ export function ChipsFigure({
     <span className={cn('inline-flex items-baseline gap-1 whitespace-nowrap', className)}>
       <span className={cn('inline-flex items-center gap-1', sizeClass, colorClass)}>
         {icon}
-        {toChips(amount, ratio)}
+        {formatChips(amount, ratio)}
       </span>
       {!hideUnit && <span className="text-sm text-muted">chips</span>}
     </span>

@@ -395,7 +395,7 @@ export function Home() {
                 <CardContent>
                   <p className="flex items-baseline justify-center gap-1.5">
                     <span className={`type-figure-hero ${lifetimeNet >= 0 ? 'text-win' : 'text-error'}`}>
-                      {lifetimeNet >= 0 ? '+' : ''}{lifetimeNet}
+                      {lifetimeNet >= 0 ? '+' : ''}{lifetimeNet.toLocaleString('en-US')}
                     </span>
                     <span className="text-sm text-muted">chips</span>
                   </p>
@@ -432,7 +432,7 @@ export function Home() {
                 </CardHeader>
                 <CardContent>
                   <p className="flex items-baseline justify-center gap-1">
-                    <span className="type-figure-md text-ink">{lifetimeBuyins}</span>
+                    <span className="type-figure-md text-ink">{lifetimeBuyins.toLocaleString('en-US')}</span>
                     <span className="text-sm text-muted">chips</span>
                   </p>
                 </CardContent>
@@ -443,7 +443,7 @@ export function Home() {
                 </CardHeader>
                 <CardContent>
                   <p className="flex items-baseline justify-center gap-1">
-                    <span className="type-figure-md text-ink">{lifetimeCashout}</span>
+                    <span className="type-figure-md text-ink">{lifetimeCashout.toLocaleString('en-US')}</span>
                     <span className="text-sm text-muted">chips</span>
                   </p>
                 </CardContent>
@@ -544,7 +544,7 @@ export function Home() {
                     </CardHeader>
                     <CardContent>
                       <p className="flex items-baseline justify-center gap-1">
-                        <span className="type-figure-md text-ink">{totalRake}</span>
+                        <span className="type-figure-md text-ink">{totalRake.toLocaleString('en-US')}</span>
                         <span className="text-sm text-muted">chips</span>
                       </p>
                     </CardContent>
@@ -555,7 +555,7 @@ export function Home() {
                     </CardHeader>
                     <CardContent>
                       <p className="flex items-baseline justify-center gap-1">
-                        <span className="type-figure-md text-ink">{avgBuyins}</span>
+                        <span className="type-figure-md text-ink">{avgBuyins.toLocaleString('en-US')}</span>
                         <span className="text-sm text-muted">chips</span>
                       </p>
                     </CardContent>
