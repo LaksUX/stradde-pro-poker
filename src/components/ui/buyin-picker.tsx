@@ -1,9 +1,10 @@
-// See PAGE_PROMPTS.md "The buy-in count picker" — one shared component
-// behind every buy-in action, host and player alike. Minimum 1, per
-// REQUIREMENTS.md's revised Money model (count is chosen, not fixed).
+import { Button } from './button'
+import { Slider } from './slider'
 
 const QUICK_PICKS = [1, 2, 3, 5]
 
+// One shared component behind every buy-in action. Minimum 1; count is
+// chosen, not fixed (see REQUIREMENTS.md's Money model).
 export function BuyinPicker({
   value,
   onChange,
@@ -20,40 +21,45 @@ export function BuyinPicker({
       <div className="text-center text-[34px] font-bold text-ink">{value}</div>
       <div className="mb-2 flex justify-center gap-1.5">
         {QUICK_PICKS.map((n) => (
-          <button
+          <Button
             key={n}
+            type="button"
+            variant={value === n ? 'default' : 'secondary'}
+            className="h-auto rounded-full px-3.5 py-1.5 text-sm"
             onClick={() => onChange(n)}
-            className={`rounded-full px-3.5 py-1.5 text-sm ${
-              value === n ? 'bg-primary text-on-primary' : 'bg-surface-strong text-ink'
-            }`}
           >
             {n}
-          </button>
+          </Button>
         ))}
       </div>
       <div className="flex items-center gap-2">
-        <button
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          className="h-9 w-9 flex-none rounded-full text-lg font-bold"
           onClick={() => onChange(clamp(value - 1))}
-          className="h-9 w-9 flex-none rounded-full bg-surface-strong text-lg font-bold text-ink"
           aria-label="Decrease"
         >
           −
-        </button>
-        <input
-          type="range"
+        </Button>
+        <Slider
           min={1}
           max={max}
           value={value}
-          onChange={(e) => onChange(clamp(Number(e.target.value)))}
-          className="flex-1 accent-primary"
+          onValueChange={(v) => onChange(clamp(Array.isArray(v) ? v[0] : v))}
+          className="flex-1"
         />
-        <button
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          className="h-9 w-9 flex-none rounded-full text-lg font-bold"
           onClick={() => onChange(clamp(value + 1))}
-          className="h-9 w-9 flex-none rounded-full bg-surface-strong text-lg font-bold text-ink"
           aria-label="Increase"
         >
           +
-        </button>
+        </Button>
       </div>
     </div>
   )

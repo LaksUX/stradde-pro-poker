@@ -3,9 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { toast } from '../lib/toast'
 import { useIsGameHost } from '../hooks/useIsGameHost'
-import { Button } from '../components/ui/Button'
-import { PageSpinner } from '../components/ui/Spinner'
-import { InviteQrCard } from '../components/ui/InviteQrCard'
+import { Button } from '../components/ui/button'
+import { PageSpinner } from '../components/ui/spinner'
+import { InviteQrCard } from '../components/ui/invite-qr-card'
 
 type Game = {
   id: string

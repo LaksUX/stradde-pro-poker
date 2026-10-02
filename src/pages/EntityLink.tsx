@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { PageSpinner } from '../components/ui/Spinner'
+import { PageSpinner } from '../components/ui/spinner'
 
 type Entity = { id: string; name: string }
 
