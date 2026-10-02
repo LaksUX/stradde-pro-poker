@@ -8,7 +8,7 @@ const QUICK_PICKS = [1, 2, 3, 5]
 export function BuyinPicker({
   value,
   onChange,
-  max = 30,
+  max = 100,
 }: {
   value: number
   onChange: (n: number) => void

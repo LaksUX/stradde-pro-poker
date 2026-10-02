@@ -23,7 +23,7 @@ import { Slider } from '../components/ui/slider'
 import { Switch } from '../components/ui/switch'
 import { QrCode, UserPlus, ArrowUp, ArrowDown, ChevronDown, Shield } from 'lucide-react'
 
-const MAX_BUYINS = 50
+const MAX_BUYINS = 100
 
 // Approximate on purpose: rounded to the nearest 5 minutes.
 function formatGameTime(ms: number) {
