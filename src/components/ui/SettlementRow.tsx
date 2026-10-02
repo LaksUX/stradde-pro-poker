@@ -43,7 +43,7 @@ export function SettlementRow({
       }
       trailing={
         <>
-          <ChipsFigure amount={amount} ratio={ratio} tone={direction === 'owe' ? 'error' : 'win'} />
+          <ChipsFigure amount={amount} ratio={ratio} tone={direction === 'owe' ? 'error' : 'win'} hideUnit />
           <Badge variant={status === 'confirmed' ? 'win' : status === 'disputed' ? 'error' : 'muted'}>
             {status}
           </Badge>

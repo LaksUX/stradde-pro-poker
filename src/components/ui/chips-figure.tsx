@@ -13,6 +13,7 @@ export function ChipsFigure({
   tone = 'neutral',
   icon,
   size = 'md',
+  hideUnit = false,
   className,
 }: {
   amount: number
@@ -20,6 +21,7 @@ export function ChipsFigure({
   tone?: 'win' | 'error' | 'neutral'
   icon?: React.ReactNode
   size?: 'md' | 'hero'
+  hideUnit?: boolean
   className?: string
 }) {
   const colorClass = tone === 'win' ? 'text-win' : tone === 'error' ? 'text-error' : 'text-ink'
@@ -30,7 +32,7 @@ export function ChipsFigure({
         {icon}
         {toChips(amount, ratio)}
       </span>
-      <span className="text-sm text-muted">chips</span>
+      {!hideUnit && <span className="text-sm text-muted">chips</span>}
     </span>
   )
 }
