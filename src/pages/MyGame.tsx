@@ -7,9 +7,8 @@ import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { ListGroup, ListRow } from '../components/ui/list-row'
-import { Avatar, AvatarFallback, NamedAvatar } from '../components/ui/avatar'
+import { NamedAvatar } from '../components/ui/avatar'
 import { Badge } from '../components/ui/badge'
 import { ChipsFigure } from '../components/ui/chips-figure'
 import { SettlementRow } from '../components/ui/SettlementRow'
@@ -18,7 +17,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { LineChart } from '../components/ui/line-chart'
-import { Plus, X, ChevronDown } from 'lucide-react'
+import { X, ChevronDown } from 'lucide-react'
 
 const MAX_REQUEST = 30
 const QUICK_ADD = [1, 2, 3, 5]
@@ -288,71 +287,70 @@ export function MyGame() {
     <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
       <h1 className="type-page-title text-ink">{game.name}</h1>
 
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>{netBanks == null ? 'Total buy-ins' : 'Your result'}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2">
-            <ChipsFigure
-              amount={netBanks == null ? confirmedBuyins * game.stake : netBanks}
-              ratio={ratio}
-              size="hero"
-            />
-            <Badge variant={netBanks == null || netBanks >= 0 ? 'win' : 'error'}>
-              {netBanks == null ? 'Playing' : netBanks >= 0 ? 'Winning' : 'Down'}
-            </Badge>
-          </div>
+      <div className="mt-4 text-center">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted">
+          {netBanks == null ? 'Total buy-ins' : 'Your result'}
+        </p>
+        <p className="mt-1 flex items-baseline justify-center gap-1.5">
+          <ChipsFigure
+            amount={netBanks == null ? confirmedBuyins * game.stake : netBanks}
+            ratio={ratio}
+            size="hero"
+            tone={netBanks == null ? 'neutral' : netBanks >= 0 ? 'win' : 'error'}
+          />
+          <Badge variant={netBanks == null || netBanks >= 0 ? 'win' : 'error'}>
+            {netBanks == null ? 'Playing' : netBanks >= 0 ? 'Winning' : 'Down'}
+          </Badge>
+        </p>
 
-          {netBanks == null ? (
-            <p className="mt-2 text-xs text-muted">
-              {confirmedBuyins} confirmed buy-in{confirmedBuyins === 1 ? '' : 's'}
-            </p>
-          ) : (
-            <div className="mt-3 grid grid-cols-2 gap-1.5 text-center">
-              <div className="rounded-lg bg-surface-strong px-2 py-2.5">
-                <p className="text-[11px] text-muted">Buy-ins</p>
-                <p className="mt-0.5">
-                  <ChipsFigure amount={confirmedBuyins * game.stake} ratio={ratio} />
-                </p>
-              </div>
-              <div className="rounded-lg bg-surface-strong px-2 py-2.5">
-                <p className="text-[11px] text-muted">Cash-out</p>
-                <p className="mt-0.5">
-                  <ChipsFigure amount={myPlayer.cashout!} ratio={ratio} />
-                </p>
-              </div>
-            </div>
-          )}
-
-          {myPlayer.cashout != null && (
-            <div className="mt-3 border-t border-hairline-soft pt-3">
-              <p className="text-xs text-muted">
-                Cashed out for {myPlayer.cashout} banks
-                {myPlayer.cashout_confirm_status ? ` — ${myPlayer.cashout_confirm_status}` : ''}
+        {netBanks == null ? (
+          <p className="mt-2 text-xs text-muted">
+            {confirmedBuyins} confirmed buy-in{confirmedBuyins === 1 ? '' : 's'}
+          </p>
+        ) : (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="rounded-lg border border-hairline bg-canvas px-2 py-2.5 text-center">
+              <p className="text-[11px] text-muted">Buy-ins</p>
+              <p className="mt-0.5">
+                <ChipsFigure amount={confirmedBuyins * game.stake} ratio={ratio} />
               </p>
-              {!myPlayer.cashout_confirm_status && (
-                <div className="mt-2 flex gap-2">
-                  <Button
-                    variant="primary"
-                    className="h-8 px-3 text-xs"
-                    onClick={() => setCashoutConfirm('confirmed')}
-                  >
-                    Confirm
-                  </Button>
-                  <Button
-                    variant="danger"
-                    className="h-8 px-3 text-xs"
-                    onClick={() => setCashoutConfirm('disputed')}
-                  >
-                    Doesn't look right
-                  </Button>
-                </div>
-              )}
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <div className="rounded-lg border border-hairline bg-canvas px-2 py-2.5 text-center">
+              <p className="text-[11px] text-muted">Cash-out</p>
+              <p className="mt-0.5">
+                <ChipsFigure amount={myPlayer.cashout!} ratio={ratio} />
+              </p>
+            </div>
+          </div>
+        )}
+
+        {myPlayer.cashout != null && (
+          <div className="mt-3 border-t border-hairline-soft pt-3 text-left">
+            <p className="text-xs text-muted">
+              Cashed out for {myPlayer.cashout} banks
+              {myPlayer.cashout_confirm_status ? ` — ${myPlayer.cashout_confirm_status}` : ''}
+            </p>
+            {!myPlayer.cashout_confirm_status && (
+              <div className="mt-2 flex gap-2">
+                <Button
+                  variant="primary"
+                  className="h-8 px-3 text-xs"
+                  onClick={() => setCashoutConfirm('confirmed')}
+                >
+                  Confirm
+                </Button>
+                <Button
+                  variant="danger"
+                  className="h-8 px-3 text-xs"
+                  onClick={() => setCashoutConfirm('disputed')}
+                >
+                  Doesn't look right
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {myPlayer.cashout == null && pendingRequest && (
         <div className="mt-3 rounded-lg border border-primary/40 bg-canvas p-3">
@@ -512,7 +510,13 @@ export function MyGame() {
       {trendPoints.length > 0 && (
         <div className="mt-5">
           <h2 className="type-label-caption mb-2 text-muted">Buy-in trend</h2>
-          <LineChart points={trendPoints} height={60} />
+          <LineChart
+            points={trendPoints}
+            labels={confirmedSorted.map((r) =>
+              new Date(r.confirmed_at!).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+            )}
+            height={60}
+          />
         </div>
       )}
 
@@ -546,13 +550,6 @@ export function MyGame() {
               return (
                 <div key={r.id}>
                   <ListRow
-                    avatar={
-                      <Avatar className="h-12 w-12">
-                        <AvatarFallback>
-                          <Plus className="h-5 w-5" />
-                        </AvatarFallback>
-                      </Avatar>
-                    }
                     title={
                       <>
                         {r.count} buy-in{r.count > 1 ? 's' : ''}

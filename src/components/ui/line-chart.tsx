@@ -31,16 +31,21 @@ function smoothPath(pts: { x: number; y: number }[]): string {
 // inline SVG.
 function LineChart({
   points,
+  labels,
   height = 64,
   colorBySign = false,
   className,
 }: {
   points: number[]
+  labels?: string[]
   height?: number
   colorBySign?: boolean
   className?: string
 }) {
   if (points.length === 0) return null
+  const hasLabels = labels && labels.length > 0
+  const labelHeight = hasLabels ? 16 : 0
+  const totalHeight = height + labelHeight
   const width = Math.max(points.length * 28, 28)
   const max = Math.max(...points, 0)
   const min = Math.min(...points, 0)
@@ -54,7 +59,7 @@ function LineChart({
 
   return (
     <svg
-      viewBox={`0 0 ${width} ${height}`}
+      viewBox={`0 0 ${width} ${totalHeight}`}
       preserveAspectRatio="none"
       className={cn('w-full', className)}
       role="img"
@@ -71,6 +76,18 @@ function LineChart({
           r={3}
           className={colorBySign ? (v >= 0 ? 'fill-win' : 'fill-error') : 'fill-primary'}
         />
+      ))}
+      {hasLabels && labels.map((label, i) => (
+        <text
+          key={i}
+          x={toX(i)}
+          y={height + 12}
+          textAnchor="middle"
+          className="fill-muted"
+          style={{ fontSize: '9px' }}
+        >
+          {label}
+        </text>
       ))}
     </svg>
   )

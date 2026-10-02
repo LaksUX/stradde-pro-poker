@@ -84,6 +84,7 @@ export function Home() {
   const [pushBusy, setPushBusy] = useState(false)
   const [pendingRequestCount, setPendingRequestCount] = useState(0)
   const [playerSection, setPlayerSection] = useState<'upcoming' | 'games' | 'settlements'>('games')
+  const [adminSection, setAdminSection] = useState<'games' | 'people'>('games')
 
   useEffect(() => {
     if (isPushSupported()) isSubscribedToPush().then(setPushEnabled)
@@ -585,14 +586,25 @@ export function Home() {
 
         {!loadingData && profile?.role === 'admin' && (
           <TabsContent value="admin" className="mt-4">
-            <Tabs defaultValue="admin-games">
-              <TabsList>
-                <TabsTrigger value="admin-games">Games</TabsTrigger>
-                <TabsTrigger value="admin-people">People</TabsTrigger>
-              </TabsList>
+            <div className="flex gap-2">
+              {(['games', 'people'] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setAdminSection(s)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                    adminSection === s
+                      ? 'bg-ink text-canvas'
+                      : 'bg-surface-strong text-muted hover:text-ink'
+                  }`}
+                >
+                  {s === 'games' ? 'Games' : 'People'}
+                </button>
+              ))}
+            </div>
 
-              <TabsContent value="admin-games" className="mt-4">
-                {adminGames.length === 0 ? (
+            <div className="mt-3">
+              {adminSection === 'games' && (
+                adminGames.length === 0 ? (
                   <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
                     No games yet.
                   </p>
@@ -628,11 +640,11 @@ export function Home() {
                       />
                     ))}
                   </ListGroup>
-                )}
-              </TabsContent>
+                )
+              )}
 
-              <TabsContent value="admin-people" className="mt-4">
-                {adminRows.length === 0 ? (
+              {adminSection === 'people' && (
+                adminRows.length === 0 ? (
                   <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
                     No profiles yet.
                   </p>
@@ -709,9 +721,9 @@ export function Home() {
                       ))}
                     </ListGroup>
                   </>
-                )}
-              </TabsContent>
-            </Tabs>
+                )
+              )}
+            </div>
           </TabsContent>
         )}
       </Tabs>
