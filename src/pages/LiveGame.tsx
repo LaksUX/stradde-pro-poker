@@ -166,9 +166,10 @@ export function LiveGame() {
           id: row.id,
           profile_id: row.profile_id,
           is_host: row.is_host,
-          cashout: row.cashout,
+          // Number() so sums add instead of concatenating if numeric arrives as text.
+          cashout: row.cashout == null ? null : Number(row.cashout),
           cashout_confirm_status: row.cashout_confirm_status,
-          cashout_requested: row.cashout_requested,
+          cashout_requested: row.cashout_requested == null ? null : Number(row.cashout_requested),
           full_name: row.profiles?.full_name ?? '—',
           confirmed_buyins: counts.get(row.id) ?? 0,
         }))
@@ -772,7 +773,7 @@ export function LiveGame() {
                       </span>
                     }
                     title={`${p.full_name}${p.is_host ? ' (host)' : managerIds.has(p.profile_id) ? ' (manager)' : ''}`}
-                    subtitle={`${p.confirmed_buyins} buy-in${p.confirmed_buyins === 1 ? '' : 's'} · tap to edit`}
+                    subtitle={`${p.confirmed_buyins} buy-in${p.confirmed_buyins === 1 ? '' : 's'} · cashed out ${toChips(p.cashout!, ratio).toLocaleString()}`}
                     trailing={
                       <>
                         <ChipsFigure
