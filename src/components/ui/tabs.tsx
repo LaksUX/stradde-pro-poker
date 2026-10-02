@@ -67,4 +67,31 @@ function TabsContent({
   )
 }
 
-export { Tabs, TabsList, TabsTrigger, TabsContent }
+// Secondary tier: an underline bar, visibly below the segmented primary
+// tabs. Replaces the old pill filter chips.
+function SubTabsList({ className, ...props }: TabsPrimitive.List.Props) {
+  return (
+    <TabsPrimitive.List
+      data-slot="sub-tabs-list"
+      className={cn("flex w-full gap-6 border-b border-hairline", className)}
+      {...props}
+    />
+  )
+}
+
+function SubTabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
+  return (
+    <TabsPrimitive.Tab
+      data-slot="sub-tabs-trigger"
+      className={cn(
+        "-mb-px border-b-2 border-transparent pb-2.5 text-sm font-semibold text-muted transition-colors outline-none",
+        "hover:text-ink data-[active]:border-primary data-[active]:text-ink",
+        "focus-visible:ring-2 focus-visible:ring-ring/40",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Tabs, TabsList, TabsTrigger, TabsContent, SubTabsList, SubTabsTrigger }

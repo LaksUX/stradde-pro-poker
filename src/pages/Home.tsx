@@ -11,7 +11,7 @@ import { Button } from '../components/ui/Button'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Separator } from '../components/ui/separator'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger, TabsContent, SubTabsList, SubTabsTrigger } from '../components/ui/tabs'
 import { ListGroup, ListRow, ListDate } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
@@ -452,22 +452,17 @@ export function Home() {
 
             <Separator className="mt-6 bg-hairline" />
 
-            {/* Section filter */}
-            <div className="mt-4 flex gap-2">
-              {(['upcoming', 'games', 'settlements'] as const).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setPlayerSection(s)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                    playerSection === s
-                      ? 'bg-ink text-canvas'
-                      : 'bg-surface-strong text-muted hover:text-ink'
-                  }`}
-                >
-                  {s === 'upcoming' ? 'Upcoming' : s === 'games' ? 'My games' : 'Settlements'}
-                </button>
-              ))}
-            </div>
+            <Tabs
+              value={playerSection}
+              onValueChange={(v) => setPlayerSection(v as typeof playerSection)}
+              className="mt-4"
+            >
+              <SubTabsList>
+                <SubTabsTrigger value="upcoming">Upcoming</SubTabsTrigger>
+                <SubTabsTrigger value="games">My games</SubTabsTrigger>
+                <SubTabsTrigger value="settlements">Settlements</SubTabsTrigger>
+              </SubTabsList>
+            </Tabs>
 
             <div className="mt-3">
               {playerSection === 'upcoming' && (
@@ -600,21 +595,15 @@ export function Home() {
 
         {!loadingData && profile?.role === 'admin' && (
           <TabsContent value="admin" className="mt-4">
-            <div className="flex gap-2">
-              {(['games', 'people'] as const).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setAdminSection(s)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                    adminSection === s
-                      ? 'bg-ink text-canvas'
-                      : 'bg-surface-strong text-muted hover:text-ink'
-                  }`}
-                >
-                  {s === 'games' ? 'Games' : 'People'}
-                </button>
-              ))}
-            </div>
+            <Tabs
+              value={adminSection}
+              onValueChange={(v) => setAdminSection(v as typeof adminSection)}
+            >
+              <SubTabsList>
+                <SubTabsTrigger value="games">Games</SubTabsTrigger>
+                <SubTabsTrigger value="people">People</SubTabsTrigger>
+              </SubTabsList>
+            </Tabs>
 
             <div className="mt-3">
               {adminSection === 'games' && (

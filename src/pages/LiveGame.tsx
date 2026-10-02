@@ -592,18 +592,38 @@ export function LiveGame() {
 
       <Card className="mt-3">
         <CardContent>
-          <button
-            type="button"
-            className="flex w-full items-center justify-between text-left"
-            onClick={() => setRakeRevealed((v) => !v)}
-          >
-            <span className="text-muted">Rake</span>
-            {rakeRevealed ? (
-              <ChipsFigure amount={game.rake} ratio={ratio} />
-            ) : (
-              <span className="type-figure-md tracking-widest text-muted">••••</span>
-            )}
-          </button>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="min-w-0">
+              <p className="type-label-caption text-muted">Buy-ins</p>
+              <p className="mt-1">
+                <ChipsFigure
+                  amount={players.reduce((s, p) => s + p.confirmed_buyins * game.stake, 0)}
+                  ratio={ratio}
+                />
+              </p>
+            </div>
+            <div className="min-w-0">
+              <p className="type-label-caption text-muted">Cash-out</p>
+              <p className="mt-1">
+                <ChipsFigure amount={players.reduce((s, p) => s + (p.cashout ?? 0), 0)} ratio={ratio} />
+              </p>
+            </div>
+            <button
+              type="button"
+              className="min-w-0"
+              onClick={() => setRakeRevealed((v) => !v)}
+              aria-label={rakeRevealed ? 'Hide rake' : 'Show rake'}
+            >
+              <p className="type-label-caption text-muted">Rake</p>
+              <p className="mt-1">
+                {rakeRevealed ? (
+                  <ChipsFigure amount={game.rake} ratio={ratio} />
+                ) : (
+                  <span className="type-figure-md tracking-widest text-muted">••••</span>
+                )}
+              </p>
+            </button>
+          </div>
           {rakeRevealed && (
             <div className="mt-2 flex items-center gap-2">
               <Input
