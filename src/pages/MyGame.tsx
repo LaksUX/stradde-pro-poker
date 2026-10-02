@@ -20,7 +20,7 @@ import { Label } from '../components/ui/label'
 import { LineChart } from '../components/ui/line-chart'
 import { X, ChevronDown } from 'lucide-react'
 
-const MAX_REQUEST = 30
+const MAX_REQUEST = 100
 const QUICK_ADD = [1, 2, 3, 5]
 
 type Game = {
