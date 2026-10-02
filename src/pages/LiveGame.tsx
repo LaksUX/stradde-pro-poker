@@ -541,6 +541,8 @@ export function LiveGame() {
   // every row's tiny status marker one at a time.
   const activePlayers = players.filter((p) => p.cashout == null)
   const cashedOutPlayers = players.filter((p) => p.cashout != null)
+  const awaitingConfirm = cashedOutPlayers.filter((p) => !p.cashout_confirm_status).length
+  const disputedCount = cashedOutPlayers.filter((p) => p.cashout_confirm_status === 'disputed').length
 
   return (
     <div className="mx-auto w-full max-w-md p-4 sm:p-6">
@@ -657,6 +659,13 @@ export function LiveGame() {
               </p>
             </button>
           </div>
+          {players.length > 0 && (
+            <p className="mt-3 border-t border-hairline-soft pt-3 text-center text-xs text-muted">
+              {cashedOutPlayers.length} of {players.length} cashed out
+              {awaitingConfirm > 0 && ` · ${awaitingConfirm} awaiting confirmation`}
+              {disputedCount > 0 && <span className="text-error"> · {disputedCount} disputed</span>}
+            </p>
+          )}
         </CardContent>
       </Card>
 
