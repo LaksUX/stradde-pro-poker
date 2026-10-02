@@ -274,7 +274,7 @@ export function ShareTable() {
               </p>
               <div className="mt-1 flex items-center gap-2">
                 <p className="type-figure-hero text-ink">
-                  {formatChips(myTransfer.amount, closedGameRatio)} chips
+                  {formatChips(myTransfer.amount, closedGameRatio)}
                 </p>
                 <Badge
                   variant={
@@ -300,7 +300,6 @@ export function ShareTable() {
   const full = game.table_status_override
     ? game.table_status_override === 'full'
     : seated >= game.table_size
-  const ratio: ChipRatio = '1:1' // not exposed pre-join — see Join.tsx's comment
   // A fresh visitor deciding whether to join needs the QR/link front and
   // center — it's the entire content of their decision. Someone already
   // seated cares about their own status and the roster first; showing the
@@ -332,7 +331,7 @@ export function ShareTable() {
           <h1 className="type-page-title text-ink">{game.name}</h1>
           <p className="text-sm text-muted">{game.venue_freetext}</p>
           <p className="text-sm text-muted">
-            {game.stake} banks buy-in ({formatChips(game.stake, ratio)} chips)
+            {game.stake} banks buy-in
           </p>
           <Badge variant={full ? 'error' : 'win'} className="mt-2">
             {full ? 'Table full' : 'Seats open'} · {seated}/{game.table_size}

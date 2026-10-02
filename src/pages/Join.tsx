@@ -5,7 +5,6 @@ import { continueWithPhone } from '../hooks/useAuth'
 import { withTimeout } from '../lib/errors'
 import { BuyinPicker } from '../components/ui/buyin-picker'
 import { Button } from '../components/ui/button'
-import { formatChips, type ChipRatio } from '../lib/chips'
 import { PageSpinner } from '../components/ui/spinner'
 import { Card, CardContent } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
@@ -80,7 +79,6 @@ export function Join() {
   // Chip ratio isn't exposed on public_game_summary (it's not needed pre-join,
   // and keeping the public view narrow is deliberate — see the view's comment
   // in 0002_rls_policies.sql). Default to 1:1 for this display-only estimate.
-  const ratio: ChipRatio = '1:1'
 
   async function handleSubmit() {
     if (!name.trim() || !phone.trim() || !gameId) {
@@ -120,7 +118,7 @@ export function Join() {
           <h1 className="type-page-title text-ink">{game.name}</h1>
           <p className="text-sm text-muted">{game.venue_freetext}</p>
           <p className="text-sm text-muted">
-            {game.stake} banks buy-in ({formatChips(game.stake, ratio)} chips)
+            {game.stake} banks buy-in
           </p>
           <Badge variant={full ? 'error' : 'win'} className="mt-2">
             {full ? 'Table full' : 'Seats open'} · {seated}/{game.table_size}
