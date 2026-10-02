@@ -382,49 +382,59 @@ export function Home() {
 
         {!loadingData && (
           <TabsContent value="player" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Lifetime net</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <p className="flex items-baseline gap-1.5">
-                    <span className={`type-figure-hero ${lifetimeNet >= 0 ? 'text-win' : 'text-error'}`}>{lifetimeNet}</span>
-                    <span className="text-sm text-muted">chips</span>
-                  </p>
-                  <Badge variant={lifetimeNet >= 0 ? 'win' : 'error'}>
-                    {lifetimeNet >= 0 ? 'Winning' : 'Down overall'}
-                  </Badge>
-                </div>
-                <p className="mt-3 text-xs text-muted">
-                  {wins} win{wins === 1 ? '' : 's'} · {playedGames.length} game
-                  {playedGames.length === 1 ? '' : 's'} played
+            {/* Hero: net result */}
+            <div className="text-center">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted">Lifetime net</p>
+              <p className="mt-1 flex items-baseline justify-center gap-1.5">
+                <span className={`type-figure-hero ${lifetimeNet >= 0 ? 'text-win' : 'text-error'}`}>
+                  {lifetimeNet >= 0 ? '+' : ''}{lifetimeNet}
+                </span>
+                <span className="text-sm text-muted">chips</span>
+              </p>
+              {netChartPoints.length > 1 && (
+                <LineChart
+                  points={netChartPoints}
+                  colorBySign
+                  className="mx-auto mt-2 h-12 max-w-[200px]"
+                />
+              )}
+            </div>
+
+            {/* Quick stats strip */}
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="rounded-lg border border-hairline bg-canvas px-2 py-2.5 text-center">
+                <p className="type-figure-md text-ink">{playedGames.length}</p>
+                <p className="mt-0.5 text-[11px] text-muted">Games</p>
+              </div>
+              <div className="rounded-lg border border-hairline bg-canvas px-2 py-2.5 text-center">
+                <p className="type-figure-md text-ink">{wins}</p>
+                <p className="mt-0.5 text-[11px] text-muted">Wins</p>
+              </div>
+              <div className="rounded-lg border border-hairline bg-canvas px-2 py-2.5 text-center">
+                <p className="type-figure-md text-ink">
+                  {playedGames.length ? Math.round((wins / playedGames.length) * 100) : 0}%
                 </p>
-                <div className="mt-3 grid grid-cols-2 gap-1.5 text-center">
-                  <div className="rounded-lg bg-surface-strong px-2 py-2.5">
-                    <p className="text-[11px] text-muted">Buy-ins</p>
-                    <p className="mt-0.5 flex items-baseline justify-center gap-1">
-                      <span className="type-figure-md text-ink">{lifetimeBuyins}</span>
-                      <span className="text-sm text-muted">chips</span>
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-surface-strong px-2 py-2.5">
-                    <p className="text-[11px] text-muted">Cash-out</p>
-                    <p className="mt-0.5 flex items-baseline justify-center gap-1">
-                      <span className="type-figure-md text-ink">{lifetimeCashout}</span>
-                      <span className="text-sm text-muted">chips</span>
-                    </p>
-                  </div>
-                </div>
-                {netChartPoints.length > 0 && (
-                  <LineChart
-                    points={netChartPoints}
-                    colorBySign
-                    className="mt-3 h-16 border-t border-hairline-soft pt-3"
-                  />
-                )}
-              </CardContent>
-            </Card>
+                <p className="mt-0.5 text-[11px] text-muted">Win rate</p>
+              </div>
+            </div>
+
+            {/* Money flow breakdown */}
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="rounded-lg border border-hairline bg-canvas px-3 py-2.5">
+                <p className="text-[11px] text-muted">Buy-ins</p>
+                <p className="mt-0.5 flex items-baseline gap-1">
+                  <span className="type-figure-md text-ink">{lifetimeBuyins}</span>
+                  <span className="text-xs text-muted">chips</span>
+                </p>
+              </div>
+              <div className="rounded-lg border border-hairline bg-canvas px-3 py-2.5">
+                <p className="text-[11px] text-muted">Cash-out</p>
+                <p className="mt-0.5 flex items-baseline gap-1">
+                  <span className="type-figure-md text-ink">{lifetimeCashout}</span>
+                  <span className="text-xs text-muted">chips</span>
+                </p>
+              </div>
+            </div>
 
             <Tabs defaultValue="games" className="mt-5">
               <TabsList>
