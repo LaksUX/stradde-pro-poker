@@ -83,6 +83,7 @@ export function Home() {
   const [pushEnabled, setPushEnabled] = useState(false)
   const [pushBusy, setPushBusy] = useState(false)
   const [pendingRequestCount, setPendingRequestCount] = useState(0)
+  const [playerSection, setPlayerSection] = useState<'upcoming' | 'games' | 'settlements'>('games')
 
   useEffect(() => {
     if (isPushSupported()) isSubscribedToPush().then(setPushEnabled)
@@ -401,7 +402,7 @@ export function Home() {
             </div>
 
             {/* Quick stats strip */}
-            <div className="mt-4 grid grid-cols-3 gap-2">
+            <div className="mt-3 grid grid-cols-3 gap-2">
               <div className="rounded-lg border border-hairline bg-canvas px-2 py-2.5 text-center">
                 <p className="type-figure-md text-ink">{playedGames.length}</p>
                 <p className="mt-0.5 text-[11px] text-muted">Games</p>
@@ -436,21 +437,32 @@ export function Home() {
               </div>
             </div>
 
-            <Tabs defaultValue="games" className="mt-5">
-              <TabsList>
-                <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-                <TabsTrigger value="games">My games</TabsTrigger>
-                <TabsTrigger value="settlements">Settlements</TabsTrigger>
-              </TabsList>
+            {/* Section filter */}
+            <div className="mt-6 flex gap-2">
+              {(['upcoming', 'games', 'settlements'] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setPlayerSection(s)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                    playerSection === s
+                      ? 'bg-ink text-canvas'
+                      : 'bg-surface-strong text-muted hover:text-ink'
+                  }`}
+                >
+                  {s === 'upcoming' ? 'Upcoming' : s === 'games' ? 'My games' : 'Settlements'}
+                </button>
+              ))}
+            </div>
 
-              <TabsContent value="upcoming" className="mt-4">
+            <div className="mt-3">
+              {playerSection === 'upcoming' && (
                 <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
                   Coming soon — scheduled games you can confirm for will show up here.
                 </p>
-              </TabsContent>
+              )}
 
-              <TabsContent value="games" className="mt-4">
-                {playedGames.length === 0 ? (
+              {playerSection === 'games' && (
+                playedGames.length === 0 ? (
                   <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
                     No closed games yet.
                   </p>
@@ -472,11 +484,11 @@ export function Home() {
                       </div>
                     ))}
                   </ListGroup>
-                )}
-              </TabsContent>
+                )
+              )}
 
-              <TabsContent value="settlements" className="mt-4">
-                {settlementRows.length === 0 ? (
+              {playerSection === 'settlements' && (
+                settlementRows.length === 0 ? (
                   <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
                     No settlements yet.
                   </p>
@@ -495,9 +507,9 @@ export function Home() {
                       />
                     ))}
                   </ListGroup>
-                )}
-              </TabsContent>
-            </Tabs>
+                )
+              )}
+            </div>
           </TabsContent>
         )}
 
