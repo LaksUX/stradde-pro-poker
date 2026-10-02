@@ -541,6 +541,9 @@ export function LiveGame() {
   // every row's tiny status marker one at a time.
   const activePlayers = players.filter((p) => p.cashout == null)
   const cashedOutPlayers = players.filter((p) => p.cashout != null)
+  const requestedBanks = players
+    .filter((p) => p.cashout == null && p.cashout_requested != null)
+    .reduce((sum, p) => sum + (p.cashout_requested ?? 0), 0)
   const totalBuyinCount = players.reduce((s, p) => s + p.confirmed_buyins, 0)
   const awaitingConfirm = cashedOutPlayers.filter((p) => !p.cashout_confirm_status).length
   const disputedCount = cashedOutPlayers.filter((p) => p.cashout_confirm_status === 'disputed').length
@@ -653,6 +656,11 @@ export function LiveGame() {
               <p className="mt-0.5 text-[11px] text-muted">
                 {cashedOutPlayers.length} player{cashedOutPlayers.length === 1 ? '' : 's'}
               </p>
+              {requestedBanks > 0 && (
+                <p className="mt-0.5 text-[11px] text-primary">
+                  +{toChips(requestedBanks, ratio)} requested
+                </p>
+              )}
             </div>
             <button
               type="button"
