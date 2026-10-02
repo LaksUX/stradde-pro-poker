@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { ListGroup, ListRow } from '../components/ui/list-row'
 import { Avatar, AvatarFallback, NamedAvatar } from '../components/ui/avatar'
 import { Badge } from '../components/ui/badge'
+import { ChipsFigure } from '../components/ui/chips-figure'
+import { SettlementRow } from '../components/ui/SettlementRow'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { Input } from '../components/ui/input'
@@ -292,12 +294,11 @@ export function MyGame() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2">
-            <p className="flex items-baseline gap-1.5 text-ink">
-              <span className="type-figure-hero">
-                {netBanks == null ? toChips(confirmedBuyins * game.stake, ratio) : toChips(netBanks, ratio)}
-              </span>
-              <span className="text-sm text-muted">chips</span>
-            </p>
+            <ChipsFigure
+              amount={netBanks == null ? confirmedBuyins * game.stake : netBanks}
+              ratio={ratio}
+              size="hero"
+            />
             <Badge variant={netBanks == null || netBanks >= 0 ? 'win' : 'error'}>
               {netBanks == null ? 'Playing' : netBanks >= 0 ? 'Winning' : 'Down'}
             </Badge>
@@ -311,13 +312,15 @@ export function MyGame() {
             <div className="mt-3 grid grid-cols-2 gap-1.5 text-center">
               <div className="rounded-lg bg-surface-strong px-2 py-2.5">
                 <p className="text-[11px] text-muted">Buy-ins</p>
-                <p className="type-figure-md mt-0.5 text-ink">
-                  {toChips(confirmedBuyins * game.stake, ratio)} chips
+                <p className="mt-0.5">
+                  <ChipsFigure amount={confirmedBuyins * game.stake} ratio={ratio} />
                 </p>
               </div>
               <div className="rounded-lg bg-surface-strong px-2 py-2.5">
                 <p className="text-[11px] text-muted">Cash-out</p>
-                <p className="type-figure-md mt-0.5 text-ink">{toChips(myPlayer.cashout!, ratio)} chips</p>
+                <p className="mt-0.5">
+                  <ChipsFigure amount={myPlayer.cashout!} ratio={ratio} />
+                </p>
               </div>
             </div>
           )}
@@ -493,30 +496,13 @@ export function MyGame() {
           <h2 className="type-label-caption mb-2 text-muted">Settlement</h2>
           <ListGroup>
             {myTransfers.map((t) => (
-              <ListRow
+              <SettlementRow
                 key={t.id}
-                avatar={<NamedAvatar name={t.otherName} className="h-12 w-12" />}
-                title={
-                  <span className={t.direction === 'owe' ? 'text-error' : 'text-win'}>
-                    {t.direction === 'owe' ? `You owe ${t.otherName}` : `${t.otherName} owes you`}
-                  </span>
-                }
-                trailing={
-                  <>
-                    <span
-                      className={`type-figure-md whitespace-nowrap ${
-                        t.direction === 'owe' ? 'text-error' : 'text-win'
-                      }`}
-                    >
-                      {toChips(t.amount, ratio)} chips
-                    </span>
-                    <Badge
-                      variant={t.status === 'confirmed' ? 'win' : t.status === 'disputed' ? 'error' : 'muted'}
-                    >
-                      {t.status}
-                    </Badge>
-                  </>
-                }
+                otherName={t.otherName}
+                direction={t.direction}
+                amount={t.amount}
+                ratio={ratio}
+                status={t.status}
               />
             ))}
           </ListGroup>

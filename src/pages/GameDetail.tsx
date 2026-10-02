@@ -8,6 +8,7 @@ import { ListGroup, ListRow } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/Button'
 import { NamedAvatar } from '../components/ui/avatar'
+import { ChipsFigure } from '../components/ui/chips-figure'
 import { LineChart } from '../components/ui/line-chart'
 import { ArrowRight } from 'lucide-react'
 
@@ -138,13 +139,11 @@ export function GameDetail() {
               p.cashout == null ? (
                 <span className="type-figure-md text-muted">In play</span>
               ) : (
-                <span
-                  className={`type-figure-md ${
-                    p.cashout - p.buyins * game.stake >= 0 ? 'text-win' : 'text-error'
-                  }`}
-                >
-                  {toChips(p.cashout - p.buyins * game.stake, ratio)} chips
-                </span>
+                <ChipsFigure
+                  amount={p.cashout - p.buyins * game.stake}
+                  ratio={ratio}
+                  tone={p.cashout - p.buyins * game.stake >= 0 ? 'win' : 'error'}
+                />
               )
             }
           />
@@ -172,9 +171,7 @@ export function GameDetail() {
                 }
                 trailing={
                   <>
-                    <span className="type-figure-md whitespace-nowrap text-ink">
-                      {toChips(t.amount, ratio)} chips
-                    </span>
+                    <ChipsFigure amount={t.amount} ratio={ratio} />
                     <Badge
                       variant={t.status === 'confirmed' ? 'win' : t.status === 'disputed' ? 'error' : 'muted'}
                     >

@@ -16,6 +16,7 @@ import { Label } from '../components/ui/label'
 import { ListGroup, ListRow, ListDate } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
+import { ChipsFigure } from '../components/ui/chips-figure'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import { InvitePlayersSheet } from '../components/ui/InvitePlayersSheet'
 import { Slider } from '../components/ui/slider'
@@ -566,7 +567,7 @@ export function LiveGame() {
           >
             <span className="text-muted">Rake</span>
             {rakeRevealed ? (
-              <span className="type-figure-md text-ink">{toChips(game.rake, ratio)} chips</span>
+              <ChipsFigure amount={game.rake} ratio={ratio} />
             ) : (
               <span className="type-figure-md tracking-widest text-muted">••••</span>
             )}
@@ -627,7 +628,7 @@ export function LiveGame() {
             <h2 className="type-label-caption mb-2 mt-4 text-muted">Cashed out ({cashedOutPlayers.length})</h2>
             <ListGroup>
               {cashedOutPlayers.map((p) => {
-                const net = toChips(p.cashout! - p.confirmed_buyins * game.stake, ratio)
+                const bankNet = p.cashout! - p.confirmed_buyins * game.stake
                 return (
                   <ListRow
                     key={p.id}
@@ -643,14 +644,18 @@ export function LiveGame() {
                     subtitle={`${p.confirmed_buyins} buy-in${p.confirmed_buyins === 1 ? '' : 's'} · tap to edit`}
                     trailing={
                       <>
-                        <div
-                          className={`type-figure-md flex items-center gap-1 whitespace-nowrap ${
-                            net >= 0 ? 'text-win' : 'text-error'
-                          }`}
-                        >
-                          {net >= 0 ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
-                          {Math.abs(net)} chips
-                        </div>
+                        <ChipsFigure
+                          amount={Math.abs(bankNet)}
+                          ratio={ratio}
+                          tone={bankNet >= 0 ? 'win' : 'error'}
+                          icon={
+                            bankNet >= 0 ? (
+                              <ArrowUp className="h-3.5 w-3.5" />
+                            ) : (
+                              <ArrowDown className="h-3.5 w-3.5" />
+                            )
+                          }
+                        />
                         <Badge variant={p.cashout_confirm_status === 'confirmed' ? 'win' : p.cashout_confirm_status === 'disputed' ? 'error' : 'muted'}>
                           {p.cashout_confirm_status === 'confirmed'
                             ? 'Confirmed'

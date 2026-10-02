@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { toChips, type ChipRatio } from '../lib/chips'
+import type { ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { Button } from '../components/ui/Button'
@@ -12,6 +12,7 @@ import { Select } from '../components/ui/select'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { NamedAvatar } from '../components/ui/avatar'
+import { ChipsFigure } from '../components/ui/chips-figure'
 import { ArrowRight, ChevronDown } from 'lucide-react'
 
 type Game = { id: string; name: string; chip_ratio: ChipRatio; settlement_published_at: string | null }
@@ -189,9 +190,7 @@ export function Settlement() {
                   trailing={
                     <div className="flex items-center gap-2">
                       <div className="flex flex-col items-end gap-1">
-                        <span className="type-figure-md whitespace-nowrap text-ink">
-                          {toChips(t.amount, ratio)} chips
-                        </span>
+                        <ChipsFigure amount={t.amount} ratio={ratio} />
                         <Badge
                           variant={t.status === 'confirmed' ? 'win' : t.status === 'disputed' ? 'error' : 'muted'}
                         >
