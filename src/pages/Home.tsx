@@ -10,7 +10,6 @@ import { isPushSupported, isSubscribedToPush, subscribeToPush, unsubscribeFromPu
 import { Button } from '../components/ui/Button'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { ListGroup, ListRow, ListDate } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
@@ -61,9 +60,6 @@ type AdminGameRow = {
   scheduled_for: string
 }
 
-// An admin can also act as a host (0009_admin_can_host.sql widens the
-// matching RLS insert policies to match) — kept as one helper so every
-// place on this screen that gates on "can this profile host" agrees.
 function isApprovedHostRole(profile: Profile): boolean {
   return profile.role === 'host' || profile.role === 'admin'
 }
@@ -73,14 +69,9 @@ function formatClosedDate(closedAt: string | null): string | undefined {
   return new Date(closedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-// See PAGE_PROMPTS.md "Home". Player/Host/Admin all live as tabs on this one
-// screen now — Admin used to be a separate page reached by a text link;
-// folding its profile-approval queue in here (with a pending-count badge on
-// the tab itself) means an admin sees what needs action without a detour.
 export function Home() {
   const { session, profile, loading } = useAuth()
   const navigate = useNavigate()
-  const [tab, setTab] = useState<'host' | 'player' | 'admin'>('player')
   const [hostedGames, setHostedGames] = useState<HostedGame[]>([])
   const [playedGames, setPlayedGames] = useState<PlayedGame[]>([])
   const [settlementRows, setSettlementRows] = useState<SettlementRow[]>([])
@@ -238,9 +229,6 @@ export function Home() {
       if (!cancelled) setAdminRows((data ?? []) as AdminRow[])
     }
 
-    // Every game this profile hosts, any status — not just closed ones like
-    // loadHostTab's list — so a test game left scheduled or live is still
-    // reachable to delete, not just games that were actually finished.
     async function loadAdminGames() {
       if (profile!.role !== 'admin') return
       const { data } = await supabase
@@ -250,12 +238,6 @@ export function Home() {
       if (!cancelled) setAdminGames((data ?? []) as AdminGameRow[])
     }
 
-    // What the notification bell's badge counts — the same "new buy-in/join
-    // request" event that actually triggers a push (see
-    // 0015_push_notifications.sql), so the number on the bell always means
-    // something a push already would have told a host about. RLS already
-    // scopes buyin_requests to games this profile hosts, so a plain player
-    // just gets 0 back with no extra guard needed.
     async function loadPendingRequestCount() {
       if (!isApprovedHostRole(profile!) || !profile!.approved) {
         if (!cancelled) setPendingRequestCount(0)
@@ -293,11 +275,6 @@ export function Home() {
     navigate('/continue')
   }
 
-  // The only way anyone becomes a host now — no more self-serve apply, so
-  // there's no "pending" state to approve into; this grants the role and
-  // approves it in the same step. Mirrors Admin.tsx's makeHost/removeHost —
-  // same two actions, kept in sync since this tab replaced that page as the
-  // place admins actually use day to day.
   async function makeHost(id: string) {
     const ok = await runWrite(
       () => supabase.from('profiles').update({ role: 'host', approved: true }).eq('id', id),
@@ -314,9 +291,6 @@ export function Home() {
     if (ok) setAdminRows((prev) => prev.map((r) => (r.id === id ? { ...r, role: 'player', approved: false } : r)))
   }
 
-  // Cascades game_players/buyin_requests/settlement_transfers automatically
-  // (all reference games.id with on delete cascade — 0001_core_schema.sql) —
-  // deleting a test game cleans up everything tied to it in one action.
   async function deleteGame(id: string) {
     const confirmed = await confirmDialog(
       'Delete this game? This removes all its buy-ins, cash-outs, and settlement data too — this cannot be undone.',
@@ -327,12 +301,6 @@ export function Home() {
     if (ok) setAdminGames((prev) => prev.filter((g) => g.id !== id))
   }
 
-  // Unlike games, this does NOT cascade — venues.created_by, games.host_id,
-  // and hosting_entities.owner_profile_id all reference profiles with no
-  // cascade, so deleting a profile that ever hosted anything fails with a
-  // real FK error surfaced via runWrite's toast, telling the admin to
-  // delete those first rather than silently taking games/venues down with
-  // them.
   async function deleteProfile(id: string) {
     const confirmed = await confirmDialog(
       "Delete this player's profile? This cannot be undone.",
@@ -344,27 +312,15 @@ export function Home() {
   }
 
   const isApprovedHost = !!profile && isApprovedHostRole(profile) && profile.approved
-  // A plain player can never be host or admin — no tab chrome to switch
-  // between screens that will only ever show one of them "apply to host"
-  // or "pending" copy for. Only someone who's ever become a host or admin
-  // has more than one real tab to switch between.
-  const showTabSwitcher = profile?.role !== 'player'
   const lifetimeNet = playedGames.reduce((s, g) => s + toChips(g.net, g.chip_ratio), 0)
   const lifetimeBuyins = playedGames.reduce((s, g) => s + toChips(g.buyins, g.chip_ratio), 0)
   const lifetimeCashout = playedGames.reduce((s, g) => s + toChips(g.cashout, g.chip_ratio), 0)
   const wins = playedGames.filter((g) => g.net > 0).length
-  // Converted to chips PER GAME before summing/averaging — never sum raw
-  // banks across games and convert once, since different games here can be
-  // on different chip ratios (same pitfall GameDetail's venue trend chart
-  // already guards against).
   const totalRake = hostedGames.reduce((s, g) => s + toChips(g.rake, g.chip_ratio), 0)
   const avgBuyins = hostedGames.length
     ? Math.round(hostedGames.reduce((s, g) => s + toChips(g.buyins, g.chip_ratio), 0) / hostedGames.length)
     : 0
-  const pendingAdminCount = adminRows.filter((r) => r.role === 'host' && !r.approved).length
 
-  // Chronological (oldest → newest) for the chart, independent of the table
-  // above it which stays newest-first.
   const chartGames = [...playedGames].reverse()
   const netChartPoints = chartGames.map((g) => toChips(g.net, g.chip_ratio))
 
@@ -400,303 +356,262 @@ export function Home() {
         </button>
       </header>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as 'host' | 'player' | 'admin')} className="mt-5">
-        {showTabSwitcher && (
-          <TabsList>
-            <TabsTrigger value="player">Player</TabsTrigger>
-            <TabsTrigger value="host">Host</TabsTrigger>
-            {profile?.role === 'admin' && (
-              <TabsTrigger value="admin" className="relative">
-                Admin
-                {pendingAdminCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white">
-                    {pendingAdminCount}
-                  </span>
-                )}
-              </TabsTrigger>
-            )}
-          </TabsList>
-        )}
+      {loadingData && <InlineSpinner />}
 
-        {loadingData && <InlineSpinner />}
-
-        {!loadingData && (
-          <TabsContent value="player" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Lifetime net</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <p className="flex items-baseline gap-1.5">
-                    <span className={`type-figure-hero ${lifetimeNet >= 0 ? 'text-win' : 'text-error'}`}>{lifetimeNet}</span>
+      {!loadingData && (
+        <>
+          {/* ── Lifetime net ── */}
+          <Card className="mt-5">
+            <CardHeader>
+              <CardTitle>Lifetime net</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <p className="flex items-baseline gap-1.5">
+                  <span className={`type-figure-hero ${lifetimeNet >= 0 ? 'text-win' : 'text-error'}`}>{lifetimeNet}</span>
+                  <span className="text-sm text-muted">chips</span>
+                </p>
+                <Badge variant={lifetimeNet >= 0 ? 'win' : 'error'}>
+                  {lifetimeNet >= 0 ? 'Winning' : 'Down overall'}
+                </Badge>
+              </div>
+              <p className="mt-3 text-xs text-muted">
+                {wins} win{wins === 1 ? '' : 's'} · {playedGames.length} game
+                {playedGames.length === 1 ? '' : 's'} played
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-1.5 text-center">
+                <div className="rounded-lg bg-surface-strong px-2 py-2.5">
+                  <p className="text-[11px] text-muted">Buy-ins</p>
+                  <p className="mt-0.5 flex items-baseline justify-center gap-1">
+                    <span className="type-figure-md text-ink">{lifetimeBuyins}</span>
                     <span className="text-sm text-muted">chips</span>
                   </p>
-                  <Badge variant={lifetimeNet >= 0 ? 'win' : 'error'}>
-                    {lifetimeNet >= 0 ? 'Winning' : 'Down overall'}
-                  </Badge>
                 </div>
-                <p className="mt-3 text-xs text-muted">
-                  {wins} win{wins === 1 ? '' : 's'} · {playedGames.length} game
-                  {playedGames.length === 1 ? '' : 's'} played
-                </p>
-                <div className="mt-3 grid grid-cols-2 gap-1.5 text-center">
-                  <div className="rounded-lg bg-surface-strong px-2 py-2.5">
-                    <p className="text-[11px] text-muted">Buy-ins</p>
-                    <p className="mt-0.5 flex items-baseline justify-center gap-1">
-                      <span className="type-figure-md text-ink">{lifetimeBuyins}</span>
-                      <span className="text-sm text-muted">chips</span>
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-surface-strong px-2 py-2.5">
-                    <p className="text-[11px] text-muted">Cash-out</p>
-                    <p className="mt-0.5 flex items-baseline justify-center gap-1">
-                      <span className="type-figure-md text-ink">{lifetimeCashout}</span>
-                      <span className="text-sm text-muted">chips</span>
-                    </p>
-                  </div>
+                <div className="rounded-lg bg-surface-strong px-2 py-2.5">
+                  <p className="text-[11px] text-muted">Cash-out</p>
+                  <p className="mt-0.5 flex items-baseline justify-center gap-1">
+                    <span className="type-figure-md text-ink">{lifetimeCashout}</span>
+                    <span className="text-sm text-muted">chips</span>
+                  </p>
                 </div>
-                {netChartPoints.length > 0 && (
-                  <LineChart
-                    points={netChartPoints}
-                    colorBySign
-                    className="mt-3 h-16 border-t border-hairline-soft pt-3"
+              </div>
+              {netChartPoints.length > 0 && (
+                <LineChart
+                  points={netChartPoints}
+                  colorBySign
+                  className="mt-3 h-16 border-t border-hairline-soft pt-3"
+                />
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ── Upcoming ── */}
+          <section className="mt-6">
+            <h2 className="type-label-caption mb-2 text-muted">Upcoming</h2>
+            <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+              Coming soon — scheduled games you can confirm for will show up here.
+            </p>
+          </section>
+
+          {/* ── My games ── */}
+          <section className="mt-6">
+            <h2 className="type-label-caption mb-2 text-muted">My games</h2>
+            {playedGames.length === 0 ? (
+              <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                No closed games yet.
+              </p>
+            ) : (
+              <ListGroup>
+                {playedGames.map((g) => (
+                  <div key={g.id}>
+                    <ListDate>{formatClosedDate(g.closed_at)}</ListDate>
+                    <ListRow
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/games/${g.id}/my-game`)}
+                      avatar={<NamedAvatar name={g.name} className="h-12 w-12" />}
+                      title={g.name}
+                      subtitle={g.venue && <Badge variant="muted">{g.venue}</Badge>}
+                      trailing={
+                        <ChipsFigure amount={g.net} ratio={g.chip_ratio} tone={g.net >= 0 ? 'win' : 'error'} />
+                      }
+                    />
+                  </div>
+                ))}
+              </ListGroup>
+            )}
+          </section>
+
+          {/* ── Settlements ── */}
+          <section className="mt-6">
+            <h2 className="type-label-caption mb-2 text-muted">Settlements</h2>
+            {settlementRows.length === 0 ? (
+              <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                No settlements yet.
+              </p>
+            ) : (
+              <ListGroup>
+                {settlementRows.map((r) => (
+                  <SettlementRow
+                    key={r.id}
+                    onClick={() => navigate(`/games/${r.gameId}/my-game`)}
+                    otherName={r.otherName}
+                    direction={r.direction}
+                    amount={r.amount}
+                    ratio={r.chip_ratio}
+                    status={r.status}
+                    context={r.gameName}
                   />
-                )}
-              </CardContent>
-            </Card>
+                ))}
+              </ListGroup>
+            )}
+          </section>
 
-            <Tabs defaultValue="upcoming" className="mt-5">
-              <TabsList>
-                <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-                <TabsTrigger value="games">My games</TabsTrigger>
-                <TabsTrigger value="settlements">Settlements</TabsTrigger>
-              </TabsList>
+          {/* ── Hosting (host/admin only) ── */}
+          {isApprovedHost && (
+            <section className="mt-8 border-t border-hairline pt-6">
+              <h2 className="type-label-caption mb-4 text-muted">Hosting</h2>
 
-              {/* Not built yet — see this round's chat reply for the
-                  proposed design (query games where the player has a
-                  confirmed or pending game_players/invite row and
-                  status='scheduled', with a Confirm action per row). Kept
-                  as the same list shape as the two tabs beside it so all
-                  three read as one consistent component once it's wired
-                  up. */}
-              <TabsContent value="upcoming" className="mt-4">
-                <h2 className="type-label-caption mb-2 text-muted">Upcoming</h2>
-                <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
-                  Coming soon — scheduled games you can confirm for will show up here.
-                </p>
-              </TabsContent>
+              <div className="grid grid-cols-2 gap-2">
+                <Card className="text-center">
+                  <CardHeader>
+                    <CardTitle className="mx-auto">Games hosted</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="type-figure-md text-ink">{hostedGames.length}</p>
+                  </CardContent>
+                </Card>
+                <Card className="text-center">
+                  <CardHeader>
+                    <CardTitle className="mx-auto">Rake collected</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="flex items-baseline justify-center gap-1">
+                      <span className="type-figure-md text-ink">{totalRake}</span>
+                      <span className="text-sm text-muted">chips</span>
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="col-span-2 text-center">
+                  <CardHeader>
+                    <CardTitle className="mx-auto">Average buy-ins</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="flex items-baseline justify-center gap-1">
+                      <span className="type-figure-md text-ink">{avgBuyins}</span>
+                      <span className="text-sm text-muted">chips</span>
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
 
-              <TabsContent value="games" className="mt-4">
-                <h2 className="type-label-caption mb-2 text-muted">My games</h2>
-                {playedGames.length === 0 ? (
+              <div className="mt-4">
+                {hostedGames.length === 0 ? (
                   <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
                     No closed games yet.
                   </p>
                 ) : (
                   <ListGroup>
-                    {playedGames.map((g) => (
+                    {hostedGames.map((g) => (
                       <div key={g.id}>
                         <ListDate>{formatClosedDate(g.closed_at)}</ListDate>
                         <ListRow
                           className="cursor-pointer"
-                          onClick={() => navigate(`/games/${g.id}/my-game`)}
+                          onClick={() => navigate(`/games/${g.id}`)}
                           avatar={<NamedAvatar name={g.name} className="h-12 w-12" />}
                           title={g.name}
-                          subtitle={g.venue && <Badge variant="muted">{g.venue}</Badge>}
-                          trailing={
-                            <ChipsFigure amount={g.net} ratio={g.chip_ratio} tone={g.net >= 0 ? 'win' : 'error'} />
-                          }
+                          trailing={<ChipsFigure amount={g.buyins} ratio={g.chip_ratio} />}
                         />
                       </div>
                     ))}
                   </ListGroup>
                 )}
-              </TabsContent>
+              </div>
 
-              <TabsContent value="settlements" className="mt-4">
-                <h2 className="type-label-caption mb-2 text-muted">Settlements</h2>
-                {settlementRows.length === 0 ? (
-                  <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
-                    No settlements yet.
-                  </p>
-                ) : (
-                  <ListGroup>
-                    {settlementRows.map((r) => (
-                      <SettlementRow
-                        key={r.id}
-                        onClick={() => navigate(`/games/${r.gameId}/my-game`)}
-                        otherName={r.otherName}
-                        direction={r.direction}
-                        amount={r.amount}
-                        ratio={r.chip_ratio}
-                        status={r.status}
-                        context={r.gameName}
-                      />
-                    ))}
-                  </ListGroup>
-                )}
-              </TabsContent>
-            </Tabs>
+              <Button block className="mt-4" onClick={() => navigate('/games/new')}>
+                <Plus className="mr-2 h-4 w-4" />
+                New game
+              </Button>
+            </section>
+          )}
 
-          </TabsContent>
-        )}
+          {/* ── Admin (admin only) ── */}
+          {profile?.role === 'admin' && (
+            <section className="mt-8 border-t border-hairline pt-6">
+              <h2 className="type-label-caption mb-2 text-muted">Admin</h2>
 
-        {!loadingData && (
-          <TabsContent value="host" className="mt-4">
-            {isApprovedHost ? (
-              <>
-                <h2 className="type-label-caption text-muted">Your games</h2>
-
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  <Card className="text-center">
-                    <CardHeader>
-                      <CardTitle className="mx-auto">Games hosted</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="type-figure-md text-ink">{hostedGames.length}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="text-center">
-                    <CardHeader>
-                      <CardTitle className="mx-auto">Rake collected</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="flex items-baseline justify-center gap-1">
-                        <span className="type-figure-md text-ink">{totalRake}</span>
-                        <span className="text-sm text-muted">chips</span>
-                      </p>
-                    </CardContent>
-                  </Card>
-                  <Card className="col-span-2 text-center">
-                    <CardHeader>
-                      <CardTitle className="mx-auto">Average buy-ins</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="flex items-baseline justify-center gap-1">
-                        <span className="type-figure-md text-ink">{avgBuyins}</span>
-                        <span className="text-sm text-muted">chips</span>
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <div className="mt-4">
-                  {hostedGames.length === 0 ? (
-                    <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
-                      No closed games yet.
-                    </p>
-                  ) : (
-                    <ListGroup>
-                      {hostedGames.map((g) => (
-                        <div key={g.id}>
-                          <ListDate>{formatClosedDate(g.closed_at)}</ListDate>
-                          <ListRow
-                            className="cursor-pointer"
-                            onClick={() => navigate(`/games/${g.id}`)}
-                            avatar={<NamedAvatar name={g.name} className="h-12 w-12" />}
-                            title={g.name}
-                            trailing={<ChipsFigure amount={g.buyins} ratio={g.chip_ratio} />}
-                          />
-                        </div>
-                      ))}
-                    </ListGroup>
-                  )}
-                </div>
-              </>
-            ) : (
-              <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
-                Hosting is granted by an admin — ask one to make you a host.
-              </p>
-            )}
-          </TabsContent>
-        )}
-
-        {!loadingData && profile?.role === 'admin' && (
-          <TabsContent value="admin" className="mt-4">
-            <h2 className="type-label-caption mb-2 text-muted">Games</h2>
-            {adminGames.length === 0 ? (
-              <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
-                No games yet.
-              </p>
-            ) : (
-              <ListGroup>
-                {adminGames.map((g) => (
-                  <ListRow
-                    key={g.id}
-                    title={g.name}
-                    subtitle={new Date(g.scheduled_for).toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                    trailing={
-                      <>
-                        <Badge variant={g.status === 'live' ? 'win' : 'muted'}>{g.status}</Badge>
-                        <Button variant="danger" className="h-8 px-3 text-xs" onClick={() => deleteGame(g.id)}>
-                          Delete
-                        </Button>
-                      </>
-                    }
-                  />
-                ))}
-              </ListGroup>
-            )}
-
-            <h2 className="type-label-caption mb-2 mt-5 text-muted">Profiles</h2>
-            {adminRows.length === 0 ? (
-              <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
-                No profiles yet.
-              </p>
-            ) : (
-              <ListGroup>
-                {adminRows.map((r) => (
-                  <ListRow
-                    key={r.id}
-                    avatar={<NamedAvatar name={r.full_name ?? '—'} className="h-12 w-12" />}
-                    title={r.full_name ?? '—'}
-                    subtitle={r.phone}
-                    trailing={
-                      <>
-                        <Badge variant={r.role === 'host' && r.approved ? 'win' : 'muted'}>
-                          {r.role === 'host' ? (r.approved ? 'Approved' : 'Pending') : 'Player'}
-                        </Badge>
-                        {r.role === 'player' && (
-                          <Button variant="primary" className="h-8 px-3 text-xs" onClick={() => makeHost(r.id)}>
-                            Make host
+              <h3 className="type-label-caption mb-2 mt-4 text-muted">Games</h3>
+              {adminGames.length === 0 ? (
+                <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                  No games yet.
+                </p>
+              ) : (
+                <ListGroup>
+                  {adminGames.map((g) => (
+                    <ListRow
+                      key={g.id}
+                      title={g.name}
+                      subtitle={new Date(g.scheduled_for).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                      trailing={
+                        <>
+                          <Badge variant={g.status === 'live' ? 'win' : 'muted'}>{g.status}</Badge>
+                          <Button variant="danger" className="h-8 px-3 text-xs" onClick={() => deleteGame(g.id)}>
+                            Delete
                           </Button>
-                        )}
-                        {r.role === 'host' && (
-                          <Button
-                            variant={r.approved ? 'danger' : 'primary'}
-                            className="h-8 px-3 text-xs"
-                            onClick={() => (r.approved ? removeHost(r.id) : makeHost(r.id))}
-                          >
-                            {r.approved ? 'Revoke' : 'Approve'}
-                          </Button>
-                        )}
-                        <Button variant="danger" className="h-8 px-3 text-xs" onClick={() => deleteProfile(r.id)}>
-                          Delete
-                        </Button>
-                      </>
-                    }
-                  />
-                ))}
-              </ListGroup>
-            )}
-          </TabsContent>
-        )}
-      </Tabs>
+                        </>
+                      }
+                    />
+                  ))}
+                </ListGroup>
+              )}
 
-      {tab === 'host' && isApprovedHost && (
-        <button
-          type="button"
-          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-elevated transition-colors hover:bg-primary-active"
-          onClick={() => navigate('/games/new')}
-          aria-label="New game"
-        >
-          <Plus className="h-6 w-6" />
-        </button>
+              <h3 className="type-label-caption mb-2 mt-5 text-muted">Profiles</h3>
+              {adminRows.length === 0 ? (
+                <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                  No profiles yet.
+                </p>
+              ) : (
+                <ListGroup>
+                  {adminRows.map((r) => (
+                    <ListRow
+                      key={r.id}
+                      avatar={<NamedAvatar name={r.full_name ?? '—'} className="h-12 w-12" />}
+                      title={r.full_name ?? '—'}
+                      subtitle={r.phone}
+                      trailing={
+                        <>
+                          <Badge variant={r.role === 'host' && r.approved ? 'win' : 'muted'}>
+                            {r.role === 'host' ? (r.approved ? 'Approved' : 'Pending') : 'Player'}
+                          </Badge>
+                          {r.role === 'player' && (
+                            <Button variant="primary" className="h-8 px-3 text-xs" onClick={() => makeHost(r.id)}>
+                              Make host
+                            </Button>
+                          )}
+                          {r.role === 'host' && (
+                            <Button
+                              variant={r.approved ? 'danger' : 'primary'}
+                              className="h-8 px-3 text-xs"
+                              onClick={() => (r.approved ? removeHost(r.id) : makeHost(r.id))}
+                            >
+                              {r.approved ? 'Revoke' : 'Approve'}
+                            </Button>
+                          )}
+                          <Button variant="danger" className="h-8 px-3 text-xs" onClick={() => deleteProfile(r.id)}>
+                            Delete
+                          </Button>
+                        </>
+                      }
+                    />
+                  ))}
+                </ListGroup>
+              )}
+            </section>
+          )}
+        </>
       )}
     </div>
   )
