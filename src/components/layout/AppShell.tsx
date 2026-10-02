@@ -40,7 +40,7 @@ export function AppShell() {
         <div className="w-9" />
       </header>
 
-      <main className={active ? 'pb-24' : 'pb-6'}>
+      <main className={active ? 'pb-[calc(6rem+env(safe-area-inset-bottom))]' : 'pb-6'}>
         <Outlet />
       </main>
 

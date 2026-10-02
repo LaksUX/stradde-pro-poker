@@ -21,6 +21,11 @@ export function toChips(banks: number, ratio: ChipRatio): number {
   return Math.round(banks * chipMultiplier(ratio))
 }
 
+// Display string with thousands separators (en-US so grouping is predictable).
+export function formatChips(banks: number, ratio: ChipRatio): string {
+  return toChips(banks, ratio).toLocaleString('en-US')
+}
+
 /** Primary chips figure + secondary bank figure, e.g. "22 chips (11 banks)". */
 export function formatValue(banks: number, ratio: ChipRatio): { chips: number; banks: number } {
   return { chips: toChips(banks, ratio), banks: Math.round(banks) }

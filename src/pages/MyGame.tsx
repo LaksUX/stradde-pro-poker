@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { toChips, type ChipRatio } from '../lib/chips'
+import { formatChips, toChips, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { Button } from '../components/ui/button'
@@ -477,7 +477,7 @@ export function MyGame() {
                   onChange={(e) => setCashoutAmount(Math.max(0, Number(e.target.value) || 0))}
                 />
                 <p className="text-xs text-muted">
-                  {toChips(cashoutAmount, ratio)} chips — the host still confirms the final amount.
+                  {formatChips(cashoutAmount, ratio)} chips — the host still confirms the final amount.
                 </p>
               </div>
 
