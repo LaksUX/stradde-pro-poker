@@ -25,10 +25,9 @@ import { QrCode, UserPlus, ArrowUp, ArrowDown, ChevronDown, Shield } from 'lucid
 
 const MAX_BUYINS = 50
 
-const timeFmt: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' }
-
-function formatDuration(ms: number) {
-  const mins = Math.max(0, Math.floor(ms / 60000))
+// Approximate on purpose: rounded to the nearest 5 minutes.
+function formatGameTime(ms: number) {
+  const mins = Math.max(5, Math.round(ms / 300000) * 5)
   return mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`
 }
 const QUICK_ADD = [1, 2, 3, 5]
@@ -42,7 +41,6 @@ type Game = {
   host_id: string
   status: 'scheduled' | 'live' | 'closed'
   scheduled_for: string
-  started_at?: string | null
   closed_at: string | null
 }
 type PendingRequest = {
@@ -529,14 +527,12 @@ export function LiveGame() {
   if (!game) return <PageSpinner />
   if (!profile) return <div className="p-6 text-center text-muted">Sign in required.</div>
 
-  const startMs = new Date(game.started_at ?? game.scheduled_for).getTime()
+  const startMs = new Date(game.scheduled_for).getTime()
   const endMs = game.closed_at ? new Date(game.closed_at).getTime() : now
   const timeLine =
     game.status === 'scheduled' || Number.isNaN(startMs) || startMs > now
       ? null
-      : game.status === 'closed' && game.closed_at
-        ? `${new Date(startMs).toLocaleTimeString([], timeFmt)} – ${new Date(endMs).toLocaleTimeString([], timeFmt)} · ${formatDuration(endMs - startMs)}`
-        : `Started ${new Date(startMs).toLocaleTimeString([], timeFmt)} · ${formatDuration(endMs - startMs)}`
+      : `Game time ~${formatGameTime(endMs - startMs)}`
 
   const ratio = game.chip_ratio
   // Grouped, not interleaved — the whole point of splitting these into two
