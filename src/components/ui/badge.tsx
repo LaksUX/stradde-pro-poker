@@ -15,6 +15,7 @@ const badgeVariants = cva(
         outline: "border-hairline text-muted",
         win: "bg-win/15 text-win",
         error: "bg-error/15 text-error",
+        destructive: "bg-error/15 text-error",
         muted: "bg-surface-strong text-muted",
       },
     },

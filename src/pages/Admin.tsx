@@ -98,22 +98,22 @@ export function Admin() {
                     {r.role === 'host' ? (r.approved ? ' · approved' : ' · pending') : ''}
                   </Badge>
                   {r.role === 'player' && (
-                    <Button variant="primary" className="h-8 px-3 text-xs" onClick={() => makeHost(r.id)}>
+                    <Button variant="default" className="h-8 px-3 text-xs" onClick={() => makeHost(r.id)}>
                       Make host
                     </Button>
                   )}
                   {r.role === 'host' && !r.approved && (
                     <div className="flex gap-1.5">
-                      <Button variant="primary" className="h-8 px-3 text-xs" onClick={() => approve(r.id)}>
+                      <Button variant="default" className="h-8 px-3 text-xs" onClick={() => approve(r.id)}>
                         Approve
                       </Button>
-                      <Button variant="danger" className="h-8 px-3 text-xs" onClick={() => removeHost(r.id)}>
+                      <Button variant="destructive" className="h-8 px-3 text-xs" onClick={() => removeHost(r.id)}>
                         Decline
                       </Button>
                     </div>
                   )}
                   {r.role === 'host' && r.approved && (
-                    <Button variant="danger" className="h-8 px-3 text-xs" onClick={() => removeHost(r.id)}>
+                    <Button variant="destructive" className="h-8 px-3 text-xs" onClick={() => removeHost(r.id)}>
                       Revoke
                     </Button>
                   )}

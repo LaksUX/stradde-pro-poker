@@ -156,11 +156,11 @@ export function MySettlements() {
               />
               {r.status === 'pending' && (
                 <div className="flex gap-2 px-3 pb-3" onClick={(e) => e.stopPropagation()}>
-                  <Button variant="primary" className="h-8 px-3 text-xs" onClick={() => setStatus(r.id, 'confirmed')}>
+                  <Button variant="default" className="h-8 px-3 text-xs" onClick={() => setStatus(r.id, 'confirmed')}>
                     Confirm
                   </Button>
                   <Button
-                    variant="danger"
+                    variant="destructive"
                     className="h-8 px-3 text-xs"
                     onClick={() => setNoteOpenId(noteOpenId === r.id ? null : r.id)}
                   >
@@ -177,7 +177,7 @@ export function MySettlements() {
                     placeholder="e.g. I think this should be 20 banks"
                   />
                   <Button
-                    variant="danger"
+                    variant="destructive"
                     className="mt-2 h-8 w-full text-xs"
                     onClick={() => setStatus(r.id, 'disputed', noteText)}
                   >

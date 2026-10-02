@@ -333,14 +333,14 @@ export function MyGame() {
             {!myPlayer.cashout_confirm_status && (
               <div className="mt-2 flex gap-2">
                 <Button
-                  variant="primary"
+                  variant="default"
                   className="h-8 px-3 text-xs"
                   onClick={() => setCashoutConfirm('confirmed')}
                 >
                   Confirm
                 </Button>
                 <Button
-                  variant="danger"
+                  variant="destructive"
                   className="h-8 px-3 text-xs"
                   onClick={() => setCashoutConfirm('disputed')}
                 >
@@ -573,14 +573,14 @@ export function MyGame() {
                   {r.status === 'confirmed' && !r.player_confirm_status && (
                     <div className="flex gap-2 px-3 pb-3">
                       <Button
-                        variant="primary"
+                        variant="default"
                         className="h-8 px-3 text-xs"
                         onClick={() => setBuyinConfirm(r.id, 'confirmed')}
                       >
                         Confirm
                       </Button>
                       <Button
-                        variant="danger"
+                        variant="destructive"
                         className="h-8 px-3 text-xs"
                         onClick={() => setBuyinConfirm(r.id, 'disputed')}
                       >

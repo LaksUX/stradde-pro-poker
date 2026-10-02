@@ -670,7 +670,7 @@ export function Home() {
                               trailing={
                                 <div className="flex items-center gap-1">
                                   <Button
-                                    variant={r.approved ? 'danger' : 'primary'}
+                                    variant={r.approved ? 'destructive' : 'default'}
                                     className="h-7 px-2.5 text-xs"
                                     onClick={() => (r.approved ? removeHost(r.id) : makeHost(r.id))}
                                   >
@@ -702,7 +702,7 @@ export function Home() {
                           trailing={
                             <div className="flex items-center gap-1">
                               <Button
-                                variant="primary"
+                                variant="default"
                                 className="h-7 px-2.5 text-xs"
                                 onClick={() => makeHost(r.id)}
                               >

@@ -69,4 +69,30 @@ function NamedAvatar({
   )
 }
 
-export { Avatar, AvatarImage, AvatarFallback, NamedAvatar }
+function AvatarBadge({ className, ...props }: React.ComponentProps<"span">) {
+  return (
+    <span
+      data-slot="avatar-badge"
+      className={cn(
+        "absolute bottom-0 right-0 size-2.5 rounded-full bg-win ring-2 ring-canvas",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function AvatarGroup({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="avatar-group"
+      className={cn(
+        "flex -space-x-2 *:data-[slot=avatar]:ring-2 *:data-[slot=avatar]:ring-canvas",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Avatar, AvatarImage, AvatarFallback, AvatarBadge, AvatarGroup, NamedAvatar }
