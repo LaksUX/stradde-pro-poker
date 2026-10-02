@@ -70,7 +70,9 @@ export function LiveGame() {
   const [game, setGame] = useState<Game | null>(null)
   const [pending, setPending] = useState<PendingRequest[]>([])
   const [players, setPlayers] = useState<PlayerRow[]>([])
-  const [rakeRevealed, setRakeRevealed] = useState(false)
+  const [rakeOpen, setRakeOpen] = useState(false)
+  const [rakeValue, setRakeValue] = useState('')
+  const [savingRake, setSavingRake] = useState(false)
   const [closing, setClosing] = useState(false)
   const [qrOpen, setQrOpen] = useState(false)
   const [addPlayersOpen, setAddPlayersOpen] = useState(false)
@@ -388,9 +390,20 @@ export function LiveGame() {
     }
   }
 
-  async function setRake(value: number) {
+  function openRakeSheet() {
+    setRakeValue(String(game?.rake ?? 0))
+    setRakeOpen(true)
+  }
+
+  async function saveRake() {
     if (!gameId) return
-    await runWrite(() => supabase.from('games').update({ rake: value }).eq('id', gameId), 'Rake')
+    setSavingRake(true)
+    const ok = await runWrite(
+      () => supabase.from('games').update({ rake: Math.max(0, Number(rakeValue) || 0) }).eq('id', gameId),
+      'Rake'
+    )
+    setSavingRake(false)
+    if (ok) setRakeOpen(false)
   }
 
   async function closeAndSettle() {
@@ -417,7 +430,7 @@ export function LiveGame() {
             `(${toChips(overageBanks, game.chip_ratio)} chips) more than total buy-ins. ` +
             `Lower rake by at least that much, or fix a player's buy-in/cash-out below.`
         )
-        setRakeRevealed(true)
+        openRakeSheet()
         return
       }
       const unfinished = players.filter((p) => p.cashout == null)
@@ -611,32 +624,50 @@ export function LiveGame() {
             <button
               type="button"
               className="min-w-0"
-              onClick={() => setRakeRevealed((v) => !v)}
-              aria-label={rakeRevealed ? 'Hide rake' : 'Show rake'}
+              onClick={openRakeSheet}
+              aria-label="Edit rake"
             >
               <p className="type-label-caption text-muted">Rake</p>
               <p className="mt-1">
-                {rakeRevealed ? (
-                  <ChipsFigure amount={game.rake} ratio={ratio} />
-                ) : (
-                  <span className="type-figure-md tracking-widest text-muted">••••</span>
-                )}
+                <span className="type-figure-md tracking-widest text-muted">••••</span>
               </p>
             </button>
           </div>
-          {rakeRevealed && (
-            <div className="mt-2 flex items-center gap-2">
-              <Input
-                type="number"
-                className="h-9 w-20"
-                defaultValue={game.rake}
-                onBlur={(e) => setRake(Number(e.target.value) || 0)}
-              />
-              <span className="text-xs text-muted">({game.rake} banks) · only you can see this</span>
-            </div>
-          )}
         </CardContent>
       </Card>
+
+      <Sheet open={rakeOpen} onOpenChange={setRakeOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Rake</SheetTitle>
+          </SheetHeader>
+          <p className="mt-1 text-xs text-muted">Only you and managers can see this.</p>
+
+          <div className="mt-4 rounded-lg bg-surface-strong px-4 py-3">
+            <p className="text-xs text-muted">Current rake</p>
+            <p className="mt-0.5">
+              <ChipsFigure amount={game.rake} ratio={ratio} size="hero" />
+            </p>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-1.5">
+            <Label htmlFor="rake-amount">Rake (banks)</Label>
+            <Input
+              id="rake-amount"
+              type="number"
+              inputMode="numeric"
+              className="h-14 text-lg"
+              value={rakeValue}
+              onChange={(e) => setRakeValue(e.target.value)}
+            />
+            <p className="text-xs text-muted">{toChips(Math.max(0, Number(rakeValue) || 0), ratio)} chips</p>
+          </div>
+
+          <Button block className="mt-5" disabled={savingRake} onClick={saveRake}>
+            {savingRake ? 'Saving…' : 'Save rake'}
+          </Button>
+        </SheetContent>
+      </Sheet>
 
       <div className="mt-4">
         {players.length === 0 && (

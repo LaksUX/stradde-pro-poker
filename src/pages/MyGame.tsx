@@ -8,6 +8,7 @@ import { toast } from '../lib/toast'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
 import { ListGroup, ListRow } from '../components/ui/list-row'
+import { Item, ItemContent, ItemDescription, ItemTitle } from '../components/ui/item'
 import { NamedAvatar } from '../components/ui/avatar'
 import { Badge } from '../components/ui/badge'
 import { ChipsFigure } from '../components/ui/chips-figure'
@@ -353,22 +354,26 @@ export function MyGame() {
       </div>
 
       {myPlayer.cashout == null && pendingRequest && (
-        <div className="mt-3 rounded-lg border border-primary/40 bg-canvas p-3">
-          <p className="text-sm text-ink">
-            Requested {pendingRequest.count} buy-in{pendingRequest.count > 1 ? 's' : ''} — waiting on
-            the host.
-          </p>
-          <p className="mt-1 text-xs text-muted">This page updates on its own once confirmed.</p>
-        </div>
+        <Item variant="outline" className="mt-3 items-start border-primary/40 bg-canvas">
+          <ItemContent>
+            <ItemTitle className="text-sm font-normal">
+              Requested {pendingRequest.count} buy-in{pendingRequest.count > 1 ? 's' : ''} — waiting on
+              the host.
+            </ItemTitle>
+            <ItemDescription className="text-xs">This page updates on its own once confirmed.</ItemDescription>
+          </ItemContent>
+        </Item>
       )}
 
       {myPlayer.cashout == null && myPlayer.cashout_requested != null && (
-        <div className="mt-3 rounded-lg border border-primary/40 bg-canvas p-3">
-          <p className="text-sm text-ink">
-            Requested a cash-out of {myPlayer.cashout_requested} banks — waiting on the host.
-          </p>
-          <p className="mt-1 text-xs text-muted">This page updates on its own once confirmed.</p>
-        </div>
+        <Item variant="outline" className="mt-3 items-start border-primary/40 bg-canvas">
+          <ItemContent>
+            <ItemTitle className="text-sm font-normal">
+              Requested a cash-out of {myPlayer.cashout_requested} banks — waiting on the host.
+            </ItemTitle>
+            <ItemDescription className="text-xs">This page updates on its own once confirmed.</ItemDescription>
+          </ItemContent>
+        </Item>
       )}
 
       {myPlayer.cashout == null && !pendingRequest && (

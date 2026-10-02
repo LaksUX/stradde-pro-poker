@@ -1,16 +1,14 @@
 import { cn } from "cn"
+import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "./item"
 
-// A WhatsApp-chat-list-shaped row: a big avatar on the left, a bold title +
-// muted subtitle stacked under it, and a right-aligned trailing column
-// (typically a figure on top, a badge/status underneath) — no column
-// headers, no per-cell borders. Replaces the app's Table for every list
-// that's really "browse a set of named rows," which is most of them; Table
-// itself stays for the couple of spots that are still genuinely tabular
-// (Settlement's From/To editor).
+// The app's one list shape, built on shadcn's Item: avatar left, bold title +
+// muted subtitle, right-aligned trailing column. ListGroup is the bordered
+// card that holds a run of rows; ListRow is the prop-based shorthand for a
+// single Item. Anything list-like should come through here (or compose Item
+// directly) so every list stays visually identical.
 function ListGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <div
-      data-slot="list-group"
+    <ItemGroup
       className={cn(
         "divide-y divide-hairline-soft overflow-hidden rounded-lg border border-hairline bg-canvas",
         className
@@ -26,6 +24,7 @@ function ListRow({
   subtitle,
   trailing,
   className,
+  onClick,
   ...props
 }: {
   avatar?: React.ReactNode
@@ -34,30 +33,23 @@ function ListRow({
   trailing?: React.ReactNode
 } & Omit<React.ComponentProps<"div">, "title">) {
   return (
-    <div
-      data-slot="list-row"
-      className={cn(
-        "flex items-center gap-3 px-3 py-3 transition-colors hover:bg-surface-strong/60",
-        className
-      )}
+    <Item
+      interactive={!!onClick}
+      className={className}
+      onClick={onClick}
       {...props}
     >
-      {avatar && <div className="shrink-0">{avatar}</div>}
-      <div className="min-w-0 flex-1">
-        <div className="text-[15px] font-semibold text-ink">{title}</div>
-        {subtitle && <div className="mt-0.5 text-sm text-muted">{subtitle}</div>}
-      </div>
-      {trailing && (
-        <div className="flex shrink-0 flex-col items-end gap-1 text-right">{trailing}</div>
-      )}
-    </div>
+      {avatar && <ItemMedia>{avatar}</ItemMedia>}
+      <ItemContent>
+        <ItemTitle>{title}</ItemTitle>
+        {subtitle && <ItemDescription>{subtitle}</ItemDescription>}
+      </ItemContent>
+      {trailing && <ItemActions>{trailing}</ItemActions>}
+    </Item>
   )
 }
 
-// A row's date, when it's meant to lead — a full-width strip above the
-// avatar/title row itself, not squeezed into the same flex line as the
-// avatar (that read as "inline," not as its own row). One shared style so
-// every list that shows a date does it identically.
+// A row's date, when it's meant to lead — a full-width strip above the row.
 function ListDate({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
