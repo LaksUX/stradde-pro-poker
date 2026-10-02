@@ -82,7 +82,6 @@ export function LiveGame() {
   const [historyByPlayer, setHistoryByPlayer] = useState<Map<string, HistoryEntry[]>>(new Map())
   const [historyOpen, setHistoryOpen] = useState(false)
   const [managerIds, setManagerIds] = useState<Set<string>>(new Set())
-  const [managersOpen, setManagersOpen] = useState(false)
 
   const sheetPlayer = players.find((p) => p.id === sheetPlayerId) ?? null
   const sheetDelta = sheetPlayer ? sliderValue - sheetPlayer.confirmed_buyins : 0
@@ -619,49 +618,6 @@ export function LiveGame() {
         </CardContent>
       </Card>
 
-      {isOriginalHost && players.filter((p) => !p.is_host).length > 0 && (
-        <div className="mt-3">
-          <button
-            type="button"
-            className="flex w-full items-center gap-1.5 text-left"
-            onClick={() => setManagersOpen((v) => !v)}
-          >
-            <Shield className="h-4 w-4 text-muted" />
-            <span className="type-label-caption text-muted">
-              Managers{managerIds.size > 0 ? ` (${managerIds.size})` : ''}
-            </span>
-            <ChevronDown
-              className={`ml-auto h-3.5 w-3.5 text-muted transition-transform ${managersOpen ? 'rotate-180' : ''}`}
-            />
-          </button>
-          {managersOpen && (
-            <div className="mt-2 space-y-1">
-              {players
-                .filter((p) => !p.is_host)
-                .map((p) => (
-                  <div key={p.id} className="flex items-center justify-between rounded-lg bg-surface-strong px-3 py-2">
-                    <span className="text-sm text-ink">{p.full_name}</span>
-                    <button
-                      type="button"
-                      onClick={() => toggleManager(p.profile_id)}
-                      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                        managerIds.has(p.profile_id)
-                          ? 'bg-primary text-on-primary'
-                          : 'bg-canvas text-muted hover:text-ink'
-                      }`}
-                    >
-                      {managerIds.has(p.profile_id) ? 'Manager' : 'Make manager'}
-                    </button>
-                  </div>
-                ))}
-              <p className="text-[11px] text-muted">
-                Managers can approve buy-ins and set cash-outs.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
       <div className="mt-4">
         {players.length === 0 && (
           <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
@@ -797,7 +753,7 @@ export function LiveGame() {
                 </span>
                 <SheetTitle>
                   {sheetPlayer.full_name}
-                  {sheetPlayer.is_host ? ' (host)' : ''}
+                  {sheetPlayer.is_host ? ' (host)' : managerIds.has(sheetPlayer.profile_id) ? ' (manager)' : ''}
                 </SheetTitle>
               </SheetHeader>
 
@@ -955,6 +911,22 @@ export function LiveGame() {
                   </div>
                 )
               })()}
+
+              {isOriginalHost && !sheetPlayer.is_host && (
+                <div className="mt-5 flex items-center justify-between border-t border-hairline-soft pt-4">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-muted" />
+                    <div>
+                      <p className="text-sm font-medium text-ink">Manager</p>
+                      <p className="text-xs text-muted">Can approve buy-ins & set cash-outs</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={managerIds.has(sheetPlayer.profile_id)}
+                    onCheckedChange={() => toggleManager(sheetPlayer.profile_id)}
+                  />
+                </div>
+              )}
 
               <Button block className="mt-5" disabled={savingSheet} onClick={saveSheetChanges}>
                 {savingSheet ? 'Saving…' : 'Save'}
