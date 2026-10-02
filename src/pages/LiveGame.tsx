@@ -21,7 +21,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/s
 import { InvitePlayersSheet } from '../components/ui/InvitePlayersSheet'
 import { Slider } from '../components/ui/slider'
 import { Switch } from '../components/ui/switch'
-import { QrCode, UserPlus, ArrowUp, ArrowDown, ChevronDown } from 'lucide-react'
+import { QrCode, UserPlus, ArrowUp, ArrowDown, ChevronDown, Shield } from 'lucide-react'
 
 const MAX_BUYINS = 50
 const QUICK_ADD = [1, 2, 3, 5]
@@ -81,6 +81,8 @@ export function LiveGame() {
   const [savingSheet, setSavingSheet] = useState(false)
   const [historyByPlayer, setHistoryByPlayer] = useState<Map<string, HistoryEntry[]>>(new Map())
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [managerIds, setManagerIds] = useState<Set<string>>(new Set())
+  const [managersOpen, setManagersOpen] = useState(false)
 
   const sheetPlayer = players.find((p) => p.id === sheetPlayerId) ?? null
   const sheetDelta = sheetPlayer ? sliderValue - sheetPlayer.confirmed_buyins : 0
@@ -158,9 +160,18 @@ export function LiveGame() {
       )
     }
 
+    async function loadManagers() {
+      const { data } = await supabase
+        .from('game_managers')
+        .select('profile_id')
+        .eq('game_id', gameId)
+      setManagerIds(new Set((data ?? []).map((r: any) => r.profile_id)))
+    }
+
     loadGame()
     loadPending()
     loadPlayers()
+    loadManagers()
 
     const channel = supabase
       .channel(`live-game-${gameId}`)
@@ -176,6 +187,11 @@ export function LiveGame() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` },
         loadPlayers
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'game_managers', filter: `game_id=eq.${gameId}` },
+        loadManagers
       )
       .subscribe()
 
@@ -465,6 +481,23 @@ export function LiveGame() {
     }
   }
 
+  const isOriginalHost = game?.host_id === profile?.id
+
+  async function toggleManager(profileId: string) {
+    if (!gameId) return
+    if (managerIds.has(profileId)) {
+      await runWrite(
+        () => supabase.from('game_managers').delete().eq('game_id', gameId).eq('profile_id', profileId),
+        'Removing manager'
+      )
+    } else {
+      await runWrite(
+        () => supabase.from('game_managers').insert({ game_id: gameId, profile_id: profileId }),
+        'Adding manager'
+      )
+    }
+  }
+
   if (!game) return <PageSpinner />
   if (!profile) return <div className="p-6 text-center text-muted">Sign in required.</div>
 
@@ -586,6 +619,49 @@ export function LiveGame() {
         </CardContent>
       </Card>
 
+      {isOriginalHost && players.filter((p) => !p.is_host).length > 0 && (
+        <div className="mt-3">
+          <button
+            type="button"
+            className="flex w-full items-center gap-1.5 text-left"
+            onClick={() => setManagersOpen((v) => !v)}
+          >
+            <Shield className="h-4 w-4 text-muted" />
+            <span className="type-label-caption text-muted">
+              Managers{managerIds.size > 0 ? ` (${managerIds.size})` : ''}
+            </span>
+            <ChevronDown
+              className={`ml-auto h-3.5 w-3.5 text-muted transition-transform ${managersOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+          {managersOpen && (
+            <div className="mt-2 space-y-1">
+              {players
+                .filter((p) => !p.is_host)
+                .map((p) => (
+                  <div key={p.id} className="flex items-center justify-between rounded-lg bg-surface-strong px-3 py-2">
+                    <span className="text-sm text-ink">{p.full_name}</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleManager(p.profile_id)}
+                      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                        managerIds.has(p.profile_id)
+                          ? 'bg-primary text-on-primary'
+                          : 'bg-canvas text-muted hover:text-ink'
+                      }`}
+                    >
+                      {managerIds.has(p.profile_id) ? 'Manager' : 'Make manager'}
+                    </button>
+                  </div>
+                ))}
+              <p className="text-[11px] text-muted">
+                Managers can approve buy-ins and set cash-outs.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="mt-4">
         {players.length === 0 && (
           <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
@@ -608,7 +684,7 @@ export function LiveGame() {
                       <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-canvas bg-win" />
                     </span>
                   }
-                  title={`${p.full_name}${p.is_host ? ' (host)' : ''}`}
+                  title={`${p.full_name}${p.is_host ? ' (host)' : managerIds.has(p.profile_id) ? ' (manager)' : ''}`}
                   trailing={
                     <>
                       <span className="type-figure-md text-lg text-ink">{p.confirmed_buyins}</span>
@@ -640,7 +716,7 @@ export function LiveGame() {
                         <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-canvas bg-error" />
                       </span>
                     }
-                    title={`${p.full_name}${p.is_host ? ' (host)' : ''}`}
+                    title={`${p.full_name}${p.is_host ? ' (host)' : managerIds.has(p.profile_id) ? ' (manager)' : ''}`}
                     subtitle={`${p.confirmed_buyins} buy-in${p.confirmed_buyins === 1 ? '' : 's'} · tap to edit`}
                     trailing={
                       <>

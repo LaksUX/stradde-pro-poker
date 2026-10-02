@@ -51,6 +51,7 @@ export function ShareTable() {
   )
   const [myPendingCount, setMyPendingCount] = useState<number | null>(null)
   const [myProfileId, setMyProfileId] = useState<string | null>(null)
+  const [isManager, setIsManager] = useState(false)
   // public_game_summary deliberately doesn't expose chip_ratio pre-join
   // (see 0002_rls_policies.sql's view comment) — but a closed-game viewer
   // is always a confirmed game_players row by this point, so RLS already
@@ -94,6 +95,13 @@ export function ShareTable() {
         .maybeSingle()
       if (confirmedRow) {
         setMyStatus('confirmed')
+        const { data: mgr } = await supabase
+          .from('game_managers')
+          .select('id')
+          .eq('game_id', gameId!)
+          .eq('profile_id', userId)
+          .maybeSingle()
+        if (mgr) setIsManager(true)
         return
       }
       const { data: pendingRow } = await supabase
@@ -223,10 +231,10 @@ export function ShareTable() {
   useEffect(() => {
     if (displayMode || myStatus !== 'confirmed' || !myProfileId || !game || !gameId || game.status !== 'live')
       return
-    navigate(myProfileId === game.host_id ? `/games/${gameId}/live` : `/games/${gameId}/my-game`, {
+    navigate(myProfileId === game.host_id || isManager ? `/games/${gameId}/live` : `/games/${gameId}/my-game`, {
       replace: true,
     })
-  }, [displayMode, myStatus, myProfileId, game, gameId, navigate])
+  }, [displayMode, myStatus, myProfileId, isManager, game, gameId, navigate])
 
   if (!game) return <PageSpinner />
 
@@ -364,11 +372,11 @@ export function ShareTable() {
           className="mt-4"
           onClick={() =>
             navigate(
-              myProfileId === game.host_id ? `/games/${gameId}/live` : `/games/${gameId}/my-game`
+              myProfileId === game.host_id || isManager ? `/games/${gameId}/live` : `/games/${gameId}/my-game`
             )
           }
         >
-          {myProfileId === game.host_id ? 'Go to Live Game' : 'Go to my game'}
+          {myProfileId === game.host_id || isManager ? 'Go to Live Game' : 'Go to my game'}
         </Button>
       )}
 
