@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { toast } from '../lib/toast'
-import { useAuth } from '../hooks/useAuth'
+import { useIsGameHost } from '../hooks/useIsGameHost'
 import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
 import { InviteQrCard } from '../components/ui/InviteQrCard'
@@ -22,8 +22,8 @@ type Game = {
 export function ScheduledGame() {
   const { gameId } = useParams()
   const navigate = useNavigate()
-  const { profile } = useAuth()
   const [game, setGame] = useState<Game | null>(null)
+  const { isHost: canManage } = useIsGameHost(gameId, game?.host_id)
   const [starting, setStarting] = useState(false)
 
   useEffect(() => {
@@ -81,7 +81,7 @@ export function ScheduledGame() {
   // pre-game link saw a button that would just fail for them with a
   // confusing error. Gate it in the UI too, and give non-hosts their own
   // waiting state instead.
-  const isHost = profile?.id === game.host_id
+  const isHost = canManage
 
   return (
     <div className="mx-auto w-full max-w-sm p-4 sm:p-6 text-center">

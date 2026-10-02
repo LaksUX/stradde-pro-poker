@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useIsGameHost } from '../hooks/useIsGameHost'
 import { toChips, type ChipRatio } from '../lib/chips'
 import { PageSpinner } from '../components/ui/Spinner'
 import { ListGroup, ListRow } from '../components/ui/list-row'
@@ -38,6 +39,7 @@ export function GameDetail() {
   const navigate = useNavigate()
   const { profile } = useAuth()
   const [game, setGame] = useState<Game | null>(null)
+  const { isHost: canManage, loading: hostCheckLoading } = useIsGameHost(gameId, game?.host_id)
   const [players, setPlayers] = useState<PlayerRow[]>([])
   const [transfers, setTransfers] = useState<
     { from: string; to: string; amount: number; status: string }[]
@@ -75,7 +77,7 @@ export function GameDetail() {
         }))
       )
 
-      if (g?.host_id === profile?.id) {
+      {
         const { data: ts } = await supabase
           .from('settlement_transfers')
           .select('from_player_id, to_player_id, amount, status')
@@ -119,8 +121,8 @@ export function GameDetail() {
     load()
   }, [gameId, profile])
 
-  if (!game || !profile) return <PageSpinner />
-  if (game.host_id !== profile.id) return <Navigate to={`/games/${gameId}/my-game`} replace />
+  if (!game || !profile || hostCheckLoading) return <PageSpinner />
+  if (!canManage) return <Navigate to={`/games/${gameId}/my-game`} replace />
   const ratio = game.chip_ratio
 
   return (
