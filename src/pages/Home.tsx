@@ -10,7 +10,8 @@ import { isPushSupported, isSubscribedToPush, subscribeToPush, unsubscribeFromPu
 import { Button } from '../components/ui/Button'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
+import { Separator } from '../components/ui/separator'
+import { Tabs, TabsList, TabsTrigger, TabsContent, SubTabsList, SubTabsTrigger } from '../components/ui/tabs'
 import { ListGroup, ListRow, ListDate } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
@@ -384,76 +385,84 @@ export function Home() {
 
         {!loadingData && (
           <TabsContent value="player" className="mt-4">
-            {/* Hero: net result */}
-            <div className="text-center">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted">Lifetime net</p>
-              <p className="mt-1 flex items-baseline justify-center gap-1.5">
-                <span className={`type-figure-hero ${lifetimeNet >= 0 ? 'text-win' : 'text-error'}`}>
-                  {lifetimeNet >= 0 ? '+' : ''}{lifetimeNet}
-                </span>
-                <span className="text-sm text-muted">chips</span>
-              </p>
-              {netChartPoints.length > 1 && (
-                <LineChart
-                  points={netChartPoints}
-                  colorBySign
-                  className="mx-auto mt-2 h-12 max-w-[200px]"
-                />
-              )}
+            <h2 className="type-label-caption text-muted">Your results</h2>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Card className="col-span-2 text-center">
+                <CardHeader>
+                  <CardTitle className="mx-auto">Lifetime net</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="flex items-baseline justify-center gap-1.5">
+                    <span className={`type-figure-hero ${lifetimeNet >= 0 ? 'text-win' : 'text-error'}`}>
+                      {lifetimeNet >= 0 ? '+' : ''}{lifetimeNet}
+                    </span>
+                    <span className="text-sm text-muted">chips</span>
+                  </p>
+                  {netChartPoints.length > 1 && (
+                    <LineChart
+                      points={netChartPoints}
+                      colorBySign
+                      className="mx-auto mt-2 h-12 max-w-[200px]"
+                    />
+                  )}
+                </CardContent>
+              </Card>
+              <Card className="text-center">
+                <CardHeader>
+                  <CardTitle className="mx-auto">Games played</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="type-figure-md text-ink">{playedGames.length}</p>
+                </CardContent>
+              </Card>
+              <Card className="text-center">
+                <CardHeader>
+                  <CardTitle className="mx-auto">Win rate</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="type-figure-md text-ink">
+                    {playedGames.length ? Math.round((wins / playedGames.length) * 100) : 0}%
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="text-center">
+                <CardHeader>
+                  <CardTitle className="mx-auto">Buy-ins</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="flex items-baseline justify-center gap-1">
+                    <span className="type-figure-md text-ink">{lifetimeBuyins}</span>
+                    <span className="text-sm text-muted">chips</span>
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="text-center">
+                <CardHeader>
+                  <CardTitle className="mx-auto">Cash-out</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="flex items-baseline justify-center gap-1">
+                    <span className="type-figure-md text-ink">{lifetimeCashout}</span>
+                    <span className="text-sm text-muted">chips</span>
+                  </p>
+                </CardContent>
+              </Card>
             </div>
 
-            {/* Quick stats strip */}
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <div className="rounded-lg border border-hairline bg-canvas px-2 py-2.5 text-center">
-                <p className="type-figure-md text-ink">{playedGames.length}</p>
-                <p className="mt-0.5 text-[11px] text-muted">Games</p>
-              </div>
-              <div className="rounded-lg border border-hairline bg-canvas px-2 py-2.5 text-center">
-                <p className="type-figure-md text-ink">{wins}</p>
-                <p className="mt-0.5 text-[11px] text-muted">Wins</p>
-              </div>
-              <div className="rounded-lg border border-hairline bg-canvas px-2 py-2.5 text-center">
-                <p className="type-figure-md text-ink">
-                  {playedGames.length ? Math.round((wins / playedGames.length) * 100) : 0}%
-                </p>
-                <p className="mt-0.5 text-[11px] text-muted">Win rate</p>
-              </div>
-            </div>
+            <Separator className="mt-6 bg-hairline" />
 
-            {/* Money flow breakdown */}
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <div className="rounded-lg border border-hairline bg-canvas px-3 py-2.5">
-                <p className="text-[11px] text-muted">Buy-ins</p>
-                <p className="mt-0.5 flex items-baseline gap-1">
-                  <span className="type-figure-md text-ink">{lifetimeBuyins}</span>
-                  <span className="text-xs text-muted">chips</span>
-                </p>
-              </div>
-              <div className="rounded-lg border border-hairline bg-canvas px-3 py-2.5">
-                <p className="text-[11px] text-muted">Cash-out</p>
-                <p className="mt-0.5 flex items-baseline gap-1">
-                  <span className="type-figure-md text-ink">{lifetimeCashout}</span>
-                  <span className="text-xs text-muted">chips</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Section filter */}
-            <div className="mt-6 flex gap-2">
-              {(['upcoming', 'games', 'settlements'] as const).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setPlayerSection(s)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                    playerSection === s
-                      ? 'bg-ink text-canvas'
-                      : 'bg-surface-strong text-muted hover:text-ink'
-                  }`}
-                >
-                  {s === 'upcoming' ? 'Upcoming' : s === 'games' ? 'My games' : 'Settlements'}
-                </button>
-              ))}
-            </div>
+            <Tabs
+              value={playerSection}
+              onValueChange={(v) => setPlayerSection(v as typeof playerSection)}
+              className="mt-4"
+            >
+              <SubTabsList>
+                <SubTabsTrigger value="upcoming">Upcoming</SubTabsTrigger>
+                <SubTabsTrigger value="games">My games</SubTabsTrigger>
+                <SubTabsTrigger value="settlements">Settlements</SubTabsTrigger>
+              </SubTabsList>
+            </Tabs>
 
             <div className="mt-3">
               {playerSection === 'upcoming' && (
@@ -586,21 +595,15 @@ export function Home() {
 
         {!loadingData && profile?.role === 'admin' && (
           <TabsContent value="admin" className="mt-4">
-            <div className="flex gap-2">
-              {(['games', 'people'] as const).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setAdminSection(s)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                    adminSection === s
-                      ? 'bg-ink text-canvas'
-                      : 'bg-surface-strong text-muted hover:text-ink'
-                  }`}
-                >
-                  {s === 'games' ? 'Games' : 'People'}
-                </button>
-              ))}
-            </div>
+            <Tabs
+              value={adminSection}
+              onValueChange={(v) => setAdminSection(v as typeof adminSection)}
+            >
+              <SubTabsList>
+                <SubTabsTrigger value="games">Games</SubTabsTrigger>
+                <SubTabsTrigger value="people">People</SubTabsTrigger>
+              </SubTabsList>
+            </Tabs>
 
             <div className="mt-3">
               {adminSection === 'games' && (
