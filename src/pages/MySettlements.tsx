@@ -119,7 +119,6 @@ export function MySettlements() {
           <CardContent>
             <p className="flex items-baseline gap-1.5">
               <span className="type-figure-md text-win">{totalOwed}</span>
-              <span className="text-sm text-muted">chips</span>
             </p>
           </CardContent>
         </Card>
@@ -130,7 +129,6 @@ export function MySettlements() {
           <CardContent>
             <p className="flex items-baseline gap-1.5">
               <span className="type-figure-md text-error">{totalOwe}</span>
-              <span className="text-sm text-muted">chips</span>
             </p>
           </CardContent>
         </Card>

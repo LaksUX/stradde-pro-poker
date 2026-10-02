@@ -397,7 +397,6 @@ export function Home() {
                     <span className={`type-figure-hero ${lifetimeNet >= 0 ? 'text-win' : 'text-error'}`}>
                       {lifetimeNet >= 0 ? '+' : ''}{lifetimeNet.toLocaleString('en-US')}
                     </span>
-                    <span className="text-sm text-muted">chips</span>
                   </p>
                   {netChartPoints.length > 1 && (
                     <LineChart
@@ -433,7 +432,6 @@ export function Home() {
                 <CardContent>
                   <p className="flex items-baseline justify-center gap-1">
                     <span className="type-figure-md text-ink">{lifetimeBuyins.toLocaleString('en-US')}</span>
-                    <span className="text-sm text-muted">chips</span>
                   </p>
                 </CardContent>
               </Card>
@@ -444,7 +442,6 @@ export function Home() {
                 <CardContent>
                   <p className="flex items-baseline justify-center gap-1">
                     <span className="type-figure-md text-ink">{lifetimeCashout.toLocaleString('en-US')}</span>
-                    <span className="text-sm text-muted">chips</span>
                   </p>
                 </CardContent>
               </Card>
@@ -545,7 +542,6 @@ export function Home() {
                     <CardContent>
                       <p className="flex items-baseline justify-center gap-1">
                         <span className="type-figure-md text-ink">{totalRake.toLocaleString('en-US')}</span>
-                        <span className="text-sm text-muted">chips</span>
                       </p>
                     </CardContent>
                   </Card>
@@ -556,7 +552,6 @@ export function Home() {
                     <CardContent>
                       <p className="flex items-baseline justify-center gap-1">
                         <span className="type-figure-md text-ink">{avgBuyins.toLocaleString('en-US')}</span>
-                        <span className="text-sm text-muted">chips</span>
                       </p>
                     </CardContent>
                   </Card>
