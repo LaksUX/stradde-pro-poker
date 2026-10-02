@@ -24,6 +24,13 @@ import { Switch } from '../components/ui/switch'
 import { QrCode, UserPlus, ArrowUp, ArrowDown, ChevronDown, Shield } from 'lucide-react'
 
 const MAX_BUYINS = 50
+
+const timeFmt: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' }
+
+function formatDuration(ms: number) {
+  const mins = Math.max(0, Math.floor(ms / 60000))
+  return mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`
+}
 const QUICK_ADD = [1, 2, 3, 5]
 
 type Game = {
@@ -34,6 +41,9 @@ type Game = {
   rake: number
   host_id: string
   status: 'scheduled' | 'live' | 'closed'
+  scheduled_for: string
+  started_at?: string | null
+  closed_at: string | null
 }
 type PendingRequest = {
   id: string
@@ -70,6 +80,7 @@ export function LiveGame() {
   const [game, setGame] = useState<Game | null>(null)
   const [pending, setPending] = useState<PendingRequest[]>([])
   const [players, setPlayers] = useState<PlayerRow[]>([])
+  const [now, setNow] = useState(() => Date.now())
   const [rakeOpen, setRakeOpen] = useState(false)
   const [rakeValue, setRakeValue] = useState('')
   const [savingRake, setSavingRake] = useState(false)
@@ -100,6 +111,11 @@ export function LiveGame() {
     setCashoutValue(p.cashout != null ? String(p.cashout) : hasRequest ? String(p.cashout_requested) : '')
     setHistoryOpen(false)
   }
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(id)
+  }, [])
 
   useEffect(() => {
     if (!gameId) return
@@ -513,6 +529,15 @@ export function LiveGame() {
   if (!game) return <PageSpinner />
   if (!profile) return <div className="p-6 text-center text-muted">Sign in required.</div>
 
+  const startMs = new Date(game.started_at ?? game.scheduled_for).getTime()
+  const endMs = game.closed_at ? new Date(game.closed_at).getTime() : now
+  const timeLine =
+    game.status === 'scheduled' || Number.isNaN(startMs) || startMs > now
+      ? null
+      : game.status === 'closed' && game.closed_at
+        ? `${new Date(startMs).toLocaleTimeString([], timeFmt)} – ${new Date(endMs).toLocaleTimeString([], timeFmt)} · ${formatDuration(endMs - startMs)}`
+        : `Started ${new Date(startMs).toLocaleTimeString([], timeFmt)} · ${formatDuration(endMs - startMs)}`
+
   const ratio = game.chip_ratio
   // Grouped, not interleaved — the whole point of splitting these into two
   // tables with their own headers is so "who's still playing" and "who's
@@ -524,7 +549,10 @@ export function LiveGame() {
   return (
     <div className="mx-auto w-full max-w-md p-4 sm:p-6">
       <div className="flex items-center justify-between">
-        <h1 className="type-page-title text-ink">{game.name}</h1>
+        <div className="min-w-0">
+          <h1 className="type-page-title text-ink">{game.name}</h1>
+          {timeLine && <p className="mt-0.5 text-xs text-muted">{timeLine}</p>}
+        </div>
         {gameId && game.status !== 'closed' && (
           <div className="flex shrink-0 gap-2">
             <button
