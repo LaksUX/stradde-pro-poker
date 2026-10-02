@@ -7,10 +7,9 @@ import { runWrite } from '../lib/errors'
 import { Button } from '../components/ui/Button'
 import { PageSpinner, InlineSpinner } from '../components/ui/Spinner'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { ListGroup, ListRow } from '../components/ui/list-row'
-import { Badge } from '../components/ui/badge'
+import { ListGroup } from '../components/ui/list-row'
 import { Input } from '../components/ui/input'
-import { NamedAvatar } from '../components/ui/avatar'
+import { SettlementRow } from '../components/ui/SettlementRow'
 
 type Row = {
   id: string
@@ -118,7 +117,10 @@ export function MySettlements() {
             <CardTitle>Owed to you</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="type-figure-md text-win">{totalOwed} chips</p>
+            <p className="flex items-baseline gap-1.5">
+              <span className="type-figure-md text-win">{totalOwed}</span>
+              <span className="text-sm text-muted">chips</span>
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -126,7 +128,10 @@ export function MySettlements() {
             <CardTitle>You owe</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="type-figure-md text-error">{totalOwe} chips</p>
+            <p className="flex items-baseline gap-1.5">
+              <span className="type-figure-md text-error">{totalOwe}</span>
+              <span className="text-sm text-muted">chips</span>
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -140,38 +145,14 @@ export function MySettlements() {
         <ListGroup className="mt-3">
           {rows.map((r) => (
             <div key={r.id}>
-              <ListRow
-                className="cursor-pointer"
+              <SettlementRow
                 onClick={() => navigate(`/games/${r.gameId}/my-game`)}
-                avatar={<NamedAvatar name={r.otherName} className="h-12 w-12" />}
-                title={r.otherName}
-                subtitle={
-                  <>
-                    <span className={r.direction === 'owe' ? 'text-error' : 'text-win'}>
-                      {r.direction === 'owe' ? 'You owe' : 'Owed to you'}
-                    </span>
-                    {' · '}
-                    {r.gameName}
-                  </>
-                }
-                trailing={
-                  <>
-                    <span
-                      className={`type-figure-md whitespace-nowrap ${
-                        r.direction === 'owe' ? 'text-error' : 'text-win'
-                      }`}
-                    >
-                      {toChips(r.amount, r.chip_ratio)} chips
-                    </span>
-                    <Badge
-                      variant={
-                        r.status === 'confirmed' ? 'win' : r.status === 'disputed' ? 'error' : 'muted'
-                      }
-                    >
-                      {r.status}
-                    </Badge>
-                  </>
-                }
+                otherName={r.otherName}
+                direction={r.direction}
+                amount={r.amount}
+                ratio={r.chip_ratio}
+                status={r.status}
+                context={r.gameName}
               />
               {r.status === 'pending' && (
                 <div className="flex gap-2 px-3 pb-3" onClick={(e) => e.stopPropagation()}>

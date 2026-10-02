@@ -14,6 +14,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { ListGroup, ListRow, ListDate } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
+import { ChipsFigure } from '../components/ui/chips-figure'
+import { SettlementRow } from '../components/ui/SettlementRow'
 import { LineChart } from '../components/ui/line-chart'
 import { Plus, Bell, BellOff } from 'lucide-react'
 
@@ -427,7 +429,7 @@ export function Home() {
               <CardContent>
                 <div className="flex items-center gap-2">
                   <p className="flex items-baseline gap-1.5">
-                    <span className="type-figure-hero text-ink">{lifetimeNet}</span>
+                    <span className={`type-figure-hero ${lifetimeNet >= 0 ? 'text-win' : 'text-error'}`}>{lifetimeNet}</span>
                     <span className="text-sm text-muted">chips</span>
                   </p>
                   <Badge variant={lifetimeNet >= 0 ? 'win' : 'error'}>
@@ -441,11 +443,17 @@ export function Home() {
                 <div className="mt-3 grid grid-cols-2 gap-1.5 text-center">
                   <div className="rounded-lg bg-surface-strong px-2 py-2.5">
                     <p className="text-[11px] text-muted">Buy-ins</p>
-                    <p className="type-figure-md mt-0.5 text-ink">{lifetimeBuyins} chips</p>
+                    <p className="mt-0.5 flex items-baseline justify-center gap-1">
+                      <span className="type-figure-md text-ink">{lifetimeBuyins}</span>
+                      <span className="text-sm text-muted">chips</span>
+                    </p>
                   </div>
                   <div className="rounded-lg bg-surface-strong px-2 py-2.5">
                     <p className="text-[11px] text-muted">Cash-out</p>
-                    <p className="type-figure-md mt-0.5 text-ink">{lifetimeCashout} chips</p>
+                    <p className="mt-0.5 flex items-baseline justify-center gap-1">
+                      <span className="type-figure-md text-ink">{lifetimeCashout}</span>
+                      <span className="text-sm text-muted">chips</span>
+                    </p>
                   </div>
                 </div>
                 {netChartPoints.length > 0 && (
@@ -497,13 +505,7 @@ export function Home() {
                           title={g.name}
                           subtitle={g.venue && <Badge variant="muted">{g.venue}</Badge>}
                           trailing={
-                            <span
-                              className={`type-figure-md whitespace-nowrap ${
-                                g.net >= 0 ? 'text-win' : 'text-error'
-                              }`}
-                            >
-                              {toChips(g.net, g.chip_ratio)} chips
-                            </span>
+                            <ChipsFigure amount={g.net} ratio={g.chip_ratio} tone={g.net >= 0 ? 'win' : 'error'} />
                           }
                         />
                       </div>
@@ -521,39 +523,15 @@ export function Home() {
                 ) : (
                   <ListGroup>
                     {settlementRows.map((r) => (
-                      <ListRow
+                      <SettlementRow
                         key={r.id}
-                        className="cursor-pointer"
                         onClick={() => navigate(`/games/${r.gameId}/my-game`)}
-                        avatar={<NamedAvatar name={r.otherName} className="h-12 w-12" />}
-                        title={r.otherName}
-                        subtitle={
-                          <>
-                            <span className={r.direction === 'owe' ? 'text-error' : 'text-win'}>
-                              {r.direction === 'owe' ? 'You owe' : 'Owed to you'}
-                            </span>
-                            {' · '}
-                            {r.gameName}
-                          </>
-                        }
-                        trailing={
-                          <>
-                            <span
-                              className={`type-figure-md whitespace-nowrap ${
-                                r.direction === 'owe' ? 'text-error' : 'text-win'
-                              }`}
-                            >
-                              {toChips(r.amount, r.chip_ratio)} chips
-                            </span>
-                            <Badge
-                              variant={
-                                r.status === 'confirmed' ? 'win' : r.status === 'disputed' ? 'error' : 'muted'
-                              }
-                            >
-                              {r.status}
-                            </Badge>
-                          </>
-                        }
+                        otherName={r.otherName}
+                        direction={r.direction}
+                        amount={r.amount}
+                        ratio={r.chip_ratio}
+                        status={r.status}
+                        context={r.gameName}
                       />
                     ))}
                   </ListGroup>
@@ -584,7 +562,10 @@ export function Home() {
                       <CardTitle className="mx-auto">Rake collected</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="type-figure-md text-ink">{totalRake} chips</p>
+                      <p className="flex items-baseline justify-center gap-1">
+                        <span className="type-figure-md text-ink">{totalRake}</span>
+                        <span className="text-sm text-muted">chips</span>
+                      </p>
                     </CardContent>
                   </Card>
                   <Card className="col-span-2 text-center">
@@ -592,7 +573,10 @@ export function Home() {
                       <CardTitle className="mx-auto">Average buy-ins</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="type-figure-md text-ink">{avgBuyins} chips</p>
+                      <p className="flex items-baseline justify-center gap-1">
+                        <span className="type-figure-md text-ink">{avgBuyins}</span>
+                        <span className="text-sm text-muted">chips</span>
+                      </p>
                     </CardContent>
                   </Card>
                 </div>
@@ -612,11 +596,7 @@ export function Home() {
                             onClick={() => navigate(`/games/${g.id}`)}
                             avatar={<NamedAvatar name={g.name} className="h-12 w-12" />}
                             title={g.name}
-                            trailing={
-                              <span className="type-figure-md whitespace-nowrap text-ink">
-                                {toChips(g.buyins, g.chip_ratio)} chips
-                              </span>
-                            }
+                            trailing={<ChipsFigure amount={g.buyins} ratio={g.chip_ratio} />}
                           />
                         </div>
                       ))}
