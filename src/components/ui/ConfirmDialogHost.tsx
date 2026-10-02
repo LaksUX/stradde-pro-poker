@@ -26,7 +26,7 @@ export function ConfirmDialogHost() {
             {request.cancelLabel}
           </Button>
           <Button
-            variant={request.danger ? 'danger' : 'primary'}
+            variant={request.danger ? 'destructive' : 'default'}
             block
             onClick={() => resolveConfirm(true)}
           >

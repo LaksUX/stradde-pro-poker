@@ -577,10 +577,10 @@ export function LiveGame() {
                   }
                 />
                 <div className="flex gap-2 px-3 pb-3">
-                  <Button variant="primary" block className="h-10" onClick={() => confirmRequest(r)}>
+                  <Button variant="default" block className="h-10" onClick={() => confirmRequest(r)}>
                     Confirm
                   </Button>
-                  <Button variant="danger" block className="h-10" onClick={() => declineRequest(r.id)}>
+                  <Button variant="destructive" block className="h-10" onClick={() => declineRequest(r.id)}>
                     Decline
                   </Button>
                 </div>
