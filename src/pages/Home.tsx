@@ -9,8 +9,8 @@ import { confirmDialog } from '../lib/confirmDialog'
 import { isPushSupported, isSubscribedToPush, subscribeToPush, unsubscribeFromPush } from '../lib/push'
 import { Button } from '../components/ui/button'
 import { PageSpinner, InlineSpinner } from '../components/ui/spinner'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Separator } from '../components/ui/separator'
+import { StatCard } from '../components/ui/stat-card'
 import { Tabs, TabsList, TabsTrigger, TabsContent, SubTabsList, SubTabsTrigger } from '../components/ui/tabs'
 import { ListGroup, ListRow, ListDate } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
@@ -428,63 +428,35 @@ export function Home() {
             <h2 className="type-label-caption text-muted">Your results</h2>
 
             <div className="mt-4 grid grid-cols-2 gap-2">
-              <Card className="col-span-2 text-center">
-                <CardHeader>
-                  <CardTitle className="mx-auto">Lifetime net</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="flex items-baseline justify-center gap-1.5">
-                    <span className={`type-figure-hero ${lifetimeNet >= 0 ? 'text-win' : 'text-error'}`}>
-                      {lifetimeNet >= 0 ? '+' : ''}{lifetimeNet.toLocaleString('en-US')}
-                    </span>
-                  </p>
-                  {netChartPoints.length > 1 && (
-                    <LineChart
-                      points={netChartPoints}
-                      colorBySign
-                      className="mx-auto mt-2 h-12 max-w-[200px]"
-                    />
-                  )}
-                </CardContent>
-              </Card>
-              <Card className="text-center">
-                <CardHeader>
-                  <CardTitle className="mx-auto">Games played</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="type-figure-md text-ink">{playedGames.length}</p>
-                </CardContent>
-              </Card>
-              <Card className="text-center">
-                <CardHeader>
-                  <CardTitle className="mx-auto">Win rate</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="type-figure-md text-ink">
-                    {playedGames.length ? Math.round((wins / playedGames.length) * 100) : 0}%
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="text-center">
-                <CardHeader>
-                  <CardTitle className="mx-auto">Buy-ins</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="flex items-baseline justify-center gap-1">
-                    <span className="type-figure-md text-ink">{lifetimeBuyins.toLocaleString('en-US')}</span>
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="text-center">
-                <CardHeader>
-                  <CardTitle className="mx-auto">Cash-out</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="flex items-baseline justify-center gap-1">
-                    <span className="type-figure-md text-ink">{lifetimeCashout.toLocaleString('en-US')}</span>
-                  </p>
-                </CardContent>
-              </Card>
+              <StatCard
+                className="col-span-2"
+                title="Lifetime net"
+                hero
+                signed
+                tone="auto"
+                value={lifetimeNet}
+                trend={
+                  playedGames.length > 0
+                    ? { amount: toChips(playedGames[0].net, playedGames[0].chip_ratio), label: 'last game' }
+                    : undefined
+                }
+              >
+                {netChartPoints.length > 1 && (
+                  <LineChart
+                    points={netChartPoints}
+                    colorBySign
+                    className="mx-auto mt-2 h-12 max-w-[200px]"
+                  />
+                )}
+              </StatCard>
+              <StatCard title="Games played" value={playedGames.length} />
+              <StatCard
+                title="Win rate"
+                value={playedGames.length ? Math.round((wins / playedGames.length) * 100) : 0}
+                suffix="%"
+              />
+              <StatCard title="Buy-ins" value={lifetimeBuyins} />
+              <StatCard title="Cash-out" value={lifetimeCashout} />
             </div>
 
             <Separator className="mt-6 bg-hairline" />
@@ -567,34 +539,9 @@ export function Home() {
                 <h2 className="type-label-caption text-muted">Your games</h2>
 
                 <div className="mt-4 grid grid-cols-2 gap-2">
-                  <Card className="text-center">
-                    <CardHeader>
-                      <CardTitle className="mx-auto">Games hosted</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="type-figure-md text-ink">{hostedGames.length}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="text-center">
-                    <CardHeader>
-                      <CardTitle className="mx-auto">Rake collected</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="flex items-baseline justify-center gap-1">
-                        <span className="type-figure-md text-ink">{totalRake.toLocaleString('en-US')}</span>
-                      </p>
-                    </CardContent>
-                  </Card>
-                  <Card className="col-span-2 text-center">
-                    <CardHeader>
-                      <CardTitle className="mx-auto">Average buy-ins</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="flex items-baseline justify-center gap-1">
-                        <span className="type-figure-md text-ink">{avgBuyins.toLocaleString('en-US')}</span>
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <StatCard title="Games hosted" value={hostedGames.length} />
+                  <StatCard title="Rake collected" value={totalRake} />
+                  <StatCard className="col-span-2" title="Average buy-ins" value={avgBuyins} />
                 </div>
 
                 <div className="mt-4">
