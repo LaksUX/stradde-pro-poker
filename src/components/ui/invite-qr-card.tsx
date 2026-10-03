@@ -23,7 +23,7 @@ export function InviteQrCard({
   return (
     <div className="mx-auto w-full max-w-[260px] overflow-hidden rounded-lg border border-hairline bg-canvas">
       <div className="p-3 text-center">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-muted">{eyebrow}</p>
+        <p className="text-[12.5px] font-bold uppercase tracking-wider text-muted">{eyebrow}</p>
         <p className="mt-0.5 text-sm font-semibold text-ink">{title}</p>
         {subtitle && <p className="mt-0.5 text-xs text-muted">{subtitle}</p>}
       </div>

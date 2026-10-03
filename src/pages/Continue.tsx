@@ -243,7 +243,7 @@ export function Continue() {
           </button>
         )}
       </div>
-      <p className="text-center text-[11px] text-muted-soft">MVP 2.0 · v{__APP_VERSION__}</p>
+      <p className="text-center text-[12.5px] text-muted-soft">MVP 2.0 · v{__APP_VERSION__}</p>
     </div>
   )
 }
