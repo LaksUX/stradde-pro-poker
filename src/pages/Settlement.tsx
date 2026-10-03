@@ -13,10 +13,11 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { NamedAvatar } from '../components/ui/avatar'
 import { ChipsFigure } from '../components/ui/chips-figure'
-import { ArrowRight, ChevronDown } from 'lucide-react'
+import { ArrowRight, ChevronDown, IdCard } from 'lucide-react'
+import { PlayerCardsSheet } from '../components/ui/player-cards-sheet'
 
 type Game = { id: string; name: string; chip_ratio: ChipRatio; settlement_published_at: string | null }
-type PlayerOpt = { id: string; name: string }
+type PlayerOpt = { id: string; name: string; profile_id: string }
 type Transfer = {
   id: string
   from_player_id: string
@@ -36,6 +37,7 @@ export function Settlement() {
   const [players, setPlayers] = useState<PlayerOpt[]>([])
   const [transfers, setTransfers] = useState<Transfer[]>([])
   const [dirty, setDirty] = useState(false)
+  const [cardsOpen, setCardsOpen] = useState(false)
   // Read-only by default, editing entered deliberately per row — a settlement
   // reads clearer as "who owes whom, how much, confirmed or not" than as a
   // permanently-open pair of dropdowns, and editing a real money transfer
@@ -53,9 +55,9 @@ export function Settlement() {
 
     const { data: rows } = await supabase
       .from('game_players')
-      .select('id, profiles(full_name)')
+      .select('id, profile_id, profiles(full_name)')
       .eq('game_id', gameId)
-    setPlayers((rows ?? []).map((r: any) => ({ id: r.id, name: r.profiles?.full_name ?? '—' })))
+    setPlayers((rows ?? []).map((r: any) => ({ id: r.id, profile_id: r.profile_id, name: r.profiles?.full_name ?? '—' })))
 
     const { data: ts } = await supabase
       .from('settlement_transfers')
@@ -152,6 +154,19 @@ export function Settlement() {
   return (
     <div className="mx-auto w-full max-w-md p-4 sm:p-6">
       <h1 className="type-page-title text-ink">{game.name} — Settlement</h1>
+      {gameId && (
+        <>
+          <Button variant="secondary" block className="mt-3" onClick={() => setCardsOpen(true)}>
+            <IdCard className="mr-2 h-4 w-4" /> Share player cards
+          </Button>
+          <PlayerCardsSheet
+            open={cardsOpen}
+            onOpenChange={setCardsOpen}
+            gameId={gameId}
+            players={players.map((p) => ({ profile_id: p.profile_id, full_name: p.name }))}
+          />
+        </>
+      )}
       <p className="type-body-md mt-1 text-body">
         Computed as a starting point, deterministic tie-break. Reassign freely below.
       </p>

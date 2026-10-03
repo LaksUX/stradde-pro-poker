@@ -19,9 +19,10 @@ import { NamedAvatar } from '../components/ui/avatar'
 import { ChipsFigure } from '../components/ui/chips-figure'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import { InvitePlayersSheet } from '../components/ui/invite-players-sheet'
+import { PlayerCardsSheet } from '../components/ui/player-cards-sheet'
 import { Slider } from '../components/ui/slider'
 import { Switch } from '../components/ui/switch'
-import { QrCode, UserPlus, ArrowUp, ArrowDown, ChevronDown, Shield } from 'lucide-react'
+import { QrCode, UserPlus, ArrowUp, ArrowDown, ChevronDown, Shield, IdCard } from 'lucide-react'
 
 const MAX_BUYINS = 100
 
@@ -86,6 +87,7 @@ export function LiveGame() {
   const [qrOpen, setQrOpen] = useState(false)
   const [addPlayersOpen, setAddPlayersOpen] = useState(false)
   const [sheetPlayerId, setSheetPlayerId] = useState<string | null>(null)
+  const [cardsOpen, setCardsOpen] = useState(false)
   const [sliderValue, setSliderValue] = useState(0)
   const [cashoutOn, setCashoutOn] = useState(false)
   const [cashoutValue, setCashoutValue] = useState('')
@@ -556,8 +558,26 @@ export function LiveGame() {
           <h1 className="type-page-title text-ink">{game.name}</h1>
           {timeLine && <p className="mt-0.5 text-xs text-muted">{timeLine}</p>}
         </div>
-        {gameId && game.status !== 'closed' && (
+        {gameId && (
           <div className="flex shrink-0 gap-2">
+            <button
+              type="button"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-hairline text-muted hover:bg-surface-strong hover:text-ink"
+              onClick={() => setCardsOpen(true)}
+              aria-label="Player cards"
+            >
+              <IdCard className="h-[18px] w-[18px]" />
+            </button>
+            <PlayerCardsSheet
+              open={cardsOpen}
+              onOpenChange={setCardsOpen}
+              gameId={gameId}
+              players={players.map((p) => ({ profile_id: p.profile_id, full_name: p.full_name }))}
+            />
+          </div>
+        )}
+        {gameId && game.status !== 'closed' && (
+          <div className="ml-2 flex shrink-0 gap-2">
             <button
               type="button"
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-hairline text-muted hover:bg-surface-strong hover:text-ink"
