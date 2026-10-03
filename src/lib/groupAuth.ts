@@ -25,6 +25,14 @@ export async function startGroup(name: string, groupName: string, pin: string): 
   return data as string
 }
 
+// For a host who is already signed in (an existing account): add a PIN and
+// get a group ID without signing out or creating anything new.
+export async function createGroupForCurrentHost(groupName: string, pin: string): Promise<string> {
+  const { data, error } = await supabase.rpc('start_hosting', { p_group_name: groupName, p_pin: pin })
+  if (error) throw new Error(error.message)
+  return data as string
+}
+
 export async function signInWithGroup(groupId: string, pin: string): Promise<void> {
   const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/group-login`, {
     method: 'POST',

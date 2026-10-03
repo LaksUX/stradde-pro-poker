@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Copy } from 'lucide-react'
-import { changeGroupPin, getMyGroup } from '../../lib/groupAuth'
+import { changeGroupPin, createGroupForCurrentHost, getMyGroup } from '../../lib/groupAuth'
 import { toast } from '../../lib/toast'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from './sheet'
 import { Button } from './button'
@@ -13,9 +13,11 @@ import { Label } from './label'
 export function GroupSettingsSheet({
   open,
   onOpenChange,
+  onGroupChange,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onGroupChange?: (hasGroup: boolean) => void
 }) {
   const [group, setGroup] = useState<{ group_id: string; name: string | null } | null | undefined>(undefined)
   const [pin, setPin] = useState('')
@@ -36,6 +38,26 @@ export function GroupSettingsSheet({
       toast.success('Group ID copied')
     } catch {
       toast.error('Could not copy')
+    }
+  }
+
+  // Existing host with no group yet: one PIN, and the group ID appears.
+  async function createGroup() {
+    if (!/^[0-9]{4}$/.test(pin)) {
+      toast.error('PIN must be 4 digits')
+      return
+    }
+    setSaving(true)
+    try {
+      await createGroupForCurrentHost('', pin)
+      setGroup(await getMyGroup())
+      onGroupChange?.(true)
+      setPin('')
+      toast.success('Your group ID is ready')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not set up your group ID')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -67,9 +89,26 @@ export function GroupSettingsSheet({
         </SheetHeader>
 
         {group === undefined ? null : group === null ? (
-          <p className="mt-4 text-sm text-muted">
-            This account has no group ID yet. Sign out and start a group to get one.
-          </p>
+          <>
+            <p className="mt-4 text-sm text-body">
+              Pick a 4-digit PIN to get your group ID. Nothing else changes, and you stay signed in.
+            </p>
+            <div className="mt-4 flex flex-col gap-1.5">
+              <Label htmlFor="settings-newpin">Choose a PIN</Label>
+              <Input
+                id="settings-newpin"
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                className="h-12 tracking-[0.5em]"
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+              />
+            </div>
+            <Button block className="mt-3" disabled={saving || pin.length !== 4} onClick={createGroup}>
+              {saving ? 'Setting up…' : 'Get my group ID'}
+            </Button>
+          </>
         ) : (
           <>
             <div className="mt-4 flex items-center justify-between rounded-md border border-hairline bg-surface-soft px-4 py-3">
