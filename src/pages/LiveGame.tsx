@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
@@ -89,6 +89,9 @@ export function LiveGame() {
   const [sheetPlayerId, setSheetPlayerId] = useState<string | null>(null)
   const [cardsOpen, setCardsOpen] = useState(false)
   const [managersOpen, setManagersOpen] = useState(false)
+  // Lets writes refresh the player list right away instead of waiting on the
+  // realtime echo (which can lag or drop), so totals update the moment you save.
+  const reloadPlayersRef = useRef<(() => Promise<void>) | null>(null)
   const [sliderValue, setSliderValue] = useState(0)
   const [cashoutOn, setCashoutOn] = useState(false)
   const [cashoutValue, setCashoutValue] = useState('')
@@ -187,6 +190,7 @@ export function LiveGame() {
       setManagerIds(new Set((data ?? []).map((r: any) => r.profile_id)))
     }
 
+    reloadPlayersRef.current = loadPlayers
     loadGame()
     loadPending()
     loadPlayers()
@@ -402,6 +406,7 @@ export function LiveGame() {
         )
         if (!ok) return
       }
+      await reloadPlayersRef.current?.()
       setSheetPlayerId(null)
     } finally {
       setSavingSheet(false)
@@ -800,13 +805,11 @@ export function LiveGame() {
                             )
                           }
                         />
-                        <Badge variant={p.cashout_confirm_status === 'confirmed' ? 'win' : p.cashout_confirm_status === 'disputed' ? 'error' : 'muted'}>
-                          {p.cashout_confirm_status === 'confirmed'
-                            ? 'Confirmed'
-                            : p.cashout_confirm_status === 'disputed'
-                              ? 'Disputed'
-                              : 'Awaiting'}
-                        </Badge>
+                        {p.cashout_confirm_status && (
+                          <Badge variant={p.cashout_confirm_status === 'confirmed' ? 'win' : 'error'}>
+                            {p.cashout_confirm_status === 'confirmed' ? 'Confirmed' : 'Disputed'}
+                          </Badge>
+                        )}
                       </>
                     }
                   />
@@ -1025,7 +1028,12 @@ export function LiveGame() {
               })()}
 
               {isOriginalHost && !sheetPlayer.is_host && (
-                <div className="mt-5 flex items-center justify-between border-t border-hairline-soft pt-4">
+                <div className="mt-5 flex items-center gap-3 border-t border-hairline-soft pt-4">
+                  <Switch
+                    checked={managerIds.has(sheetPlayer.profile_id)}
+                    onCheckedChange={() => toggleManager(sheetPlayer.profile_id)}
+                    aria-label="Make manager"
+                  />
                   <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4 text-muted" />
                     <div>
@@ -1033,10 +1041,6 @@ export function LiveGame() {
                       <p className="text-xs text-muted">Can approve buy-ins & set cash-outs</p>
                     </div>
                   </div>
-                  <Switch
-                    checked={managerIds.has(sheetPlayer.profile_id)}
-                    onCheckedChange={() => toggleManager(sheetPlayer.profile_id)}
-                  />
                 </div>
               )}
 
