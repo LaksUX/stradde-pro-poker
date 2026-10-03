@@ -11,6 +11,7 @@ import { Button } from '../components/ui/button'
 import { NamedAvatar } from '../components/ui/avatar'
 import { ChipsFigure } from '../components/ui/chips-figure'
 import { LineChart } from '../components/ui/line-chart'
+import { StatCard } from '../components/ui/stat-card'
 import { ArrowRight, IdCard } from 'lucide-react'
 import { PlayerCardsSheet } from '../components/ui/player-cards-sheet'
 
@@ -141,6 +142,19 @@ export function GameDetail() {
         gameId={game.id}
         players={players.map((p) => ({ profile_id: p.profile_id, full_name: p.full_name }))}
       />
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <StatCard
+          title="Buy-ins"
+          value={toChips(players.reduce((s, p) => s + p.buyins * game.stake, 0), ratio)}
+        />
+        <StatCard
+          title="Cash-out"
+          value={toChips(players.reduce((s, p) => s + (p.cashout ?? 0), 0), ratio)}
+        />
+        <StatCard title="Rake" value={toChips(game.rake, ratio)} />
+        <StatCard title="Players" value={players.length} />
+      </div>
 
       <ListGroup className="mt-4">
         {players.map((p) => (
