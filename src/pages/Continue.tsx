@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button'
 import { PageSpinner } from '../components/ui/spinner'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
+import { signInWithGroup, startGroup } from '../lib/groupAuth'
 
 // See PAGE_PROMPTS.md "Continue" — replaces Login. One entry point for
 // everyone, whether they're about to host or just wanted to open the app
@@ -19,6 +20,13 @@ export function Continue() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [linkExpired, setLinkExpired] = useState(false)
+  // MVP 2.0: hosts start a group (name + PIN) or get back in with a group ID
+  // and PIN. The original name + phone form stays as the "player" path for
+  // anyone opening the app from an old-style join.
+  const [mode, setMode] = useState<'start' | 'signin' | 'player'>('start')
+  const [groupName, setGroupName] = useState('')
+  const [groupId, setGroupId] = useState('')
+  const [pin, setPin] = useState('')
 
   useEffect(() => {
     // A dead/expired magic-link click (from before this app moved to
@@ -39,6 +47,52 @@ export function Continue() {
     if (profile.role === 'host' && !profile.approved)
       return <Navigate to="/pending-approval" replace />
     return <Navigate to="/home" replace />
+  }
+
+  function describe(e: unknown): string {
+    return !navigator.onLine
+      ? "You're offline — reconnect and try again."
+      : e instanceof Error
+        ? e.message
+        : ((e as { message?: string })?.message ?? 'Something went wrong')
+  }
+
+  async function handleStart() {
+    if (!name.trim()) {
+      setError('Add your name')
+      return
+    }
+    if (!/^[0-9]{4}$/.test(pin)) {
+      setError('PIN must be 4 digits')
+      return
+    }
+    setSubmitting(true)
+    setError(null)
+    try {
+      await withTimeout(startGroup(name.trim(), groupName.trim(), pin))
+      navigate('/games/new')
+    } catch (e) {
+      setError(describe(e))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleSignIn() {
+    if (!groupId.trim() || !/^[0-9]{4}$/.test(pin)) {
+      setError('Enter your group ID and 4-digit PIN')
+      return
+    }
+    setSubmitting(true)
+    setError(null)
+    try {
+      await withTimeout(signInWithGroup(groupId.trim(), pin))
+      navigate('/home')
+    } catch (e) {
+      setError(describe(e))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   async function handleContinue() {
@@ -82,30 +136,113 @@ export function Continue() {
         </p>
       )}
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="continue-name">Name</Label>
-        <Input id="continue-name" className="h-14" value={name} onChange={(e) => setName(e.target.value)} />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="continue-phone">Phone</Label>
-        <Input
-          id="continue-phone"
-          type="tel"
-          className="h-14"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-        />
-      </div>
+      {mode === 'player' ? (
+        <>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="continue-name">Name</Label>
+            <Input id="continue-name" className="h-14" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="continue-phone">Phone</Label>
+            <Input
+              id="continue-phone"
+              type="tel"
+              className="h-14"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </div>
+          {error && <p className="text-sm text-error">{error}</p>}
+          <Button block disabled={submitting} onClick={handleContinue}>
+            {submitting ? 'Continuing…' : 'Continue'}
+          </Button>
+        </>
+      ) : mode === 'signin' ? (
+        <>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="continue-group">Group ID</Label>
+            <Input
+              id="continue-group"
+              className="h-14 uppercase tracking-widest"
+              autoCapitalize="characters"
+              placeholder="ABC-D2EF"
+              value={groupId}
+              onChange={(e) => setGroupId(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="continue-pin">PIN</Label>
+            <Input
+              id="continue-pin"
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              className="h-14 tracking-[0.5em]"
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+            />
+          </div>
+          {error && <p className="text-sm text-error">{error}</p>}
+          <Button block disabled={submitting} onClick={handleSignIn}>
+            {submitting ? 'Signing in…' : 'Sign in'}
+          </Button>
+        </>
+      ) : (
+        <>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="continue-name">Your name</Label>
+            <Input id="continue-name" className="h-14" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="continue-groupname">Group name (optional)</Label>
+            <Input
+              id="continue-groupname"
+              className="h-14"
+              placeholder="Friday Night"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="continue-newpin">Choose a 4-digit PIN</Label>
+            <Input
+              id="continue-newpin"
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              className="h-14 tracking-[0.5em]"
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+            />
+          </div>
+          {error && <p className="text-sm text-error">{error}</p>}
+          <Button block disabled={submitting} onClick={handleStart}>
+            {submitting ? 'Setting up…' : 'Start my group'}
+          </Button>
+          <p className="text-center text-xs text-muted">
+            No email, no phone number. You'll get a group ID; with it and this PIN you can get back in on a new
+            phone.
+          </p>
+        </>
+      )}
 
-      {error && <p className="text-sm text-error">{error}</p>}
-
-      <Button block disabled={submitting} onClick={handleContinue}>
-        {submitting ? 'Continuing…' : 'Continue'}
-      </Button>
-      <p className="text-center text-xs text-muted">
-        No password — just your name and phone. Want to host your own games? You can apply once
-        you're in.
-      </p>
+      <div className="flex flex-col items-center gap-1 text-xs">
+        {mode !== 'start' && (
+          <button className="font-semibold text-muted underline" onClick={() => { setMode('start'); setError(null) }}>
+            Start a new group
+          </button>
+        )}
+        {mode !== 'signin' && (
+          <button className="font-semibold text-muted underline" onClick={() => { setMode('signin'); setError(null) }}>
+            I have a group ID
+          </button>
+        )}
+        {mode !== 'player' && (
+          <button className="text-muted-soft underline" onClick={() => { setMode('player'); setError(null) }}>
+            Continue with a phone number instead
+          </button>
+        )}
+      </div>
       <p className="text-center text-[11px] text-muted-soft">MVP 2.0 · v{__APP_VERSION__}</p>
     </div>
   )

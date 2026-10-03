@@ -1,14 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Download, Eye, EyeOff } from 'lucide-react'
+import { Download, Eye, EyeOff, Settings } from 'lucide-react'
 import { PageSpinner } from '../components/ui/spinner'
 import { Button } from '../components/ui/button'
 import { cn } from 'cn'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '../components/ui/sheet'
+import { toast } from '../lib/toast'
 import {
+  checkLock,
+  exportBook,
   fetchCard,
+  hasLock,
   loadBook,
+  mergeImport,
   nightNet,
+  removeLock,
   saveBook,
+  setLock,
   totalNet,
   type CardNight,
   type LocalBook,
@@ -89,6 +97,8 @@ export function PlayerCard() {
   const [revealed, setRevealed] = useState(false)
   const [openNight, setOpenNight] = useState<string | null>(null)
   const [installEvent, setInstallEvent] = useState<InstallEvent | null>(null)
+  const [locked, setLocked] = useState(() => (token ? hasLock(token) : false))
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const title = book.card
     ? `${book.card.group ?? 'Game night'} · ${book.card.name ?? 'Me'}`
@@ -148,6 +158,10 @@ export function PlayerCard() {
     (navigator as Navigator & { standalone?: boolean }).standalone === true
   const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
 
+  if (token && locked) {
+    return <LockScreen title={title} onCheck={(pin) => checkLock(token, pin)} onUnlock={() => setLocked(false)} />
+  }
+
   if (status === 'loading') return <PageSpinner />
 
   if (status === 'invalid' || (status === 'offline' && !book.card)) {
@@ -169,8 +183,29 @@ export function PlayerCard() {
 
   return (
     <div className="mx-auto w-full max-w-md p-4 pb-10 sm:p-6">
-      <p className="text-xs text-muted">{book.card?.group ?? 'Game night'}</p>
-      <h1 className="mt-0.5 text-3xl font-bold text-ink">Hi {book.card?.name ?? 'there'}</h1>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-xs text-muted">{book.card?.group ?? 'Game night'}</p>
+          <h1 className="mt-0.5 text-3xl font-bold text-ink">Hi {book.card?.name ?? 'there'}</h1>
+        </div>
+        <button
+          type="button"
+          aria-label="Lock and backup"
+          onClick={() => setSettingsOpen(true)}
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline text-muted hover:bg-surface-strong"
+        >
+          <Settings className="h-[18px] w-[18px]" />
+        </button>
+      </div>
+      {token && (
+        <CardSettings
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          token={token}
+          book={book}
+          onImport={(next) => update({ notes: next.notes, hidden: next.hidden })}
+        />
+      )}
 
       <div className="mt-5 rounded-xl border border-hairline bg-canvas p-5">
         <div className="flex items-center justify-between">
@@ -300,5 +335,187 @@ function NightRow({
         </div>
       )}
     </div>
+  )
+}
+
+function LockScreen({
+  title,
+  onCheck,
+  onUnlock,
+}: {
+  title: string
+  onCheck: (pin: string) => Promise<boolean>
+  onUnlock: () => void
+}) {
+  const [pin, setPin] = useState('')
+  const [wrong, setWrong] = useState(false)
+
+  async function press(d: string) {
+    const next = (pin + d).slice(0, 4)
+    setPin(next)
+    setWrong(false)
+    if (next.length === 4) {
+      if (await onCheck(next)) onUnlock()
+      else {
+        setWrong(true)
+        setPin('')
+      }
+    }
+  }
+
+  return (
+    <div className="mx-auto flex min-h-[80vh] w-full max-w-xs flex-col items-center justify-center p-6">
+      <h1 className="type-page-title text-center text-ink">{title}</h1>
+      <p className="mt-1 text-sm text-muted">{wrong ? 'Wrong PIN, try again' : 'Enter your PIN'}</p>
+      <div className="my-6 flex gap-4" aria-hidden>
+        {[0, 1, 2, 3].map((i) => (
+          <span
+            key={i}
+            className={cn('h-4 w-4 rounded-full border-2 border-primary', i < pin.length && 'bg-primary')}
+          />
+        ))}
+      </div>
+      <div className="grid w-full grid-cols-3 gap-3">
+        {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
+          <button
+            key={d}
+            type="button"
+            onClick={() => press(d)}
+            className="h-16 rounded-xl border border-hairline bg-canvas text-2xl font-semibold text-ink active:bg-surface-strong"
+          >
+            {d}
+          </button>
+        ))}
+        <span />
+        <button
+          type="button"
+          onClick={() => press('0')}
+          className="h-16 rounded-xl border border-hairline bg-canvas text-2xl font-semibold text-ink active:bg-surface-strong"
+        >
+          0
+        </button>
+        <button
+          type="button"
+          aria-label="Delete"
+          onClick={() => setPin((p) => p.slice(0, -1))}
+          className="h-16 rounded-xl text-sm font-semibold text-muted"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function CardSettings({
+  open,
+  onOpenChange,
+  token,
+  book,
+  onImport,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  token: string
+  book: LocalBook
+  onImport: (next: LocalBook) => void
+}) {
+  const [pin, setPin] = useState('')
+  const [lockOn, setLockOn] = useState(() => hasLock(token))
+
+  async function saveLock() {
+    if (!/^[0-9]{4}$/.test(pin)) {
+      toast.error('PIN must be 4 digits')
+      return
+    }
+    await setLock(token, pin)
+    setLockOn(true)
+    setPin('')
+    toast.success('Card locked. It will ask for the PIN next time.')
+  }
+
+  function clearLock() {
+    removeLock(token)
+    setLockOn(false)
+    toast.success('Lock removed')
+  }
+
+  function download() {
+    const blob = new Blob([JSON.stringify(exportBook(token, book), null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `straddle-card-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function importFile(file: File | undefined) {
+    if (!file) return
+    try {
+      onImport(mergeImport(token, book, await file.text()))
+      toast.success('Backup restored')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not read that file')
+    }
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle>Lock &amp; backup</SheetTitle>
+          <SheetDescription>Both stay on this phone. Nothing here is sent to your host.</SheetDescription>
+        </SheetHeader>
+
+        <h3 className="type-label-caption mt-4 text-muted">PIN lock</h3>
+        {lockOn ? (
+          <div className="mt-2 flex items-center justify-between rounded-md border border-hairline p-3">
+            <span className="text-sm text-ink">This card asks for a PIN</span>
+            <Button size="sm" variant="outline" onClick={clearLock}>
+              Remove
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-2 flex gap-2">
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              aria-label="New 4-digit PIN"
+              placeholder="4 digits"
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+              className="h-12 w-full rounded-md border border-hairline bg-surface-soft px-3 tracking-[0.5em] text-ink outline-none focus:border-primary"
+            />
+            <Button disabled={pin.length !== 4} onClick={saveLock}>
+              Lock
+            </Button>
+          </div>
+        )}
+        <p className="mt-2 text-xs text-muted">
+          Forgot it? Remove the card from your Home Screen and open your link again. Only your notes are lost.
+        </p>
+
+        <h3 className="type-label-caption mt-5 text-muted">Backup</h3>
+        <div className="mt-2 flex gap-2">
+          <Button variant="secondary" block onClick={download}>
+            Export file
+          </Button>
+          <label className="inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-full border border-hairline bg-canvas px-4 text-sm font-semibold text-ink hover:bg-surface-strong">
+            Import file
+            <input
+              type="file"
+              accept="application/json,.json"
+              className="sr-only"
+              onChange={(e) => {
+                importFile(e.target.files?.[0])
+                e.target.value = ''
+              }}
+            />
+          </label>
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }

@@ -18,7 +18,8 @@ import { NamedAvatar } from '../components/ui/avatar'
 import { ChipsFigure } from '../components/ui/chips-figure'
 import { SettlementRow } from '../components/ui/settlement-row'
 import { LineChart } from '../components/ui/line-chart'
-import { Plus, Bell, BellOff, Trash2 } from 'lucide-react'
+import { GroupSettingsSheet } from '../components/ui/group-settings-sheet'
+import { Plus, Bell, BellOff, Trash2, Settings } from 'lucide-react'
 
 type HostedGame = {
   id: string
@@ -75,6 +76,7 @@ export function Home() {
   const { session, profile, loading } = useAuth()
   const navigate = useNavigate()
   const [tab, setTab] = useState<'host' | 'player' | 'admin'>('player')
+  const [groupOpen, setGroupOpen] = useState(false)
   const [hostedGames, setHostedGames] = useState<HostedGame[]>([])
   const [playedGames, setPlayedGames] = useState<PlayedGame[]>([])
   const [settlementRows, setSettlementRows] = useState<SettlementRow[]>([])
@@ -341,6 +343,17 @@ export function Home() {
               Hey{profile?.full_name ? ` ${profile.full_name}` : ''}
             </h1>
           </div>
+          <div className="flex items-center gap-3">
+          {profile && profile.role !== 'player' && (
+            <button
+              type="button"
+              aria-label="Group and sign-in settings"
+              onClick={() => setGroupOpen(true)}
+              className="text-muted hover:text-ink"
+            >
+              <Settings className="h-5 w-5" />
+            </button>
+          )}
           {isPushSupported() && (
             <button
               type="button"
@@ -357,7 +370,9 @@ export function Home() {
               )}
             </button>
           )}
+          </div>
         </div>
+        <GroupSettingsSheet open={groupOpen} onOpenChange={setGroupOpen} />
         <button className="mt-2 text-xs text-muted underline" onClick={handleLogout}>
           Log out
         </button>

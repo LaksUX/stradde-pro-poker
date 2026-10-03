@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { formatChips, type ChipRatio } from '../lib/chips'
-import { computeInitialSettlement, type PlayerForSettlement } from '../lib/settlement'
 import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { confirmDialog } from '../lib/confirmDialog'
@@ -453,9 +452,9 @@ export function LiveGame() {
       const unfinished = players.filter((p) => p.cashout == null)
       const confirmed = await confirmDialog(
         unfinished.length > 0
-          ? `${unfinished.length} player(s) have no cash-out — their buy-ins will count as a loss to the table. Close and settle?`
-          : 'Close this game and compute settlement?',
-        { confirmLabel: 'Close & settle', danger: unfinished.length > 0 }
+          ? `${unfinished.length} player(s) have no cash-out — their buy-ins will count as a loss to the table. Close the game?`
+          : 'Close this game?',
+        { confirmLabel: 'Close game', danger: unfinished.length > 0 }
       )
       if (!confirmed) return
 
@@ -471,29 +470,6 @@ export function LiveGame() {
         if (!ok) return
       }
 
-      const settlementInput: PlayerForSettlement[] = players.map((p) => ({
-        gamePlayerId: p.id,
-        name: p.full_name,
-        netBanks: (unfinished.find((u) => u.id === p.id) ? 0 : (p.cashout ?? 0)) - p.confirmed_buyins * game.stake,
-      }))
-      const transfers = computeInitialSettlement(settlementInput)
-
-      if (transfers.length > 0) {
-        const ok = await runWrite(
-          () =>
-            supabase.from('settlement_transfers').insert(
-              transfers.map((t) => ({
-                game_id: gameId,
-                from_player_id: t.fromPlayerId,
-                to_player_id: t.toPlayerId,
-                amount: t.amountBanks,
-              }))
-            ),
-          'Settlement'
-        )
-        if (!ok) return
-      }
-
       const ok = await runWrite(
         () =>
           supabase
@@ -504,7 +480,7 @@ export function LiveGame() {
       )
       if (!ok) return
 
-      navigate(`/games/${gameId}/settlement`)
+      navigate(`/games/${gameId}`)
     } finally {
       setClosing(false)
     }
@@ -548,8 +524,6 @@ export function LiveGame() {
     .filter((p) => p.cashout == null && p.cashout_requested != null)
     .reduce((sum, p) => sum + (p.cashout_requested ?? 0), 0)
   const totalBuyinCount = players.reduce((s, p) => s + p.confirmed_buyins, 0)
-  const awaitingConfirm = cashedOutPlayers.filter((p) => !p.cashout_confirm_status).length
-  const disputedCount = cashedOutPlayers.filter((p) => p.cashout_confirm_status === 'disputed').length
 
   return (
     <div className="mx-auto w-full max-w-md p-4 sm:p-6">
@@ -698,8 +672,6 @@ export function LiveGame() {
           {players.length > 0 && (
             <p className="mt-3 border-t border-hairline-soft pt-3 text-center text-xs text-muted">
               {cashedOutPlayers.length} of {players.length} cashed out
-              {awaitingConfirm > 0 && ` · ${awaitingConfirm} awaiting confirmation`}
-              {disputedCount > 0 && <span className="text-error"> · {disputedCount} disputed</span>}
             </p>
           )}
         </CardContent>

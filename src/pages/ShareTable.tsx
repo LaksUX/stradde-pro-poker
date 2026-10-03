@@ -21,7 +21,7 @@ type GameSummary = {
   table_status_override: 'full' | 'open' | null
   host_id: string
 }
-type RosterRow = { profile_id: string; full_name: string; buyin_count: number }
+type RosterRow = { profile_id: string; full_name: string }
 type MyTransfer = {
   id: string
   from_player_id: string
@@ -76,7 +76,6 @@ export function ShareTable() {
         .from('public_live_roster')
         .select('*')
         .eq('game_id', gameId)
-        .order('buyin_count', { ascending: false })
       setRoster((data ?? []) as RosterRow[])
     }
     async function loadMyStatus() {
@@ -382,7 +381,7 @@ export function ShareTable() {
       {myStatus === 'confirmed' && roster.length > 0 && (
         <div className="mt-5">
           <p className="mb-2 text-center text-xs text-muted">
-            Names only, ranked by buy-ins — no totals, no one else's numbers.
+            Who's at the table. Names only.
           </p>
           <ListGroup>
             {roster.map((r) => (
@@ -394,11 +393,6 @@ export function ShareTable() {
                     {r.full_name}
                     {r.profile_id === myProfileId ? ' (you)' : ''}
                   </>
-                }
-                trailing={
-                  r.profile_id === myProfileId ? (
-                    <span className="type-figure-md text-ink">{r.buyin_count}</span>
-                  ) : undefined
                 }
               />
             ))}

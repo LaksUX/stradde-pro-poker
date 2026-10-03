@@ -11,7 +11,8 @@ import { Button } from '../components/ui/button'
 import { NamedAvatar } from '../components/ui/avatar'
 import { ChipsFigure } from '../components/ui/chips-figure'
 import { LineChart } from '../components/ui/line-chart'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, IdCard } from 'lucide-react'
+import { PlayerCardsSheet } from '../components/ui/player-cards-sheet'
 
 type Game = {
   id: string
@@ -46,6 +47,7 @@ export function GameDetail() {
   >([])
   const [venueTrend, setVenueTrend] = useState<number[]>([])
   const [venueOthers, setVenueOthers] = useState<VenueOther[]>([])
+  const [cardsOpen, setCardsOpen] = useState(false)
 
   useEffect(() => {
     if (!gameId || !profile) return
@@ -129,6 +131,16 @@ export function GameDetail() {
     <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
       <h1 className="type-page-title text-ink">{game.name}</h1>
       {game.venue_freetext && <p className="text-sm text-muted">{game.venue_freetext}</p>}
+
+      <Button block className="mt-4" onClick={() => setCardsOpen(true)}>
+        <IdCard className="mr-2 h-4 w-4" /> Share player cards
+      </Button>
+      <PlayerCardsSheet
+        open={cardsOpen}
+        onOpenChange={setCardsOpen}
+        gameId={game.id}
+        players={players.map((p) => ({ profile_id: p.profile_id, full_name: p.full_name }))}
+      />
 
       <ListGroup className="mt-4">
         {players.map((p) => (
