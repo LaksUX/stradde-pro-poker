@@ -14,6 +14,14 @@ export function useIsGameHost(gameId: string | undefined, hostId: string | undef
       return
     }
 
+    // The game row hasn't loaded yet, so there's nothing to compare against.
+    // Staying in "loading" (instead of concluding "not a host") stops the
+    // page redirecting a real host to the player view before the game arrives.
+    if (hostId === undefined) {
+      setLoading(true)
+      return
+    }
+
     if (hostId === profile.id) {
       setIsHost(true)
       setLoading(false)
@@ -21,6 +29,7 @@ export function useIsGameHost(gameId: string | undefined, hostId: string | undef
     }
 
     let cancelled = false
+    setLoading(true)
     async function check() {
       const { data } = await supabase
         .from('game_managers')
