@@ -11,6 +11,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popove
 import { Calendar } from '../components/ui/calendar'
 import { TimePicker } from '../components/ui/time-picker'
 import { getOrCreateOwnEntity } from '../lib/entities'
+import { createGroupForCurrentHost } from '../lib/groupAuth'
 import { chipMultiplier, type ChipRatio } from '../lib/chips'
 
 // Buy-ins are always exactly 1 bank each now — see REQUIREMENTS.md's
@@ -159,15 +160,7 @@ export function CreateGame() {
 
   if (loading) return <PageSpinner />
   if (!profile?.approved) {
-    return (
-      <div className="mx-auto w-full max-w-sm p-4 sm:p-6 text-center">
-        <h1 className="type-page-title text-ink">Pending approval</h1>
-        <p className="type-body-md mt-2 text-body">
-          Your account exists but isn't approved as a host yet. See the project README for the
-          one-line SQL to approve yourself until the Admin screen is built.
-        </p>
-      </div>
-    )
+    return <BecomeHost />
   }
 
   async function handleCreate() {
@@ -364,6 +357,53 @@ export function CreateGame() {
 
       <Button block className="mt-5" disabled={creating} onClick={handleCreate}>
         {scheduleMode === 'now' ? 'Start game & share' : 'Schedule game'}
+      </Button>
+    </div>
+  )
+}
+
+// MVP 2.0: no admin approval step. Anyone who lands here without host access
+// picks a 4-digit PIN and becomes a host on the spot (this also gives them a
+// group ID, see 0023_host_groups_and_lockdown.sql).
+function BecomeHost() {
+  const [pin, setPin] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handle() {
+    setBusy(true)
+    setError(null)
+    try {
+      await createGroupForCurrentHost('', pin)
+      window.location.assign('/games/new')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong')
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
+      <h1 className="type-page-title text-center text-ink">Start hosting</h1>
+      <p className="type-body-md mt-2 text-center text-body">
+        Pick a 4-digit PIN to start running games. It also gives you a group ID for signing back in on a new
+        phone.
+      </p>
+      <div className="mt-5 flex flex-col gap-1.5">
+        <Label htmlFor="become-host-pin">Choose a PIN</Label>
+        <Input
+          id="become-host-pin"
+          type="password"
+          inputMode="numeric"
+          maxLength={4}
+          className="h-14 tracking-[0.5em]"
+          value={pin}
+          onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+        />
+      </div>
+      {error && <p className="mt-2 text-sm text-error">{error}</p>}
+      <Button block className="mt-4" disabled={busy || pin.length !== 4} onClick={handle}>
+        {busy ? 'Setting up…' : 'Start hosting'}
       </Button>
     </div>
   )
