@@ -19,6 +19,7 @@ import { ChipsFigure } from '../components/ui/chips-figure'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import { InvitePlayersSheet } from '../components/ui/invite-players-sheet'
 import { PlayerCardsSheet } from '../components/ui/player-cards-sheet'
+import { ManagersSheet } from '../components/ui/managers-sheet'
 import { Slider } from '../components/ui/slider'
 import { Switch } from '../components/ui/switch'
 import { QrCode, UserPlus, ArrowUp, ArrowDown, ChevronDown, Shield, IdCard } from 'lucide-react'
@@ -87,6 +88,7 @@ export function LiveGame() {
   const [addPlayersOpen, setAddPlayersOpen] = useState(false)
   const [sheetPlayerId, setSheetPlayerId] = useState<string | null>(null)
   const [cardsOpen, setCardsOpen] = useState(false)
+  const [managersOpen, setManagersOpen] = useState(false)
   const [sliderValue, setSliderValue] = useState(0)
   const [cashoutOn, setCashoutOn] = useState(false)
   const [cashoutValue, setCashoutValue] = useState('')
@@ -542,6 +544,25 @@ export function LiveGame() {
             >
               <IdCard className="h-[18px] w-[18px]" />
             </button>
+            {game.host_id === profile?.id && (
+              <>
+                <button
+                  type="button"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-hairline text-muted hover:bg-surface-strong hover:text-ink"
+                  onClick={() => setManagersOpen(true)}
+                  aria-label="Co-hosts"
+                >
+                  <Shield className="h-[18px] w-[18px]" />
+                </button>
+                <ManagersSheet
+                  open={managersOpen}
+                  onOpenChange={setManagersOpen}
+                  gameId={gameId}
+                  gameName={game.name}
+                  closed={game.status === 'closed'}
+                />
+              </>
+            )}
             <PlayerCardsSheet
               open={cardsOpen}
               onOpenChange={setCardsOpen}
