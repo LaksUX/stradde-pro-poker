@@ -374,6 +374,13 @@ export function LiveGame() {
     // quietly stop matching what they agreed to. Only fires when the value
     // is actually moving (or being cleared), not on every re-save of an
     // untouched confirmed row.
+    // A blank amount used to save silently as 0, which looked like "the
+    // cash-out total isn't updating". Make the host enter a number (0 is fine
+    // if they typed it).
+    if (cashoutOn && cashoutValue.trim() === '') {
+      toast.error('Enter the cash-out amount first. Type 0 if they left with nothing.')
+      return
+    }
     const newCashout = cashoutOn ? Number(cashoutValue) || 0 : null
     const cashoutValueChanging = sheetPlayer.cashout != null && newCashout !== sheetPlayer.cashout
     if (cashoutValueChanging && sheetPlayer.cashout_confirm_status === 'confirmed') {
@@ -976,6 +983,8 @@ export function LiveGame() {
                   <Input
                     id="sheet-cashout"
                     type="number"
+                    inputMode="decimal"
+                    placeholder="Amount"
                     min={0}
                     className="h-12"
                     autoFocus
@@ -988,6 +997,9 @@ export function LiveGame() {
                       if (v === '' || Number(v) >= 0) setCashoutValue(v)
                     }}
                   />
+                  <p className="text-xs text-muted">
+                    Same units as buy-ins: one buy-in is {game.stake}.
+                  </p>
                   {sheetPlayer.cashout != null && sheetPlayer.cashout_confirm_status === 'confirmed' && (
                     <p className="text-xs text-muted">
                       Changing this will ask {sheetPlayer.full_name} to confirm the new amount instead.
