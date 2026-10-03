@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { formatChips, type ChipRatio } from '../lib/chips'
-import { computeInitialSettlement, type PlayerForSettlement } from '../lib/settlement'
 import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { confirmDialog } from '../lib/confirmDialog'
@@ -19,9 +18,10 @@ import { NamedAvatar } from '../components/ui/avatar'
 import { ChipsFigure } from '../components/ui/chips-figure'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import { InvitePlayersSheet } from '../components/ui/invite-players-sheet'
+import { PlayerCardsSheet } from '../components/ui/player-cards-sheet'
 import { Slider } from '../components/ui/slider'
 import { Switch } from '../components/ui/switch'
-import { QrCode, UserPlus, ArrowUp, ArrowDown, ChevronDown, Shield } from 'lucide-react'
+import { QrCode, UserPlus, ArrowUp, ArrowDown, ChevronDown, Shield, IdCard } from 'lucide-react'
 
 const MAX_BUYINS = 100
 
@@ -86,6 +86,7 @@ export function LiveGame() {
   const [qrOpen, setQrOpen] = useState(false)
   const [addPlayersOpen, setAddPlayersOpen] = useState(false)
   const [sheetPlayerId, setSheetPlayerId] = useState<string | null>(null)
+  const [cardsOpen, setCardsOpen] = useState(false)
   const [sliderValue, setSliderValue] = useState(0)
   const [cashoutOn, setCashoutOn] = useState(false)
   const [cashoutValue, setCashoutValue] = useState('')
@@ -451,9 +452,9 @@ export function LiveGame() {
       const unfinished = players.filter((p) => p.cashout == null)
       const confirmed = await confirmDialog(
         unfinished.length > 0
-          ? `${unfinished.length} player(s) have no cash-out — their buy-ins will count as a loss to the table. Close and settle?`
-          : 'Close this game and compute settlement?',
-        { confirmLabel: 'Close & settle', danger: unfinished.length > 0 }
+          ? `${unfinished.length} player(s) have no cash-out — their buy-ins will count as a loss to the table. Close the game?`
+          : 'Close this game?',
+        { confirmLabel: 'Close game', danger: unfinished.length > 0 }
       )
       if (!confirmed) return
 
@@ -469,29 +470,6 @@ export function LiveGame() {
         if (!ok) return
       }
 
-      const settlementInput: PlayerForSettlement[] = players.map((p) => ({
-        gamePlayerId: p.id,
-        name: p.full_name,
-        netBanks: (unfinished.find((u) => u.id === p.id) ? 0 : (p.cashout ?? 0)) - p.confirmed_buyins * game.stake,
-      }))
-      const transfers = computeInitialSettlement(settlementInput)
-
-      if (transfers.length > 0) {
-        const ok = await runWrite(
-          () =>
-            supabase.from('settlement_transfers').insert(
-              transfers.map((t) => ({
-                game_id: gameId,
-                from_player_id: t.fromPlayerId,
-                to_player_id: t.toPlayerId,
-                amount: t.amountBanks,
-              }))
-            ),
-          'Settlement'
-        )
-        if (!ok) return
-      }
-
       const ok = await runWrite(
         () =>
           supabase
@@ -502,7 +480,7 @@ export function LiveGame() {
       )
       if (!ok) return
 
-      navigate(`/games/${gameId}/settlement`)
+      navigate(`/games/${gameId}`)
     } finally {
       setClosing(false)
     }
@@ -546,8 +524,6 @@ export function LiveGame() {
     .filter((p) => p.cashout == null && p.cashout_requested != null)
     .reduce((sum, p) => sum + (p.cashout_requested ?? 0), 0)
   const totalBuyinCount = players.reduce((s, p) => s + p.confirmed_buyins, 0)
-  const awaitingConfirm = cashedOutPlayers.filter((p) => !p.cashout_confirm_status).length
-  const disputedCount = cashedOutPlayers.filter((p) => p.cashout_confirm_status === 'disputed').length
 
   return (
     <div className="mx-auto w-full max-w-md p-4 sm:p-6">
@@ -556,8 +532,26 @@ export function LiveGame() {
           <h1 className="type-page-title text-ink">{game.name}</h1>
           {timeLine && <p className="mt-0.5 text-xs text-muted">{timeLine}</p>}
         </div>
-        {gameId && game.status !== 'closed' && (
+        {gameId && (
           <div className="flex shrink-0 gap-2">
+            <button
+              type="button"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-hairline text-muted hover:bg-surface-strong hover:text-ink"
+              onClick={() => setCardsOpen(true)}
+              aria-label="Player cards"
+            >
+              <IdCard className="h-[18px] w-[18px]" />
+            </button>
+            <PlayerCardsSheet
+              open={cardsOpen}
+              onOpenChange={setCardsOpen}
+              gameId={gameId}
+              players={players.map((p) => ({ profile_id: p.profile_id, full_name: p.full_name }))}
+            />
+          </div>
+        )}
+        {gameId && game.status !== 'closed' && (
+          <div className="ml-2 flex shrink-0 gap-2">
             <button
               type="button"
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-hairline text-muted hover:bg-surface-strong hover:text-ink"
@@ -678,8 +672,6 @@ export function LiveGame() {
           {players.length > 0 && (
             <p className="mt-3 border-t border-hairline-soft pt-3 text-center text-xs text-muted">
               {cashedOutPlayers.length} of {players.length} cashed out
-              {awaitingConfirm > 0 && ` · ${awaitingConfirm} awaiting confirmation`}
-              {disputedCount > 0 && <span className="text-error"> · {disputedCount} disputed</span>}
             </p>
           )}
         </CardContent>

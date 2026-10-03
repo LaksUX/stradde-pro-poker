@@ -1,43 +1,42 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/inter";
+@import "@fontsource-variable/plus-jakarta-sans";
 /*
   ---break---
 */
 @custom-variant dark (&:is(.dark *));
 
 /*
-  Design tokens sourced from DESIGN-dashboard.md — see REQUIREMENTS.md "Theme".
-  Update DESIGN-dashboard.md first if the visual language changes, then sync
-  here. Still no dark-mode toggle: this app has one permanent canvas — it's
-  just a dark one now instead of a light one.
+  MVP 2.0 theme: "Calm Slate" — a light, cool blue-grey canvas with a single
+  red primary. (MVP 1's dark orange theme lives on the mvp-1 branch.) Still
+  no dark-mode toggle: one permanent canvas.
 */
 @theme {
   /* canvas is the ELEVATED surface (cards, header/nav chrome, buttons,
      dropdowns, toast, dialogs) — surface-soft is the page floor beneath it,
      surface-strong is the brightest step, for nested pill/badge/track fills
      that need to read as clearly interactive against a card. */
-  --color-canvas: #141a26;
-  --color-surface-soft: #0a0e17;
-  --color-surface-strong: #1b2233;
-  --color-ink: #f5f6f8;
-  --color-body: #c7ccd6;
-  --color-muted: #8a92a3;
-  --color-muted-soft: #5c6478;
-  --color-hairline: #232b3d;
-  --color-hairline-soft: #1c2230;
-  --color-border-strong: #384157;
+  --color-canvas: #ffffff;
+  --color-surface-soft: #eef1f5;
+  --color-surface-strong: #e1e6ee;
+  --color-ink: #16202e;
+  --color-body: #3a4659;
+  --color-muted: #6b778a;
+  --color-muted-soft: #94a0b2;
+  --color-hairline: #d5dbe5;
+  --color-hairline-soft: #e3e8ef;
+  --color-border-strong: #b4becf;
 
-  --color-primary: #ff7a29; /* Orange */
-  --color-primary-active: #e8631a;
-  --color-primary-disabled: #7a4a2b;
-  --color-on-primary: #0a0e17;
+  --color-primary: #e5383b; /* Red */
+  --color-primary-active: #c92a2d;
+  --color-primary-disabled: #f1b5b6;
+  --color-on-primary: #ffffff;
 
-  --color-error: #f75466;
-  --color-error-hover: #e13b4d;
+  --color-error: #b42318;
+  --color-error-hover: #912018;
 
-  --color-win: #34d399;
+  --color-win: #138a63;
   --color-loss: var(--color-error);
 
   --radius-sm: 10px;
@@ -48,13 +47,13 @@
 
   --spacing-section: 64px;
 
-  --font-sans: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+  --font-sans: 'Plus Jakarta Sans Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI',
     Roboto, 'Helvetica Neue', sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* shadcn/ui (Base UI) semantic tokens — bridged onto the tokens above
      rather than shadcn's own default palette, so generated components
-     match this app's one permanent dark canvas instead of introducing a
+     match this app's one permanent light canvas instead of introducing a
      second, mismatched light/dark scheme. --color-primary and
      --color-muted are deliberately NOT redeclared here: they already
      exist above, and shadcn components read those same names directly. */
@@ -87,7 +86,7 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
   overflow-x: hidden;
-  color-scheme: dark;
+  color-scheme: light;
   /* Installed as a fullscreen/standalone PWA (index.html's
      apple-mobile-web-app-* tags, viewport-fit=cover, and vite.config.ts's
      manifest display: 'fullscreen'), content draws under the notch/status
@@ -150,15 +149,13 @@ body {
   line-height: 1.5;
 }
 
-/* No shadow tier at all, per DESIGN-dashboard.md — a dark shadow barely
-   shows against a near-black canvas, so depth comes from the
-   canvas/surface-soft/surface-strong scale instead. The one surface that
-   still needs a visible edge beyond that scale (a floating toast, the
-   confirm dialog, a dropdown) gets a hairline ring here instead of a
-   shadow — kept under the old class name so call sites didn't need to
-   change, just what the class means. */
+/* Light canvas: depth comes mostly from the white card on the grey floor.
+   Floating surfaces (toast, dialogs, dropdowns) add a hairline ring plus a
+   soft slate shadow; the class name is kept so call sites don't change. */
 .shadow-elevated {
-  box-shadow: 0 0 0 1px var(--color-hairline);
+  box-shadow:
+    0 0 0 1px var(--color-hairline),
+    0 6px 20px rgba(22, 32, 46, 0.12);
 }
 
 @keyframes toast-in {

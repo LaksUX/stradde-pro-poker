@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { runWrite } from '../../lib/errors'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from './sheet'
 import { Button } from './button'
+import { Input } from './input'
 import { ListGroup, ListRow } from './list-row'
 import { NamedAvatar } from './avatar'
 import { Check } from 'lucide-react'
@@ -33,6 +34,8 @@ export function InvitePlayersSheet({
   const [regulars, setRegulars] = useState<Regular[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [inviting, setInviting] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [addingGuest, setAddingGuest] = useState(false)
 
   useEffect(() => {
     if (!open || !profile) return
@@ -54,6 +57,22 @@ export function InvitePlayersSheet({
       else next.add(id)
       return next
     })
+  }
+
+  // MVP 2.0: a brand-new player by name alone — no phone, no account.
+  async function handleAddGuest() {
+    const name = newName.trim()
+    if (!name) return
+    setAddingGuest(true)
+    const ok = await runWrite(
+      () => supabase.rpc('add_guest_player', { p_game_id: gameId, p_name: name }),
+      'Adding player'
+    )
+    setAddingGuest(false)
+    if (ok) {
+      setNewName('')
+      onInvited?.()
+    }
   }
 
   async function handleInvite() {
@@ -80,9 +99,23 @@ export function InvitePlayersSheet({
           <SheetTitle>Add players</SheetTitle>
         </SheetHeader>
 
+        <div className="mt-4 flex gap-2">
+          <Input
+            className="h-12"
+            placeholder="New name"
+            value={newName}
+            maxLength={40}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddGuest()}
+          />
+          <Button disabled={!newName.trim() || addingGuest} onClick={handleAddGuest}>
+            {addingGuest ? 'Adding…' : 'Add'}
+          </Button>
+        </div>
+
         {invitable.length === 0 ? (
           <p className="mt-4 text-center text-sm text-muted">
-            No one you've played with before is free to add — share the invite link instead.
+            No one you've played with before is free to add. Type a new name above.
           </p>
         ) : (
           <ListGroup className="mt-4">
