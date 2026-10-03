@@ -42,9 +42,16 @@ export async function signInWithGroup(groupId: string, pin: string): Promise<voi
     },
     body: JSON.stringify({ group_id: groupId, pin }),
   })
-  const json = await res.json().catch(() => ({}))
+  const text = await res.text().catch(() => '')
+  let json: { error?: string; message?: string; msg?: string; hashed_token?: string } = {}
+  try {
+    json = JSON.parse(text)
+  } catch {
+    // not JSON — fall back to the raw text below
+  }
   if (!res.ok || json.error || !json.hashed_token) {
-    throw new Error(json.error || `Sign-in failed (${res.status})`)
+    const detail = json.error || json.message || json.msg || text.slice(0, 200)
+    throw new Error(`Sign-in failed (${res.status})${detail ? `: ${detail}` : ''}`)
   }
   const { error } = await supabase.auth.verifyOtp({ token_hash: json.hashed_token, type: 'magiclink' })
   if (error) throw error
