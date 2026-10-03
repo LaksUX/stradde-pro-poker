@@ -630,7 +630,7 @@ export function LiveGame() {
                     </>
                   }
                   trailing={
-                    <span className="whitespace-nowrap text-[11px] text-muted">
+                    <span className="whitespace-nowrap text-[12.5px] text-muted">
                       {new Date(r.requested_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                     </span>
                   }
@@ -660,7 +660,7 @@ export function LiveGame() {
                   ratio={ratio}
                 />
               </p>
-              <p className="mt-0.5 text-[11px] text-muted">
+              <p className="mt-0.5 text-[12.5px] text-muted">
                 {totalBuyinCount} buy-in{totalBuyinCount === 1 ? '' : 's'}
               </p>
             </div>
@@ -669,11 +669,11 @@ export function LiveGame() {
               <p className="mt-1">
                 <ChipsFigure amount={players.reduce((s, p) => s + (p.cashout ?? 0), 0)} ratio={ratio} />
               </p>
-              <p className="mt-0.5 text-[11px] text-muted">
+              <p className="mt-0.5 text-[12.5px] text-muted">
                 {cashedOutPlayers.length} player{cashedOutPlayers.length === 1 ? '' : 's'}
               </p>
               {requestedBanks > 0 && (
-                <p className="mt-0.5 text-[11px] text-primary">
+                <p className="mt-0.5 text-[12.5px] text-primary">
                   +{formatChips(requestedBanks, ratio)} requested
                 </p>
               )}
@@ -756,7 +756,7 @@ export function LiveGame() {
                   trailing={
                     <>
                       <span className="type-figure-md text-lg text-ink">{p.confirmed_buyins}</span>
-                      <span className="text-[11px] text-muted">
+                      <span className="text-[12.5px] text-muted">
                         buy-in{p.confirmed_buyins === 1 ? '' : 's'}
                       </span>
                     </>
@@ -880,11 +880,11 @@ export function LiveGame() {
                       since it's the one that actually matters. */}
                   <div className="grid grid-cols-3 gap-1.5 text-center">
                     <div className="rounded-lg bg-surface-strong px-2 py-2.5">
-                      <p className="text-[11px] text-muted">Previous</p>
+                      <p className="text-[12.5px] text-muted">Previous</p>
                       <p className="type-figure-md mt-0.5 text-ink">{sheetPlayer.confirmed_buyins}</p>
                     </div>
                     <div className="rounded-lg bg-surface-strong px-2 py-2.5">
-                      <p className="text-[11px] text-muted">New</p>
+                      <p className="text-[12.5px] text-muted">New</p>
                       <p
                         className={`type-figure-md mt-0.5 ${
                           sheetDelta === 0 ? 'text-muted' : sheetDelta > 0 ? 'text-win' : 'text-error'
@@ -895,7 +895,7 @@ export function LiveGame() {
                       </p>
                     </div>
                     <div className="rounded-lg border border-primary/40 bg-primary/10 px-2 py-2.5">
-                      <p className="text-[11px] text-muted">Overall</p>
+                      <p className="text-[12.5px] text-muted">Overall</p>
                       <p className="type-figure-md mt-0.5 text-ink">{sliderValue}</p>
                     </div>
                   </div>

@@ -311,13 +311,13 @@ export function MyGame() {
         ) : (
           <div className="mt-3 grid grid-cols-2 gap-2">
             <div className="rounded-lg border border-hairline bg-canvas px-2 py-2.5 text-center">
-              <p className="text-[11px] text-muted">Buy-ins</p>
+              <p className="text-[12.5px] text-muted">Buy-ins</p>
               <p className="mt-0.5">
                 <ChipsFigure amount={confirmedBuyins * game.stake} ratio={ratio} />
               </p>
             </div>
             <div className="rounded-lg border border-hairline bg-canvas px-2 py-2.5 text-center">
-              <p className="text-[11px] text-muted">Cash-out</p>
+              <p className="text-[12.5px] text-muted">Cash-out</p>
               <p className="mt-0.5">
                 <ChipsFigure amount={myPlayer.cashout!} ratio={ratio} />
               </p>

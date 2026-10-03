@@ -373,7 +373,7 @@ export function Home() {
             >
               {pushEnabled ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
               {pendingRequestCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white">
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[12px] font-bold text-white">
                   {pendingRequestCount}
                 </span>
               )}
@@ -412,7 +412,7 @@ export function Home() {
               <TabsTrigger value="admin" className="relative">
                 Admin
                 {pendingAdminCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white">
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[12px] font-bold text-white">
                     {pendingAdminCount}
                   </span>
                 )}
@@ -661,7 +661,7 @@ export function Home() {
                               day: 'numeric',
                               year: 'numeric',
                             })}
-                            <Badge variant={g.status === 'live' ? 'win' : 'muted'} className="text-[10px]">
+                            <Badge variant={g.status === 'live' ? 'win' : 'muted'} className="text-[12px]">
                               {g.status}
                             </Badge>
                           </span>
@@ -700,7 +700,7 @@ export function Home() {
                               subtitle={
                                 <span className="flex items-center gap-1.5">
                                   {r.phone}
-                                  <Badge variant={r.approved ? 'win' : 'muted'} className="text-[10px]">
+                                  <Badge variant={r.approved ? 'win' : 'muted'} className="text-[12px]">
                                     {r.approved ? 'Approved' : 'Pending'}
                                   </Badge>
                                 </span>
