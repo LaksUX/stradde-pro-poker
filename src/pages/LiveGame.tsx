@@ -218,7 +218,22 @@ export function LiveGame() {
       )
       .subscribe()
 
+    // Safety net for the realtime channel: changes made on ANOTHER phone (a
+    // co-host, a second device) can arrive late or not at all, which left the
+    // top totals stale. Re-read every few seconds while the screen is visible,
+    // and straight away when the app comes back to the foreground.
+    function refresh() {
+      if (document.visibilityState !== 'visible') return
+      loadPending()
+      loadPlayers()
+      loadGame()
+    }
+    const poll = setInterval(refresh, 5000)
+    document.addEventListener('visibilitychange', refresh)
+
     return () => {
+      clearInterval(poll)
+      document.removeEventListener('visibilitychange', refresh)
       supabase.removeChannel(channel)
     }
   }, [gameId])
