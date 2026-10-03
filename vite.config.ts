@@ -5,9 +5,9 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // "1.0" here, not package.json's "version" (which stays real semver,
-// "1.0.0") — this is a separate, display-only base so appending the build
-// number below gives "1.0.71", not "1.0.0.71".
-const VERSION_BASE = '1.0'
+// "2.0.0") — this is a separate, display-only base so appending the build
+// number below gives "2.0.71", not "2.0.0.71".
+const VERSION_BASE = '2.0'
 
 // Total commit count is a build counter that only ever goes up, with no
 // state to track ourselves — every new commit on main is a new Vercel
@@ -54,8 +54,8 @@ export default defineConfig({
         short_name: 'Straddle',
         description:
           'Live buy-in and settlement tracking for home poker games — join by link, no install required to watch.',
-        theme_color: '#ff7a29', // primary — DESIGN-dashboard.md
-        background_color: '#0a0e17', // canvas — no dark-mode toggle, per DESIGN-dashboard.md
+        theme_color: '#e5383b', // primary (MVP 2.0 Calm Slate)
+        background_color: '#eef1f5', // surface-soft (MVP 2.0 Calm Slate)
         // 'fullscreen' hides the OS status bar too, not just the browser
         // chrome that 'standalone' already removed — display_override lets
         // a browser that doesn't support fullscreen fall back to standalone

@@ -106,7 +106,7 @@ export function Continue() {
         No password — just your name and phone. Want to host your own games? You can apply once
         you're in.
       </p>
-      <p className="text-center text-[11px] text-muted-soft">v{__APP_VERSION__}</p>
+      <p className="text-center text-[11px] text-muted-soft">MVP 2.0 · v{__APP_VERSION__}</p>
     </div>
   )
 }

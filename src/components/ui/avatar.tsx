@@ -15,13 +15,8 @@ function Avatar({ className, ...props }: AvatarPrimitive.Root.Props) {
   )
 }
 
-// Colored deltas everywhere else in this app (badges, figures) already use
-// primary/win/error at a translucent tint against the dark canvas — the
-// fallback used the same near-black surface tone as the cards it sits on
-// (bg-surface-strong on bg-card), so it barely registered as its own
-// element. This tint is the one that's visually distinct from every card/
-// row background in the app while still reading as neutral (not a status
-// color), so it stays legible across every context an avatar appears in.
+// Neutral slate fallback: primary is red and win/loss are colored, so the
+// avatar stays a quiet grey that reads as its own element on white cards.
 
 function AvatarImage({ className, ...props }: AvatarPrimitive.Image.Props) {
   return (
@@ -38,7 +33,7 @@ function AvatarFallback({ className, ...props }: AvatarPrimitive.Fallback.Props)
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
       className={cn(
-        "flex size-full items-center justify-center rounded-full bg-primary/20 text-sm font-bold text-primary",
+        "flex size-full items-center justify-center rounded-full bg-surface-strong text-sm font-bold text-muted",
         className
       )}
       {...props}
