@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { Download, Eye, EyeOff, Settings } from 'lucide-react'
 import { PageSpinner } from '../components/ui/spinner'
 import { Button } from '../components/ui/button'
+import { useCountUp } from '../hooks/useCountUp'
 import { cn } from 'cn'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import { toast } from '../lib/toast'
@@ -153,6 +154,9 @@ export function PlayerCard() {
     [book.card, book.hidden]
   )
   const net = totalNet(nights)
+  // Counts up from 0 when revealed; while hidden it rests at 0 so the blur
+  // never carries the real digits.
+  const shownNet = useCountUp(revealed ? net : 0)
   const standalone =
     window.matchMedia('(display-mode: standalone)').matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true
@@ -221,7 +225,7 @@ export function PlayerCard() {
             {revealed ? 'Hide' : 'Reveal'}
           </button>
         </div>
-        <p className={cn('type-figure-hero mt-3 transition-[filter]', tone(net), blur)}>{signed(net)}</p>
+        <p className={cn('type-figure-hero mt-3 transition-[filter]', tone(net), blur)}>{signed(shownNet)}</p>
         <p className="mt-2 text-xs text-muted">
           {book.syncedAt
             ? status === 'offline'
