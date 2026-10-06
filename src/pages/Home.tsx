@@ -646,7 +646,6 @@ export function Home() {
                               title={r.full_name ?? '—'}
                               subtitle={
                                 <span className="flex items-center gap-1.5">
-                                  {r.phone}
                                   <Badge variant={r.approved ? 'win' : 'muted'} className="text-[12px]">
                                     {r.approved ? 'Approved' : 'Pending'}
                                   </Badge>
@@ -683,7 +682,6 @@ export function Home() {
                           key={r.id}
                           avatar={<NamedAvatar name={r.full_name ?? '—'} />}
                           title={r.full_name ?? '—'}
-                          subtitle={r.phone}
                           trailing={
                             <div className="flex items-center gap-1">
                               <Button
