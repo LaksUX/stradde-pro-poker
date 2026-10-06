@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { runWrite } from '../../lib/errors'
+import { confirmDialog } from '../../lib/confirmDialog'
+import { toast } from '../../lib/toast'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from './sheet'
 import { Button } from './button'
 import { Input } from './input'
@@ -9,23 +11,29 @@ import { ListGroup, ListRow } from './list-row'
 import { NamedAvatar } from './avatar'
 import { Check } from 'lucide-react'
 
+function normalizeName(n: string): string {
+  return n.trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
 type Regular = { other_id: string; full_name: string; games_played: number }
 
-// Bulk-add players this host has shared a closed game with before — as
-// either the host of that game or just a fellow player in it, since
-// my_regulars (0020 migration) covers both. Backs an "Add players" entry
-// point on a live game.
+// Add players to a live game from the host's OWN list: people from games this
+// host ran (my_roster, 0027), plus a New name box. Nobody from another host's
+// table ever appears here.
 export function InvitePlayersSheet({
   open,
   onOpenChange,
   gameId,
   existingProfileIds,
+  existingNames = [],
   onInvited,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   gameId: string
   existingProfileIds: string[]
+  // Names already seated in this game, to stop the same person being added twice.
+  existingNames?: string[]
   // Optional — callers whose game_players rows are already kept fresh by a
   // realtime subscription (e.g. LiveGame) don't need to do anything extra.
   onInvited?: () => void
@@ -41,7 +49,7 @@ export function InvitePlayersSheet({
     if (!open || !profile) return
     setSelected(new Set())
     supabase
-      .from('my_regulars')
+      .from('my_roster')
       .select('other_id, full_name, games_played')
       .eq('viewer_id', profile.id)
       .order('games_played', { ascending: false })
@@ -63,6 +71,33 @@ export function InvitePlayersSheet({
   async function handleAddGuest() {
     const name = newName.trim()
     if (!name) return
+    const key = normalizeName(name)
+    if (existingNames.some((n) => normalizeName(n) === key)) {
+      toast.error(`${name} is already in this game`)
+      return
+    }
+    // Same person already in this host's list? Offer them instead of creating
+    // a second profile with the same name.
+    const match = regulars.find((r) => normalizeName(r.full_name) === key)
+    if (match) {
+      const useExisting = await confirmDialog(`${match.full_name} is already in your list. Use them?`, {
+        confirmLabel: 'Use existing',
+        cancelLabel: 'Add as new person',
+      })
+      if (useExisting) {
+        setAddingGuest(true)
+        const ok = await runWrite(
+          () => supabase.from('game_players').insert({ game_id: gameId, profile_id: match.other_id }),
+          'Adding player'
+        )
+        setAddingGuest(false)
+        if (ok) {
+          setNewName('')
+          onInvited?.()
+        }
+        return
+      }
+    }
     setAddingGuest(true)
     const ok = await runWrite(
       () => supabase.rpc('add_guest_player', { p_game_id: gameId, p_name: name }),

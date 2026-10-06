@@ -673,6 +673,7 @@ export function LiveGame() {
               onOpenChange={setAddPlayersOpen}
               gameId={gameId}
               existingProfileIds={players.map((p) => p.profile_id)}
+              existingNames={players.map((p) => p.full_name)}
             />
           </div>
         )}
