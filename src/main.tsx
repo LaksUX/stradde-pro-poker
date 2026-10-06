@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import './lib/install' // registers the install-prompt listener before any page mounts
 
 // vite-plugin-pwa's registerType: 'autoUpdate' already configures the
 // service worker itself to call skipWaiting()/clientsClaim() (see the
