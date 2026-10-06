@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
@@ -7,7 +7,6 @@ import { toast } from '../lib/toast'
 import { Button } from '../components/ui/button'
 import { PageSpinner } from '../components/ui/spinner'
 import { ListGroup, ListRow } from '../components/ui/list-row'
-import { Badge } from '../components/ui/badge'
 import { Select } from '../components/ui/select'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -15,6 +14,7 @@ import { NamedAvatar } from '../components/ui/avatar'
 import { ChipsFigure } from '../components/ui/chips-figure'
 import { ArrowRight, ChevronDown, IdCard } from 'lucide-react'
 import { PlayerCardsSheet } from '../components/ui/player-cards-sheet'
+import { StepBar } from '../components/ui/step-bar'
 
 type Game = { id: string; name: string; chip_ratio: ChipRatio; settlement_published_at: string | null }
 type PlayerOpt = { id: string; name: string; profile_id: string }
@@ -33,11 +33,12 @@ type Transfer = {
 // deliberate action from editing.
 export function Settlement() {
   const { gameId } = useParams()
+  const navigate = useNavigate()
   const [game, setGame] = useState<Game | null>(null)
   const [players, setPlayers] = useState<PlayerOpt[]>([])
   const [transfers, setTransfers] = useState<Transfer[]>([])
-  const [dirty, setDirty] = useState(false)
   const [cardsOpen, setCardsOpen] = useState(false)
+  const [sharing, setSharing] = useState(false)
   // Read-only by default, editing entered deliberately per row — a settlement
   // reads clearer as "who owes whom, how much, confirmed or not" than as a
   // permanently-open pair of dropdowns, and editing a real money transfer
@@ -81,7 +82,6 @@ export function Settlement() {
     // Global offline edge case.
     const previous = transfers.find((t) => t.id === id)
     setTransfers((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
-    setDirty(true)
     const ok = await runWrite(
       () => supabase.from('settlement_transfers').update(patch).eq('id', id),
       'Settlement change'
@@ -95,7 +95,6 @@ export function Settlement() {
     const previous = transfers.find((t) => t.id === id)
     const previousIndex = transfers.findIndex((t) => t.id === id)
     setTransfers((prev) => prev.filter((t) => t.id !== id))
-    setDirty(true)
     const ok = await runWrite(
       () => supabase.from('settlement_transfers').delete().eq('id', id),
       'Removing transfer'
@@ -132,47 +131,43 @@ export function Settlement() {
     }
     const t = data as Transfer
     setTransfers((prev) => [...prev, t])
-    setDirty(true)
     setEditingId(t.id)
-  }
-
-  async function publish() {
-    if (!gameId) return
-    const ok = await runWrite(
-      () =>
-        supabase
-          .from('games')
-          .update({ settlement_published_at: new Date().toISOString() })
-          .eq('id', gameId),
-      'Publishing'
-    )
-    if (!ok) return
-    setDirty(false)
-    await loadAll()
   }
 
   return (
     <div className="mx-auto w-full max-w-md p-4 sm:p-6">
-      <h1 className="type-page-title text-ink">{game.name} — Settlement</h1>
-      {gameId && (
-        <>
-          <Button variant="secondary" block className="mt-3" onClick={() => setCardsOpen(true)}>
-            <IdCard className="mr-2 h-4 w-4" /> Share player cards
-          </Button>
-          <PlayerCardsSheet
-            open={cardsOpen}
-            onOpenChange={setCardsOpen}
-            gameId={gameId}
-            gameName={game.name}
-            gameDate={new Date().toISOString()}
-            players={players.map((p) => ({ profile_id: p.profile_id, full_name: p.name }))}
-          />
-        </>
-      )}
+      <StepBar current={sharing ? 4 : 3} className="mb-4" />
+      <h1 className="type-page-title text-ink">{sharing ? 'Share with players' : 'Settlement'}</h1>
       <p className="type-body-md mt-1 text-body">
-        Computed as a starting point, deterministic tie-break. Reassign freely below.
+        {sharing
+          ? 'Send each player their private card. It shows their night and who they settle with.'
+          : 'Who settles with whom. Tap a line to change it.'}
       </p>
+      {gameId && (
+        <PlayerCardsSheet
+          open={cardsOpen}
+          onOpenChange={setCardsOpen}
+          gameId={gameId}
+          gameName={game.name}
+          gameDate={new Date().toISOString()}
+          players={players.map((p) => ({ profile_id: p.profile_id, full_name: p.name }))}
+        />
+      )}
 
+      {sharing ? (
+        <div className="mt-6 flex flex-col gap-3">
+          <Button block onClick={() => setCardsOpen(true)}>
+            <IdCard className="mr-2 h-4 w-4" /> Send player cards
+          </Button>
+          <Button variant="secondary" block onClick={() => setSharing(false)}>
+            Back to settlement
+          </Button>
+          <Button variant="ghost" block onClick={() => navigate('/home')}>
+            Done
+          </Button>
+        </div>
+      ) : (
+        <>
       {transfers.length > 0 && (
         <ListGroup className="mt-3">
           {transfers.map((t) => {
@@ -197,22 +192,11 @@ export function Settlement() {
                       <span>{toName}</span>
                     </span>
                   }
-                  subtitle={
-                    t.request_note ? (
-                      <>Player's proposed change: "{t.request_note}"</>
-                    ) : (
-                      `${t.amount} banks`
-                    )
-                  }
+                  subtitle={t.request_note ? <>Player's proposed change: "{t.request_note}"</> : undefined}
                   trailing={
                     <div className="flex items-center gap-2">
                       <div className="flex flex-col items-end gap-1">
                         <ChipsFigure amount={t.amount} ratio={ratio} />
-                        <Badge
-                          variant={t.status === 'confirmed' ? 'win' : t.status === 'disputed' ? 'error' : 'muted'}
-                        >
-                          {t.status}
-                        </Badge>
                       </div>
                       <ChevronDown
                         className={`h-4 w-4 shrink-0 text-muted transition-transform ${editing ? 'rotate-180' : ''}`}
@@ -284,16 +268,11 @@ export function Settlement() {
         Add custom payment
       </Button>
 
-      <Button block className="mt-4" onClick={publish}>
-        {game.settlement_published_at ? 'Update shared link' : 'Publish to shared link'}
+      <Button block className="mt-4" onClick={() => setSharing(true)}>
+        Looks right · Share cards
       </Button>
-      <p className="mt-2 text-center text-xs text-muted">
-        {game.settlement_published_at
-          ? dirty
-            ? 'Unpublished changes — players still see the last update.'
-            : `Up to date · last published ${new Date(game.settlement_published_at).toLocaleTimeString()}`
-          : 'Not published yet — players see nothing until you publish.'}
-      </p>
+        </>
+      )}
     </div>
   )
 }
