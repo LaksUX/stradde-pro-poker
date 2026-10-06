@@ -1,24 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Download, Settings } from 'lucide-react'
+import { Download, NotebookPen } from 'lucide-react'
 import { PageSpinner } from '../components/ui/spinner'
 import { Button } from '../components/ui/button'
 import { useCountUp } from '../hooks/useCountUp'
 import { toChips } from '../lib/chips'
 import { cn } from 'cn'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '../components/ui/sheet'
-import { toast } from '../lib/toast'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import {
-  checkLock,
-  exportBook,
   fetchCard,
-  hasLock,
   loadBook,
-  mergeImport,
   nightNet,
-  removeLock,
   saveBook,
-  setLock,
   totalNet,
   type CardNight,
   type LocalBook,
@@ -87,19 +80,17 @@ function useCardManifest(token: string | undefined, title: string) {
 }
 
 // MVP 2.0 player card (/c/:token): public, no sign-in. Results come from the
-// host; notes and hidden nights are saved only on this phone.
+// host; notes are saved only on this phone.
 export function PlayerCard() {
   const { token } = useParams()
   const [book, setBook] = useState<LocalBook>(() =>
-    token ? loadBook(token) : { card: null, notes: {}, hidden: {}, syncedAt: null }
+    token ? loadBook(token) : { card: null, notes: {}, syncedAt: null }
   )
   const [status, setStatus] = useState<'loading' | 'ready' | 'invalid' | 'offline'>(
     book.card ? 'ready' : 'loading'
   )
-  const [openNight, setOpenNight] = useState<string | null>(null)
+  const [noteNight, setNoteNight] = useState<string | null>(null)
   const [installEvent, setInstallEvent] = useState<InstallEvent | null>(null)
-  const [locked, setLocked] = useState(() => (token ? hasLock(token) : false))
-  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const title = book.card
     ? `${book.card.group ?? 'Game night'} · ${book.card.name ?? 'Me'}`
@@ -149,20 +140,13 @@ export function PlayerCard() {
     })
   }
 
-  const nights = useMemo(
-    () => (book.card?.nights ?? []).filter((n) => !book.hidden[n.game_id]),
-    [book.card, book.hidden]
-  )
+  const nights = book.card?.nights ?? []
   const net = totalNet(nights)
   const shownNet = useCountUp(net)
   const standalone =
     window.matchMedia('(display-mode: standalone)').matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true
   const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
-
-  if (token && locked) {
-    return <LockScreen title={title} onCheck={(pin) => checkLock(token, pin)} onUnlock={() => setLocked(false)} />
-  }
 
   if (status === 'loading') return <PageSpinner />
 
@@ -189,24 +173,7 @@ export function PlayerCard() {
           <p className="text-xs text-muted">{book.card?.group ?? 'Game night'}</p>
           <h1 className="mt-0.5 text-3xl font-bold text-ink">Hi {book.card?.name ?? 'there'}</h1>
         </div>
-        <button
-          type="button"
-          aria-label="Lock and backup"
-          onClick={() => setSettingsOpen(true)}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline text-muted hover:bg-surface-strong"
-        >
-          <Settings className="h-[18px] w-[18px]" />
-        </button>
       </div>
-      {token && (
-        <CardSettings
-          open={settingsOpen}
-          onOpenChange={setSettingsOpen}
-          token={token}
-          book={book}
-          onImport={(next) => update({ notes: next.notes, hidden: next.hidden })}
-        />
-      )}
 
       <div className="mt-5 rounded-xl border border-hairline bg-canvas p-5">
         <div className="flex items-center justify-between">
@@ -256,14 +223,8 @@ export function PlayerCard() {
             <NightRow
               key={n.game_id}
               night={n}
-              open={openNight === n.game_id}
               note={book.notes[n.game_id] ?? ''}
-              onToggle={() => setOpenNight(openNight === n.game_id ? null : n.game_id)}
-              onNote={(text) => update({ notes: { ...book.notes, [n.game_id]: text } })}
-              onHide={() => {
-                update({ hidden: { ...book.hidden, [n.game_id]: true } })
-                setOpenNight(null)
-              }}
+              onOpen={() => setNoteNight(n.game_id)}
             />
           ))}
         </div>
@@ -272,30 +233,23 @@ export function PlayerCard() {
       <p className="mt-6 text-center text-xs text-muted">
         Only you can see this card. Notes stay on this phone.
       </p>
+
+      <NoteSheet
+        night={nights.find((n) => n.game_id === noteNight) ?? null}
+        note={noteNight ? (book.notes[noteNight] ?? '') : ''}
+        onChange={(text) => noteNight && update({ notes: { ...book.notes, [noteNight]: text } })}
+        onClose={() => setNoteNight(null)}
+      />
     </div>
   )
 }
 
-function NightRow({
-  night,
-  open,
-  note,
-  onToggle,
-  onNote,
-  onHide,
-}: {
-  night: CardNight
-  open: boolean
-  note: string
-  onToggle: () => void
-  onNote: (text: string) => void
-  onHide: () => void
-}) {
+function NightRow({ night, note, onOpen }: { night: CardNight; note: string; onOpen: () => void }) {
   const net = nightNet(night)
   const buyins = Number(night.buyins)
   return (
     <div className="border-b border-hairline last:border-b-0">
-      <button type="button" onClick={onToggle} className="flex w-full items-center gap-3 px-4 py-3 text-left">
+      <button type="button" onClick={onOpen} className="flex w-full items-center gap-3 px-4 py-3 text-left">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-ink">{formatDay(night.at)}</p>
           <p className="mt-0.5 text-xs text-muted">
@@ -303,9 +257,7 @@ function NightRow({
             {buyins} entr{buyins === 1 ? 'y' : 'ies'}
           </p>
         </div>
-        <span className={cn('type-figure-md', tone(net))}>
-          {net == null ? '…' : signed(net)}
-        </span>
+        <span className={cn('type-figure-md', tone(net))}>{net == null ? '…' : signed(net)}</span>
       </button>
       {night.settlements && night.settlements.length > 0 && (
         <div className="mx-4 mb-3 rounded-md bg-surface-soft px-3 py-2">
@@ -322,204 +274,51 @@ function NightRow({
           ))}
         </div>
       )}
-      {open && (
-        <div className="px-4 pb-4">
-          <label className="type-label-caption text-muted" htmlFor={`note-${night.game_id}`}>
-            Your note · only on this phone
-          </label>
-          <textarea
-            id={`note-${night.game_id}`}
-            rows={3}
-            value={note}
-            onChange={(e) => onNote(e.target.value)}
-            className="mt-2 w-full resize-none rounded-md border border-hairline bg-surface-soft p-3 text-sm text-ink outline-none focus:border-primary"
-          />
-          <button type="button" onClick={onHide} className="mt-2 text-xs font-semibold text-muted hover:text-ink">
-            Hide this night from my book
-          </button>
-        </div>
-      )}
+      <button
+        type="button"
+        onClick={onOpen}
+        className="mx-4 mb-3 flex w-[calc(100%-2rem)] items-start gap-2 text-left text-xs text-muted hover:text-ink"
+      >
+        <NotebookPen className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+        <span className={cn('min-w-0 flex-1 break-words', note ? 'text-body' : '')}>
+          {note ? note : 'Add a note'}
+        </span>
+      </button>
     </div>
   )
 }
 
-function LockScreen({
-  title,
-  onCheck,
-  onUnlock,
+// A bottom sheet for the night's private note. Saved on this phone as you type.
+function NoteSheet({
+  night,
+  note,
+  onChange,
+  onClose,
 }: {
-  title: string
-  onCheck: (pin: string) => Promise<boolean>
-  onUnlock: () => void
+  night: CardNight | null
+  note: string
+  onChange: (text: string) => void
+  onClose: () => void
 }) {
-  const [pin, setPin] = useState('')
-  const [wrong, setWrong] = useState(false)
-
-  async function press(d: string) {
-    const next = (pin + d).slice(0, 4)
-    setPin(next)
-    setWrong(false)
-    if (next.length === 4) {
-      if (await onCheck(next)) onUnlock()
-      else {
-        setWrong(true)
-        setPin('')
-      }
-    }
-  }
-
   return (
-    <div className="mx-auto flex min-h-[80vh] w-full max-w-xs flex-col items-center justify-center p-6">
-      <h1 className="type-page-title text-center text-ink">{title}</h1>
-      <p className="mt-1 text-sm text-muted">{wrong ? 'Wrong PIN, try again' : 'Enter your PIN'}</p>
-      <div className="my-6 flex gap-4" aria-hidden>
-        {[0, 1, 2, 3].map((i) => (
-          <span
-            key={i}
-            className={cn('h-4 w-4 rounded-full border-2 border-primary', i < pin.length && 'bg-primary')}
-          />
-        ))}
-      </div>
-      <div className="grid w-full grid-cols-3 gap-3">
-        {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
-          <button
-            key={d}
-            type="button"
-            onClick={() => press(d)}
-            className="h-16 rounded-xl border border-hairline bg-canvas text-2xl font-semibold text-ink active:bg-surface-strong"
-          >
-            {d}
-          </button>
-        ))}
-        <span />
-        <button
-          type="button"
-          onClick={() => press('0')}
-          className="h-16 rounded-xl border border-hairline bg-canvas text-2xl font-semibold text-ink active:bg-surface-strong"
-        >
-          0
-        </button>
-        <button
-          type="button"
-          aria-label="Delete"
-          onClick={() => setPin((p) => p.slice(0, -1))}
-          className="h-16 rounded-xl text-sm font-semibold text-muted"
-        >
-          Delete
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function CardSettings({
-  open,
-  onOpenChange,
-  token,
-  book,
-  onImport,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  token: string
-  book: LocalBook
-  onImport: (next: LocalBook) => void
-}) {
-  const [pin, setPin] = useState('')
-  const [lockOn, setLockOn] = useState(() => hasLock(token))
-
-  async function saveLock() {
-    if (!/^[0-9]{4}$/.test(pin)) {
-      toast.error('PIN must be 4 digits')
-      return
-    }
-    await setLock(token, pin)
-    setLockOn(true)
-    setPin('')
-    toast.success('Card locked. It will ask for the PIN next time.')
-  }
-
-  function clearLock() {
-    removeLock(token)
-    setLockOn(false)
-    toast.success('Lock removed')
-  }
-
-  function download() {
-    const blob = new Blob([JSON.stringify(exportBook(token, book), null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `straddle-card-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  async function importFile(file: File | undefined) {
-    if (!file) return
-    try {
-      onImport(mergeImport(token, book, await file.text()))
-      toast.success('Backup restored')
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not read that file')
-    }
-  }
-
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={night != null} onOpenChange={(open) => !open && onClose()}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Lock &amp; backup</SheetTitle>
-          <SheetDescription>Both stay on this phone. Nothing here is sent to your host.</SheetDescription>
+          <SheetTitle>{night ? formatDay(night.at) : 'Note'}</SheetTitle>
         </SheetHeader>
-
-        <h3 className="type-label-caption mt-4 text-muted">PIN lock</h3>
-        {lockOn ? (
-          <div className="mt-2 flex items-center justify-between rounded-md border border-hairline p-3">
-            <span className="text-sm text-ink">This card asks for a PIN</span>
-            <Button size="sm" variant="outline" onClick={clearLock}>
-              Remove
-            </Button>
-          </div>
-        ) : (
-          <div className="mt-2 flex gap-2">
-            <input
-              type="password"
-              inputMode="numeric"
-              maxLength={4}
-              aria-label="New 4-digit PIN"
-              placeholder="4 digits"
-              value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-              className="h-12 w-full rounded-md border border-hairline bg-surface-soft px-3 tracking-[0.5em] text-ink outline-none focus:border-primary"
-            />
-            <Button disabled={pin.length !== 4} onClick={saveLock}>
-              Lock
-            </Button>
-          </div>
-        )}
-        <p className="mt-2 text-xs text-muted">
-          Forgot it? Remove the card from your Home Screen and open your link again. Only your notes are lost.
-        </p>
-
-        <h3 className="type-label-caption mt-5 text-muted">Backup</h3>
-        <div className="mt-2 flex gap-2">
-          <Button variant="secondary" block onClick={download}>
-            Export file
-          </Button>
-          <label className="inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-full border border-hairline bg-canvas px-4 text-sm font-semibold text-ink hover:bg-surface-strong">
-            Import file
-            <input
-              type="file"
-              accept="application/json,.json"
-              className="sr-only"
-              onChange={(e) => {
-                importFile(e.target.files?.[0])
-                e.target.value = ''
-              }}
-            />
-          </label>
-        </div>
+        <p className="mt-1 text-xs text-muted">Your private note. It stays on this phone.</p>
+        <textarea
+          aria-label="Your note"
+          rows={5}
+          autoFocus
+          value={note}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="What do you want to remember about this night?"
+          className="mt-4 w-full resize-none rounded-md border border-hairline bg-surface-soft p-3 text-base text-ink outline-none focus:border-primary"
+        />
+        <Button block className="mt-4" onClick={onClose}>
+          Done
+        </Button>
       </SheetContent>
     </Sheet>
   )
