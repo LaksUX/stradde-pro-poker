@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Copy } from 'lucide-react'
 import { changeGroupPin, createGroupForCurrentHost, getMyGroup } from '../../lib/groupAuth'
+import { getOrCreateOwnEntity } from '../../lib/entities'
+import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
+import { Switch } from './switch'
 import { toast } from '../../lib/toast'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from './sheet'
 import { Button } from './button'
@@ -22,6 +26,8 @@ export function GroupSettingsSheet({
   const [group, setGroup] = useState<{ group_id: string; name: string | null } | null | undefined>(undefined)
   const [pin, setPin] = useState('')
   const [saving, setSaving] = useState(false)
+  const { profile } = useAuth()
+  const [isClub, setIsClub] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -29,7 +35,33 @@ export function GroupSettingsSheet({
     getMyGroup()
       .then(setGroup)
       .catch(() => setGroup(null))
-  }, [open])
+    if (profile) {
+      supabase
+        .from('hosting_entities')
+        .select('type')
+        .eq('owner_profile_id', profile.id)
+        .maybeSingle()
+        .then(({ data }) => setIsClub(data?.type === 'club'))
+    }
+  }, [open, profile])
+
+  // Players see houses and clubs in separate tabs in their book.
+  async function toggleClub(next: boolean) {
+    if (!profile) return
+    setIsClub(next)
+    try {
+      const entity = await getOrCreateOwnEntity(profile)
+      const { error } = await supabase
+        .from('hosting_entities')
+        .update({ type: next ? 'club' : 'house' })
+        .eq('id', entity.id)
+      if (error) throw error
+      toast.success(next ? 'Marked as a club' : 'Marked as a house game')
+    } catch {
+      setIsClub(!next)
+      toast.error('Could not save that')
+    }
+  }
 
   async function copyId() {
     if (!group) return
@@ -125,6 +157,14 @@ export function GroupSettingsSheet({
                 <Copy className="h-4 w-4" />
               </button>
             </div>
+
+            <label className="mt-5 flex items-center justify-between gap-3 rounded-md border border-hairline p-3">
+              <span>
+                <span className="block text-sm font-semibold text-ink">This is a club</span>
+                <span className="block text-xs text-muted">Players see it under Clubs, not Houses.</span>
+              </span>
+              <Switch checked={isClub} onCheckedChange={toggleClub} />
+            </label>
 
             <div className="mt-5 flex flex-col gap-1.5">
               <Label htmlFor="settings-pin">Change PIN</Label>

@@ -26,6 +26,8 @@ export type CardNight = {
 export type CardData = {
   name: string | null
   group: string | null
+  // A house game or a club. Older copies saved on a phone have no kind: house.
+  kind?: 'house' | 'club'
   nights: CardNight[]
 }
 
