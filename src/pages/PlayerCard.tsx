@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { NotebookPen } from 'lucide-react'
 import { PageSpinner } from '../components/ui/spinner'
 import { Button } from '../components/ui/button'
 import { InstallPrompt } from '../components/ui/install-prompt'
 import { useCountUp } from '../hooks/useCountUp'
 import { toChips } from '../lib/chips'
+import { rememberCard } from '../lib/myBook'
 import { cn } from 'cn'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import {
@@ -94,6 +95,7 @@ export function PlayerCard() {
           return next
         })
         rememberLastCard(token)
+        rememberCard(token, card)
         setStatus('ready')
       })
       .catch(() => {
@@ -142,6 +144,12 @@ export function PlayerCard() {
           <p className="text-xs text-muted">{book.card?.group ?? 'Game night'}</p>
           <h1 className="mt-0.5 text-3xl font-bold text-ink">Hi {book.card?.name ?? 'there'}</h1>
         </div>
+        <Link
+          to="/book"
+          className="rounded-full border border-hairline px-3 py-1.5 text-xs font-bold text-ink hover:bg-surface-strong"
+        >
+          My book
+        </Link>
       </div>
 
       <div className="mt-5 rounded-xl border border-hairline bg-canvas p-5">
