@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Download, NotebookPen } from 'lucide-react'
+import { NotebookPen } from 'lucide-react'
 import { PageSpinner } from '../components/ui/spinner'
 import { Button } from '../components/ui/button'
+import { InstallPrompt } from '../components/ui/install-prompt'
 import { useCountUp } from '../hooks/useCountUp'
 import { toChips } from '../lib/chips'
 import { cn } from 'cn'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import {
   fetchCard,
+  rememberLastCard,
   loadBook,
   nightNet,
   saveBook,
@@ -31,36 +33,17 @@ function formatDay(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-// A beforeinstallprompt event, only on browsers that fire it (Chrome/Android).
-type InstallEvent = Event & { prompt: () => Promise<void> }
-
-// Points the page at a manifest unique to this card so "Install" / "Add to
-// Home Screen" saves THIS card — start_url carries the token, so the
-// installed app opens straight to it with no sign-in. Restores the app's own
-// manifest on leave.
+// Points the page at a real manifest URL unique to this card so "Install" /
+// "Add to Home Screen" saves THIS card: start_url carries the token, so the
+// installed app opens straight to it with no sign-in. See api/card-manifest.js.
+// Restores the app's own manifest on leave.
 function useCardManifest(token: string | undefined, title: string) {
   useEffect(() => {
     if (!token) return
     const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]')
     const prevHref = link?.getAttribute('href') ?? null
     const prevTitle = document.title
-    const origin = window.location.origin
-    const manifest = {
-      id: `/c/${token}`,
-      name: title,
-      short_name: title.slice(0, 12),
-      start_url: `${origin}/c/${token}`,
-      scope: `${origin}/`,
-      display: 'standalone',
-      theme_color: '#e5383b',
-      background_color: '#eef1f5',
-      icons: [
-        { src: `${origin}/pwa-192x192.png`, sizes: '192x192', type: 'image/png' },
-        { src: `${origin}/pwa-512x512.png`, sizes: '512x512', type: 'image/png' },
-      ],
-    }
-    const url = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' }))
-    link?.setAttribute('href', url)
+    link?.setAttribute('href', `/api/card-manifest?t=${encodeURIComponent(token)}&n=${encodeURIComponent(title)}`)
     document.title = title
     let appleTitle = document.querySelector<HTMLMetaElement>('meta[name="apple-mobile-web-app-title"]')
     const prevApple = appleTitle?.content
@@ -74,7 +57,6 @@ function useCardManifest(token: string | undefined, title: string) {
       if (link && prevHref) link.setAttribute('href', prevHref)
       document.title = prevTitle
       if (appleTitle && prevApple != null) appleTitle.content = prevApple
-      URL.revokeObjectURL(url)
     }
   }, [token, title])
 }
@@ -90,7 +72,6 @@ export function PlayerCard() {
     book.card ? 'ready' : 'loading'
   )
   const [noteNight, setNoteNight] = useState<string | null>(null)
-  const [installEvent, setInstallEvent] = useState<InstallEvent | null>(null)
 
   const title = book.card
     ? `${book.card.group ?? 'Game night'} · ${book.card.name ?? 'Me'}`
@@ -112,6 +93,7 @@ export function PlayerCard() {
           saveBook(token, next)
           return next
         })
+        rememberLastCard(token)
         setStatus('ready')
       })
       .catch(() => {
@@ -121,15 +103,6 @@ export function PlayerCard() {
       cancelled = true
     }
   }, [token])
-
-  useEffect(() => {
-    function onPrompt(e: Event) {
-      e.preventDefault()
-      setInstallEvent(e as InstallEvent)
-    }
-    window.addEventListener('beforeinstallprompt', onPrompt)
-    return () => window.removeEventListener('beforeinstallprompt', onPrompt)
-  }, [])
 
   function update(patch: Partial<LocalBook>) {
     if (!token) return
@@ -143,10 +116,6 @@ export function PlayerCard() {
   const nights = book.card?.nights ?? []
   const net = totalNet(nights)
   const shownNet = useCountUp(net)
-  const standalone =
-    window.matchMedia('(display-mode: standalone)').matches ||
-    (navigator as Navigator & { standalone?: boolean }).standalone === true
-  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
 
   if (status === 'loading') return <PageSpinner />
 
@@ -191,26 +160,7 @@ export function PlayerCard() {
         </p>
       </div>
 
-      {!standalone && (installEvent || isIos) && (
-        <div className="mt-3 flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
-          <Download className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-ink">Keep this card on your phone</p>
-            {installEvent ? (
-              <>
-                <p className="mt-0.5 text-xs text-muted">One tap opens it, no sign-in.</p>
-                <Button size="sm" className="mt-2" onClick={() => installEvent.prompt()}>
-                  Add to Home Screen
-                </Button>
-              </>
-            ) : (
-              <p className="mt-0.5 text-xs text-muted">
-                Tap the Share button in Safari, then “Add to Home Screen”.
-              </p>
-            )}
-          </div>
-        </div>
-      )}
+      <InstallPrompt label={book.card?.group ?? 'your card'} />
 
       <h2 className="type-label-caption mt-6 mb-2 text-muted">Nights</h2>
       {nights.length === 0 ? (

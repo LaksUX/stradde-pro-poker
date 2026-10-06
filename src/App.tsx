@@ -11,6 +11,7 @@ import { ShareTable } from './pages/ShareTable'
 import { EntityLink } from './pages/EntityLink'
 import { PlayerCard } from './pages/PlayerCard'
 import { ManagerJoin } from './pages/ManagerJoin'
+import { lastCardToken } from './lib/playerCard'
 import { LiveGame } from './pages/LiveGame'
 import { Settlement } from './pages/Settlement'
 import { GameDetail } from './pages/GameDetail'
@@ -25,7 +26,10 @@ import { AppShell } from './components/layout/AppShell'
 function RootRedirect() {
   const { session, profile, loading } = useAuth()
   if (loading) return <PageSpinner />
-  if (!session) return <Navigate to="/continue" replace />
+  if (!session) {
+    const card = lastCardToken()
+    return <Navigate to={card ? `/c/${card}` : '/continue'} replace />
+  }
   // An admin can also act as a host (0009_admin_can_host.sql) — route them
   // straight to game creation too, same as an approved host.
   if ((profile?.role === 'host' || profile?.role === 'admin') && profile.approved)

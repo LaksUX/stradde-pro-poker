@@ -95,3 +95,21 @@ export function cardMessage(opts: {
   const who = `${opts.playerCount} player${opts.playerCount === 1 ? '' : 's'}`
   return `Hi ${first},\n${opts.gameName} · ${day} · ${who}\nYour private card, with your night and settlement:\n${opts.url}`
 }
+
+// So a player who opens the bare site address (or loses the chat link) lands
+// back on their card instead of a sign-in screen.
+const LAST_CARD_KEY = 'straddle:lastcard'
+export function rememberLastCard(token: string) {
+  try {
+    localStorage.setItem(LAST_CARD_KEY, token)
+  } catch {
+    // storage blocked: nothing to remember
+  }
+}
+export function lastCardToken(): string | null {
+  try {
+    return localStorage.getItem(LAST_CARD_KEY)
+  } catch {
+    return null
+  }
+}
