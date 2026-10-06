@@ -340,7 +340,11 @@ export function Home() {
   const pendingAdminCount = adminRows.filter((r) => r.role === 'host' && !r.approved).length
 
   const chartGames = [...playedGames].reverse()
-  const netChartPoints = chartGames.map((g) => toChips(g.net, g.chip_ratio))
+  let running = 0
+  const netChartPoints = chartGames.map((g) => (running += toChips(g.net, g.chip_ratio)))
+  const netChartLabels = chartGames.map((g) =>
+    g.closed_at ? new Date(g.closed_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : ''
+  )
 
   return (
     <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
@@ -444,8 +448,11 @@ export function Home() {
                 {netChartPoints.length > 1 && (
                   <LineChart
                     points={netChartPoints}
+                    labels={netChartLabels}
                     colorBySign
-                    className="mx-auto mt-2 h-12 max-w-[200px]"
+                    format={(v) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toLocaleString('en-US')}`}
+                    height={150}
+                    className="mt-3"
                   />
                 )}
               </StatCard>

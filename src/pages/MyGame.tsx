@@ -520,7 +520,7 @@ export function MyGame() {
             labels={confirmedSorted.map((r) =>
               new Date(r.confirmed_at!).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
             )}
-            height={60}
+            height={150}
           />
         </div>
       )}
