@@ -140,6 +140,8 @@ export function GameDetail() {
         open={cardsOpen}
         onOpenChange={setCardsOpen}
         gameId={game.id}
+        gameName={game.name}
+        gameDate={game.closed_at ?? new Date().toISOString()}
         players={players.map((p) => ({ profile_id: p.profile_id, full_name: p.full_name }))}
       />
 

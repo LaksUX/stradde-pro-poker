@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Download, Eye, EyeOff, Settings } from 'lucide-react'
+import { Download, Settings } from 'lucide-react'
 import { PageSpinner } from '../components/ui/spinner'
 import { Button } from '../components/ui/button'
 import { useCountUp } from '../hooks/useCountUp'
+import { toChips } from '../lib/chips'
 import { cn } from 'cn'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import { toast } from '../lib/toast'
@@ -95,7 +96,6 @@ export function PlayerCard() {
   const [status, setStatus] = useState<'loading' | 'ready' | 'invalid' | 'offline'>(
     book.card ? 'ready' : 'loading'
   )
-  const [revealed, setRevealed] = useState(false)
   const [openNight, setOpenNight] = useState<string | null>(null)
   const [installEvent, setInstallEvent] = useState<InstallEvent | null>(null)
   const [locked, setLocked] = useState(() => (token ? hasLock(token) : false))
@@ -154,9 +154,7 @@ export function PlayerCard() {
     [book.card, book.hidden]
   )
   const net = totalNet(nights)
-  // Counts up from 0 when revealed; while hidden it rests at 0 so the blur
-  // never carries the real digits.
-  const shownNet = useCountUp(revealed ? net : 0)
+  const shownNet = useCountUp(net)
   const standalone =
     window.matchMedia('(display-mode: standalone)').matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true
@@ -183,7 +181,6 @@ export function PlayerCard() {
     )
   }
 
-  const blur = revealed ? '' : 'blur-md select-none'
 
   return (
     <div className="mx-auto w-full max-w-md p-4 pb-10 sm:p-6">
@@ -216,16 +213,8 @@ export function PlayerCard() {
           <span className="type-label-caption text-muted">
             Your book · {nights.length} night{nights.length === 1 ? '' : 's'}
           </span>
-          <button
-            type="button"
-            onClick={() => setRevealed((r) => !r)}
-            className="flex h-8 items-center gap-1.5 rounded-full border border-hairline px-3 text-xs font-semibold text-muted hover:bg-surface-strong"
-          >
-            {revealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-            {revealed ? 'Hide' : 'Reveal'}
-          </button>
         </div>
-        <p className={cn('type-figure-hero mt-3 transition-[filter]', tone(net), blur)}>{signed(shownNet)}</p>
+        <p className={cn('type-figure-hero mt-3', tone(net))}>{signed(shownNet)}</p>
         <p className="mt-2 text-xs text-muted">
           {book.syncedAt
             ? status === 'offline'
@@ -267,7 +256,6 @@ export function PlayerCard() {
             <NightRow
               key={n.game_id}
               night={n}
-              blur={blur}
               open={openNight === n.game_id}
               note={book.notes[n.game_id] ?? ''}
               onToggle={() => setOpenNight(openNight === n.game_id ? null : n.game_id)}
@@ -290,7 +278,6 @@ export function PlayerCard() {
 
 function NightRow({
   night,
-  blur,
   open,
   note,
   onToggle,
@@ -298,7 +285,6 @@ function NightRow({
   onHide,
 }: {
   night: CardNight
-  blur: string
   open: boolean
   note: string
   onToggle: () => void
@@ -312,15 +298,30 @@ function NightRow({
       <button type="button" onClick={onToggle} className="flex w-full items-center gap-3 px-4 py-3 text-left">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-ink">{formatDay(night.at)}</p>
-          <p className={cn('mt-0.5 text-xs text-muted transition-[filter]', blur)}>
+          <p className="mt-0.5 text-xs text-muted">
             {night.status === 'live' ? 'In play · ' : ''}
             {buyins} entr{buyins === 1 ? 'y' : 'ies'}
           </p>
         </div>
-        <span className={cn('type-figure-md transition-[filter]', tone(net), blur)}>
+        <span className={cn('type-figure-md', tone(net))}>
           {net == null ? '…' : signed(net)}
         </span>
       </button>
+      {night.settlements && night.settlements.length > 0 && (
+        <div className="mx-4 mb-3 rounded-md bg-surface-soft px-3 py-2">
+          <p className="type-label-caption text-muted">Settlement</p>
+          {night.settlements.map((st, i) => (
+            <p key={i} className="mt-1 flex items-baseline justify-between gap-3 text-sm">
+              <span className="text-body">
+                {st.direction === 'pay' ? `Pay ${st.other_name ?? 'someone'}` : `${st.other_name ?? 'Someone'} pays you`}
+              </span>
+              <span className={cn('type-figure-md', st.direction === 'pay' ? 'text-error' : 'text-win')}>
+                {toChips(Number(st.amount), night.chip_ratio).toLocaleString('en-US')}
+              </span>
+            </p>
+          ))}
+        </div>
+      )}
       {open && (
         <div className="px-4 pb-4">
           <label className="type-label-caption text-muted" htmlFor={`note-${night.game_id}`}>

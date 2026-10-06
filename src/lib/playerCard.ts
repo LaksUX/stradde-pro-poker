@@ -6,6 +6,13 @@ import { toChips, type ChipRatio } from './chips'
 // hidden nights — lives only in this phone's localStorage and is never sent
 // anywhere.
 
+export type CardSettlement = {
+  direction: 'pay' | 'receive'
+  other_name: string | null
+  amount: number
+  status: 'pending' | 'confirmed' | 'disputed'
+}
+
 export type CardNight = {
   game_id: string
   at: string
@@ -14,6 +21,7 @@ export type CardNight = {
   chip_ratio: ChipRatio
   cashout: number | null
   buyins: number
+  settlements?: CardSettlement[]
 }
 
 export type CardData = {
@@ -159,4 +167,24 @@ export function mergeImport(token: string, book: LocalBook, raw: string): LocalB
     notes: { ...data.notes, ...book.notes },
     hidden: { ...data.hidden, ...book.hidden },
   }
+}
+
+// The message a host sends with a player's card link: readable game details
+// first, the link last. Chat apps always show a pasted link, so it sits alone
+// on its own line under a plain sentence.
+export function cardMessage(opts: {
+  playerName: string
+  gameName: string
+  gameDate: string
+  playerCount: number
+  url: string
+}): string {
+  const first = opts.playerName.trim().split(/\s+/)[0] || 'there'
+  const day = new Date(opts.gameDate).toLocaleDateString(undefined, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  })
+  const who = `${opts.playerCount} player${opts.playerCount === 1 ? '' : 's'}`
+  return `Hi ${first},\n${opts.gameName} · ${day} · ${who}\nYour private card, with your night and settlement:\n${opts.url}`
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Copy, Share2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { cardUrl } from '../../lib/playerCard'
+import { cardMessage, cardUrl } from '../../lib/playerCard'
 import { confirmDialog } from '../../lib/confirmDialog'
 import { toast } from '../../lib/toast'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from './sheet'
@@ -17,11 +17,15 @@ export function PlayerCardsSheet({
   open,
   onOpenChange,
   gameId,
+  gameName,
+  gameDate,
   players,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   gameId: string
+  gameName: string
+  gameDate: string
   players: CardPlayer[]
 }) {
   const [tokens, setTokens] = useState<Record<string, string>>({})
@@ -50,12 +54,25 @@ export function PlayerCardsSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, gameId, idsKey])
 
+  // The link never appears on screen: hosts copy or send a readable message
+  // (game details, then the link) instead.
+  function messageFor(p: CardPlayer): string {
+    return cardMessage({
+      playerName: p.full_name,
+      gameName,
+      gameDate,
+      playerCount: players.length,
+      url: cardUrl(tokens[p.profile_id]),
+    })
+  }
+
   async function copy(profileId: string) {
     const t = tokens[profileId]
-    if (!t) return
+    const p = players.find((x) => x.profile_id === profileId)
+    if (!t || !p) return
     try {
-      await navigator.clipboard.writeText(cardUrl(t))
-      toast.success('Link copied')
+      await navigator.clipboard.writeText(messageFor(p))
+      toast.success('Message copied')
     } catch {
       toast.error('Could not copy the link')
     }
@@ -64,10 +81,9 @@ export function PlayerCardsSheet({
   async function share(p: CardPlayer) {
     const t = tokens[p.profile_id]
     if (!t) return
-    const url = cardUrl(t)
     if (navigator.share) {
       try {
-        await navigator.share({ title: `${p.full_name}'s card`, url })
+        await navigator.share({ title: `${gameName}`, text: messageFor(p) })
       } catch {
         // user dismissed the share sheet
       }
@@ -101,7 +117,7 @@ export function PlayerCardsSheet({
         <SheetHeader>
           <SheetTitle>Player cards</SheetTitle>
           <SheetDescription>
-            One permanent link per player. Their nights appear on it automatically.
+            One private card per player. Send each player their message; their nights and settlement appear on it automatically.
           </SheetDescription>
         </SheetHeader>
         {failed && (
@@ -132,7 +148,7 @@ export function PlayerCardsSheet({
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    aria-label={`Copy ${p.full_name}'s link`}
+                    aria-label={`Copy ${p.full_name}'s message`}
                     disabled={!tokens[p.profile_id]}
                     onClick={() => copy(p.profile_id)}
                     className="flex h-9 w-9 items-center justify-center rounded-sm border border-hairline text-muted hover:bg-surface-strong disabled:opacity-40"
@@ -141,7 +157,7 @@ export function PlayerCardsSheet({
                   </button>
                   <button
                     type="button"
-                    aria-label={`Share ${p.full_name}'s link`}
+                    aria-label={`Send ${p.full_name}'s message`}
                     disabled={!tokens[p.profile_id]}
                     onClick={() => share(p)}
                     className="flex h-9 w-9 items-center justify-center rounded-sm bg-primary text-on-primary hover:bg-primary-active disabled:opacity-40"
