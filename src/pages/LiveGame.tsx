@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { formatChips, type ChipRatio } from '../lib/chips'
+import { formatChips, fromChips, toChips, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { confirmDialog } from '../lib/confirmDialog'
@@ -113,7 +113,14 @@ export function LiveGame() {
     // player already sent.
     const hasRequest = p.cashout == null && p.cashout_requested != null
     setCashoutOn(p.cashout != null || hasRequest)
-    setCashoutValue(p.cashout != null ? String(p.cashout) : hasRequest ? String(p.cashout_requested) : '')
+    const r = game?.chip_ratio ?? '1:1'
+    setCashoutValue(
+      p.cashout != null
+        ? String(toChips(p.cashout, r))
+        : hasRequest
+          ? String(toChips(p.cashout_requested ?? 0, r))
+          : ''
+    )
     setHistoryOpen(false)
   }
 
@@ -392,11 +399,11 @@ export function LiveGame() {
       toast.error('Enter the cash-out amount first. Type 0 if they left with nothing.')
       return
     }
-    const newCashout = cashoutOn ? Number(cashoutValue) || 0 : null
+    const newCashout = cashoutOn ? fromChips(Number(cashoutValue) || 0, game?.chip_ratio ?? '1:1') : null
     const cashoutValueChanging = sheetPlayer.cashout != null && newCashout !== sheetPlayer.cashout
     if (cashoutValueChanging && sheetPlayer.cashout_confirm_status === 'confirmed') {
       const confirmed = await confirmDialog(
-        `${sheetPlayer.full_name} already confirmed a cash-out of ${sheetPlayer.cashout} banks. Changing it will ask them to confirm the new amount instead.`,
+        `${sheetPlayer.full_name} already confirmed a cash-out of ${formatChips(sheetPlayer.cashout ?? 0, game?.chip_ratio ?? '1:1')}. Changing it will ask them to confirm the new amount instead.`,
         { confirmLabel: 'Change cash-out' }
       )
       if (!confirmed) return
@@ -447,7 +454,7 @@ export function LiveGame() {
   }
 
   function openRakeSheet() {
-    setRakeValue(String(game?.rake ?? 0))
+    setRakeValue(String(toChips(game?.rake ?? 0, game?.chip_ratio ?? '1:1')))
     setRakeOpen(true)
   }
 
@@ -455,7 +462,7 @@ export function LiveGame() {
     if (!gameId) return
     setSavingRake(true)
     const ok = await runWrite(
-      () => supabase.from('games').update({ rake: Math.max(0, Number(rakeValue) || 0) }).eq('id', gameId),
+      () => supabase.from('games').update({ rake: Math.max(0, fromChips(Number(rakeValue) || 0, game?.chip_ratio ?? '1:1')) }).eq('id', gameId),
       'Rake'
     )
     setSavingRake(false)
@@ -482,7 +489,7 @@ export function LiveGame() {
         // lower it by (and revealing the field, which starts masked) turns
         // this into something actionable instead of a dead end.
         toast.error(
-          `Can't close — cash-outs plus rake are ${overageBanks} banks ` +
+          `Can't close — cash-outs plus rake are ${formatChips(overageBanks, game.chip_ratio)} ` +
             `more than total buy-ins. ` +
             `Lower rake by at least that much, or fix a player's buy-in/cash-out below.`
         )
@@ -775,7 +782,7 @@ export function LiveGame() {
           </div>
 
           <div className="mt-4 flex flex-col gap-1.5">
-            <Label htmlFor="rake-amount">Rake (banks)</Label>
+            <Label htmlFor="rake-amount">Rake · 1 buy-in = {formatChips(game.stake, ratio)}</Label>
             <Input
               id="rake-amount"
               type="number"
@@ -1005,7 +1012,7 @@ export function LiveGame() {
               {cashoutOn && (
                 <div className="mt-3 flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="sheet-cashout">Cash-out (banks)</Label>
+                    <Label htmlFor="sheet-cashout">Cash-out</Label>
                     {sheetPlayer.cashout != null && sheetPlayer.cashout_confirm_status && (
                       <Badge variant={sheetPlayer.cashout_confirm_status === 'confirmed' ? 'win' : 'error'}>
                         {sheetPlayer.cashout_confirm_status === 'confirmed' ? 'Player confirmed' : 'Player disputed'}
@@ -1033,7 +1040,7 @@ export function LiveGame() {
                     }}
                   />
                   <p className="text-xs text-muted">
-                    Same units as buy-ins: one buy-in is {game.stake}.
+                    1 buy-in = {formatChips(game.stake, ratio)}
                   </p>
                   {sheetPlayer.cashout != null && sheetPlayer.cashout_confirm_status === 'confirmed' && (
                     <p className="text-xs text-muted">
@@ -1075,7 +1082,7 @@ export function LiveGame() {
                           {entries.map((h) => (
                             <ListRow
                               key={h.id}
-                              title={`${h.count * game.stake} banks`}
+                              title={formatChips(h.count * game.stake, ratio)}
                               subtitle={new Date(h.confirmedAt).toLocaleTimeString([], {
                                 hour: 'numeric',
                                 minute: '2-digit',
