@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { toChips, type ChipRatio } from '../lib/chips'
+import { formatChips, fromChips, toChips, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { Button } from '../components/ui/button'
@@ -258,7 +258,7 @@ export function MyGame() {
     if (!myPlayer || cashoutAmount <= 0) return
     setSubmitting(true)
     const ok = await runWrite(
-      () => supabase.from('game_players').update({ cashout_requested: cashoutAmount }).eq('id', myPlayer.id),
+      () => supabase.from('game_players').update({ cashout_requested: fromChips(cashoutAmount, ratio) }).eq('id', myPlayer.id),
       'Requesting cash-out'
     )
     setSubmitting(false)
@@ -328,7 +328,7 @@ export function MyGame() {
         {myPlayer.cashout != null && (
           <div className="mt-3 border-t border-hairline-soft pt-3 text-left">
             <p className="text-xs text-muted">
-              Cashed out for {myPlayer.cashout} banks
+              Cashed out for {formatChips(myPlayer.cashout, ratio)}
               {myPlayer.cashout_confirm_status ? ` — ${myPlayer.cashout_confirm_status}` : ''}
             </p>
             {!myPlayer.cashout_confirm_status && (
@@ -369,7 +369,7 @@ export function MyGame() {
         <Item variant="outline" className="mt-3 items-start border-primary/40 bg-canvas">
           <ItemContent>
             <ItemTitle className="text-sm font-normal">
-              Requested a cash-out of {myPlayer.cashout_requested} banks — waiting on the host.
+              Requested a cash-out of {formatChips(myPlayer.cashout_requested, ratio)} — waiting on the host.
             </ItemTitle>
             <ItemDescription className="text-xs">This page updates on its own once confirmed.</ItemDescription>
           </ItemContent>
@@ -467,7 +467,7 @@ export function MyGame() {
 
             <TabsContent value="cashout" className="mt-4">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="cashout-amount">Cash-out amount (banks)</Label>
+                <Label htmlFor="cashout-amount">Cash-out amount · 1 buy-in = {formatChips(1, ratio)}</Label>
                 <Input
                   id="cashout-amount"
                   type="number"

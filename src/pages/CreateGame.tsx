@@ -12,7 +12,7 @@ import { Calendar } from '../components/ui/calendar'
 import { TimePicker } from '../components/ui/time-picker'
 import { getOrCreateOwnEntity } from '../lib/entities'
 import { createGroupForCurrentHost } from '../lib/groupAuth'
-import { chipMultiplier, type ChipRatio } from '../lib/chips'
+import { fromChips, type ChipRatio } from '../lib/chips'
 
 // Buy-ins are always exactly 1 bank each now — see REQUIREMENTS.md's
 // Fifteenth revision note. `stake` stays a real, working column (settlement
@@ -199,7 +199,7 @@ export function CreateGame() {
           venue_id: venueId,
           venue_freetext: trimmedVenue || null,
           stake: FIXED_STAKE,
-          rake,
+          rake: fromChips(rake, chipRatio),
           chip_ratio: chipRatio,
           status: scheduleMode === 'now' ? 'live' : 'scheduled',
           scheduled_for: scheduledForIso,
@@ -289,7 +289,7 @@ export function CreateGame() {
       </p>
 
       <div className="mt-3 flex flex-col gap-1.5">
-        <Label htmlFor="game-rake">Rake (one-time house fee, banks)</Label>
+        <Label htmlFor="game-rake">Rake (one-time house fee)</Label>
         <Input
           id="game-rake"
           type="number"
@@ -299,11 +299,11 @@ export function CreateGame() {
         />
       </div>
       <p className="mt-1 text-xs text-muted">
-        Set once here — still editable later from Live Game if you need to adjust it.
+        1 buy-in = 10,000. Set once here, and still editable later from Live Game.
       </p>
 
       <div className="mt-3 flex flex-col gap-1.5">
-        <Label>Chip ratio</Label>
+        <Label>Table ratio</Label>
         <Tabs value={chipRatio} onValueChange={(v) => setChipRatio(v as ChipRatio)}>
           <TabsList>
             <TabsTrigger value="1:1">1:1</TabsTrigger>
@@ -312,7 +312,7 @@ export function CreateGame() {
         </Tabs>
       </div>
       <p className="mt-1 text-xs text-muted">
-        1 bank = {chipMultiplier(chipRatio).toLocaleString()} chip — locked once the game starts.
+        1 buy-in = 10,000 at either ratio. 1:2 is the half-value table. Locked once the game starts.
       </p>
 
       <div className="mt-3 flex flex-col gap-1.5">

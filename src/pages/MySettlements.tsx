@@ -172,7 +172,7 @@ export function MySettlements() {
                     className="h-9 text-sm"
                     value={noteText}
                     onChange={(e) => setNoteText(e.target.value)}
-                    placeholder="e.g. I think this should be 20 banks"
+                    placeholder="e.g. I think this should be 200,000"
                   />
                   <Button
                     variant="destructive"

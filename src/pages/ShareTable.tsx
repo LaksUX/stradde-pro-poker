@@ -287,7 +287,7 @@ export function ShareTable() {
                   {myTransfer.status}
                 </Badge>
               </div>
-              <p className="text-sm text-muted">({myTransfer.amount} banks)</p>
+              <p className="text-sm text-muted">({formatChips(myTransfer.amount, '1:1')})</p>
             </CardContent>
           </Card>
         )}
@@ -330,7 +330,7 @@ export function ShareTable() {
           <h1 className="type-page-title text-ink">{game.name}</h1>
           <p className="text-sm text-muted">{game.venue_freetext}</p>
           <p className="text-sm text-muted">
-            {game.stake} banks buy-in
+            1 buy-in = 10,000
           </p>
           <Badge variant={full ? 'error' : 'win'} className="mt-2">
             {full ? 'Table full' : 'Seats open'} · {seated}/{game.table_size}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import type { ChipRatio } from '../lib/chips'
+import { formatChips, fromChips, toChips, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { Button } from '../components/ui/button'
@@ -241,13 +241,13 @@ export function Settlement() {
                       </div>
                     </div>
                     <div className="mt-2">
-                      <Label htmlFor={`amount-${t.id}`}>Amount (banks)</Label>
+                      <Label htmlFor={`amount-${t.id}`}>Amount · 1 buy-in = {formatChips(1, ratio)}</Label>
                       <Input
                         id={`amount-${t.id}`}
                         type="number"
                         className="mt-1 h-9"
-                        defaultValue={t.amount}
-                        onBlur={(e) => editTransfer(t.id, { amount: Number(e.target.value) || 0 })}
+                        defaultValue={toChips(t.amount, ratio)}
+                        onBlur={(e) => editTransfer(t.id, { amount: fromChips(Number(e.target.value) || 0, ratio) })}
                       />
                     </div>
                     <button
