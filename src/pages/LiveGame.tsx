@@ -19,6 +19,7 @@ import { ChipsFigure } from '../components/ui/chips-figure'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import { InvitePlayersSheet } from '../components/ui/invite-players-sheet'
 import { PlayerCardsSheet } from '../components/ui/player-cards-sheet'
+import { StepBar } from '../components/ui/step-bar'
 import { ManagersSheet } from '../components/ui/managers-sheet'
 import { Slider } from '../components/ui/slider'
 import { Switch } from '../components/ui/switch'
@@ -545,7 +546,7 @@ export function LiveGame() {
       )
       if (!ok) return
 
-      navigate(`/games/${gameId}`)
+      navigate(`/games/${gameId}/settlement`)
     } finally {
       setClosing(false)
     }
@@ -603,6 +604,9 @@ export function LiveGame() {
 
   return (
     <div className="mx-auto w-full max-w-md p-4 sm:p-6">
+      {game.status !== 'closed' && (
+        <StepBar current={cashedOutPlayers.length > 0 ? 2 : 1} className="mb-4" />
+      )}
       <div className="flex items-center justify-between">
         <div className="min-w-0">
           <h1 className="type-page-title text-ink">{game.name}</h1>
@@ -901,7 +905,7 @@ export function LiveGame() {
             disabled={closing}
             onClick={closeAndSettle}
           >
-            {closing ? 'Closing…' : 'End game & settle'}
+            {closing ? 'Closing…' : 'Done cashing out · Settle'}
           </Button>
         </>
       )}
