@@ -163,6 +163,8 @@ export function Settlement() {
             open={cardsOpen}
             onOpenChange={setCardsOpen}
             gameId={gameId}
+            gameName={game.name}
+            gameDate={new Date().toISOString()}
             players={players.map((p) => ({ profile_id: p.profile_id, full_name: p.name }))}
           />
         </>

@@ -8,7 +8,7 @@ import { toast } from '../lib/toast'
 import { confirmDialog } from '../lib/confirmDialog'
 import { Button } from '../components/ui/button'
 import { PageSpinner } from '../components/ui/spinner'
-import { InviteQrCard } from '../components/ui/invite-qr-card'
+import { computeInitialSettlement, type PlayerForSettlement } from '../lib/settlement'
 import { Card, CardContent } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -22,7 +22,7 @@ import { PlayerCardsSheet } from '../components/ui/player-cards-sheet'
 import { ManagersSheet } from '../components/ui/managers-sheet'
 import { Slider } from '../components/ui/slider'
 import { Switch } from '../components/ui/switch'
-import { QrCode, UserPlus, ArrowUp, ArrowDown, ChevronDown, Shield, IdCard } from 'lucide-react'
+import { UserPlus, ArrowUp, ArrowDown, ChevronDown, Shield, IdCard } from 'lucide-react'
 
 const MAX_BUYINS = 100
 
@@ -84,7 +84,6 @@ export function LiveGame() {
   const [rakeValue, setRakeValue] = useState('')
   const [savingRake, setSavingRake] = useState(false)
   const [closing, setClosing] = useState(false)
-  const [qrOpen, setQrOpen] = useState(false)
   const [addPlayersOpen, setAddPlayersOpen] = useState(false)
   const [sheetPlayerId, setSheetPlayerId] = useState<string | null>(null)
   const [cardsOpen, setCardsOpen] = useState(false)
@@ -510,6 +509,32 @@ export function LiveGame() {
         if (!ok) return
       }
 
+      // Who settles with whom: computed once here and shown on each player's
+      // card. Fail before closing so a failed save never leaves a closed game
+      // without its transfers.
+      const settlementInput: PlayerForSettlement[] = players.map((p) => ({
+        gamePlayerId: p.id,
+        name: p.full_name,
+        netBanks:
+          (unfinished.find((u) => u.id === p.id) ? 0 : (p.cashout ?? 0)) - p.confirmed_buyins * game.stake,
+      }))
+      const transfers = computeInitialSettlement(settlementInput)
+      if (transfers.length > 0) {
+        const saved = await runWrite(
+          () =>
+            supabase.from('settlement_transfers').insert(
+              transfers.map((t) => ({
+                game_id: gameId,
+                from_player_id: t.fromPlayerId,
+                to_player_id: t.toPlayerId,
+                amount: t.amountBanks,
+              }))
+            ),
+          'Settlement'
+        )
+        if (!saved) return
+      }
+
       const ok = await runWrite(
         () =>
           supabase
@@ -616,6 +641,8 @@ export function LiveGame() {
               open={cardsOpen}
               onOpenChange={setCardsOpen}
               gameId={gameId}
+              gameName={game.name}
+              gameDate={game.closed_at ?? game.scheduled_for}
               players={players.map((p) => ({ profile_id: p.profile_id, full_name: p.full_name }))}
             />
           </div>
@@ -630,24 +657,6 @@ export function LiveGame() {
             >
               <UserPlus className="h-[18px] w-[18px]" />
             </button>
-            <button
-              type="button"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-hairline text-muted hover:bg-surface-strong hover:text-ink"
-              onClick={() => setQrOpen(true)}
-              aria-label="Invite via QR"
-            >
-              <QrCode className="h-[18px] w-[18px]" />
-            </button>
-            <Sheet open={qrOpen} onOpenChange={setQrOpen}>
-              <SheetContent>
-                <SheetHeader>
-                  <SheetTitle>Invite walk-ins</SheetTitle>
-                </SheetHeader>
-                <div className="mt-4">
-                  <InviteQrCard eyebrow="Live table" title={game.name} url={`${window.location.origin}/t/${gameId}`} />
-                </div>
-              </SheetContent>
-            </Sheet>
             <InvitePlayersSheet
               open={addPlayersOpen}
               onOpenChange={setAddPlayersOpen}
