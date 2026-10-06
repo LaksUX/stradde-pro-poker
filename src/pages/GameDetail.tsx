@@ -28,7 +28,6 @@ type Game = {
   closed_at: string | null
 }
 type PlayerRow = { id: string; profile_id: string; full_name: string; cashout: number | null; buyins: number }
-type VenueOther = { profile_id: string; full_name: string }
 
 // See PAGE_PROMPTS.md "Game Detail" — now the HOST's own view only. A
 // player's equivalent (buy-ins/cash-out/net, settlement, the same venue
@@ -47,7 +46,6 @@ export function GameDetail() {
     { from: string; to: string; amount: number; status: string }[]
   >([])
   const [venueTrend, setVenueTrend] = useState<number[]>([])
-  const [venueOthers, setVenueOthers] = useState<VenueOther[]>([])
   const [cardsOpen, setCardsOpen] = useState(false)
 
   useEffect(() => {
@@ -97,28 +95,20 @@ export function GameDetail() {
       }
 
       // Replaces the old standalone Venue Detail page — a trimmed version
-      // of it (buy-ins trend, other players by name only, no pot/rake
+      // of it (buy-ins trend only, no player names, no pot/rake
       // averages or a second games list) lives below this game's own
       // content instead. venue_game_rows/venue_regulars (0006 migration)
       // only have rows for a matched venue_id, same gap the old page had
       // for a venue_freetext-only game.
       if (g?.venue_id) {
-        const [{ data: trendRows }, { data: regularRows }] = await Promise.all([
-          supabase
-            .from('venue_game_rows')
-            .select('closed_at, stake, chip_ratio, confirmed_buyin_units')
-            .eq('venue_id', g.venue_id)
-            .order('closed_at', { ascending: true }),
-          supabase
-            .from('venue_regulars')
-            .select('profile_id, full_name')
-            .eq('venue_id', g.venue_id)
-            .neq('profile_id', profile!.id),
-        ])
+        const { data: trendRows } = await supabase
+          .from('venue_game_rows')
+          .select('closed_at, stake, chip_ratio, confirmed_buyin_units')
+          .eq('venue_id', g.venue_id)
+          .order('closed_at', { ascending: true })
         setVenueTrend(
           (trendRows ?? []).map((r) => toChips(r.confirmed_buyin_units * r.stake, r.chip_ratio as ChipRatio))
         )
-        setVenueOthers((regularRows ?? []) as VenueOther[])
       }
     }
     load()
@@ -231,20 +221,6 @@ export function GameDetail() {
             </p>
           )}
 
-          {venueOthers.length > 0 && (
-            <>
-              <h2 className="type-label-caption mb-2 mt-5 text-muted">Other players here</h2>
-              <ListGroup>
-                {venueOthers.map((p) => (
-                  <ListRow
-                    key={p.profile_id}
-                    avatar={<NamedAvatar name={p.full_name} className="h-10 w-10" />}
-                    title={p.full_name}
-                  />
-                ))}
-              </ListGroup>
-            </>
-          )}
         </>
       )}
     </div>
