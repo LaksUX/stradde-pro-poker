@@ -16,7 +16,6 @@ import { NamedAvatar } from '../components/ui/avatar'
 import { ChipsFigure } from '../components/ui/chips-figure'
 import { ArrowRight, ChevronDown, IdCard } from 'lucide-react'
 import { PlayerCardsSheet } from '../components/ui/player-cards-sheet'
-import { StepBar } from '../components/ui/step-bar'
 
 type Game = { id: string; name: string; chip_ratio: ChipRatio; settlement_published_at: string | null }
 type PlayerOpt = { id: string; name: string; profile_id: string }
@@ -138,7 +137,6 @@ export function Settlement() {
 
   return (
     <div className="mx-auto w-full max-w-md p-4 sm:p-6">
-      <StepBar current={sharing ? 4 : 3} className="mb-4" />
       <h1 className="type-page-title text-ink">{sharing ? 'Share with players' : 'Settlement'}</h1>
       <p className="type-body-md mt-1 text-body">
         {sharing
