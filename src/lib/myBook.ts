@@ -9,11 +9,14 @@ const CARDS_KEY = 'straddle:cards'
 const OWN_KEY = 'straddle:own'
 const INCLUDE_KEY = 'straddle:own-included'
 
-export type KnownCard = { token: string; group: string | null; name: string | null }
+export type PlaceKind = 'house' | 'club'
+
+export type KnownCard = { token: string; group: string | null; name: string | null; kind: PlaceKind }
 
 export type OwnGame = {
   id: string
   place: string
+  kind: PlaceKind
   date: string // YYYY-MM-DD
   entries: number
   finished: number // same units the app shows: 1 buy-in = 10,000
@@ -37,16 +40,18 @@ function write(key: string, value: unknown) {
 }
 
 export function knownCards(): KnownCard[] {
-  return read<KnownCard[]>(CARDS_KEY, [])
+  return read<KnownCard[]>(CARDS_KEY, []).map((c) => ({ ...c, kind: c.kind ?? 'house' }))
 }
 
-export function rememberCard(token: string, card: Pick<CardData, 'group' | 'name'>) {
+export function rememberCard(token: string, card: Pick<CardData, 'group' | 'name' | 'kind'>) {
   const rest = knownCards().filter((c) => c.token !== token)
-  write(CARDS_KEY, [{ token, group: card.group, name: card.name }, ...rest])
+  write(CARDS_KEY, [{ token, group: card.group, name: card.name, kind: card.kind ?? 'house' }, ...rest])
 }
 
 export function ownGames(): OwnGame[] {
-  return read<OwnGame[]>(OWN_KEY, []).sort((a, b) => b.date.localeCompare(a.date))
+  return read<OwnGame[]>(OWN_KEY, [])
+    .map((g) => ({ ...g, kind: g.kind ?? 'house' }))
+    .sort((a, b) => b.date.localeCompare(a.date))
 }
 
 export function saveOwnGame(game: OwnGame) {
