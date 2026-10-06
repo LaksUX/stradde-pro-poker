@@ -46,6 +46,7 @@ export function GameDetail() {
     { from: string; to: string; amount: number; status: string }[]
   >([])
   const [venueTrend, setVenueTrend] = useState<number[]>([])
+  const [venueLabels, setVenueLabels] = useState<string[]>([])
   const [cardsOpen, setCardsOpen] = useState(false)
 
   useEffect(() => {
@@ -108,6 +109,11 @@ export function GameDetail() {
           .order('closed_at', { ascending: true })
         setVenueTrend(
           (trendRows ?? []).map((r) => toChips(r.confirmed_buyin_units * r.stake, r.chip_ratio as ChipRatio))
+        )
+        setVenueLabels(
+          (trendRows ?? []).map((r) =>
+            r.closed_at ? new Date(r.closed_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : ''
+          )
         )
       }
     }
@@ -214,7 +220,7 @@ export function GameDetail() {
         <>
           <h2 className="type-label-caption mb-2 mt-5 text-muted">Buy-ins trend at this venue</h2>
           {venueTrend.length > 0 ? (
-            <LineChart points={venueTrend} height={60} />
+            <LineChart points={venueTrend} labels={venueLabels} height={150} />
           ) : (
             <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
               Not enough games yet.
