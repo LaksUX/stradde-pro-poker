@@ -1,22 +1,25 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { NotebookPen } from 'lucide-react'
+import { BadgeCheck, NotebookPen } from 'lucide-react'
 import { PageSpinner } from '../components/ui/spinner'
 import { Button } from '../components/ui/button'
 import { InstallPrompt } from '../components/ui/install-prompt'
 import { useCountUp } from '../hooks/useCountUp'
 import { toChips } from '../lib/chips'
 import { rememberCard } from '../lib/myBook'
+import { toast } from '../lib/toast'
 import { cn } from 'cn'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import {
   fetchCard,
+  markSettlement,
   rememberLastCard,
   loadBook,
   nightNet,
   saveBook,
   totalNet,
   type CardNight,
+  type CardSettlement,
   type LocalBook,
 } from '../lib/playerCard'
 
@@ -106,6 +109,28 @@ export function PlayerCard() {
     }
   }, [token])
 
+  // Mark / un-mark / dispute one of my settlement lines, then refresh the card.
+  async function onMark(
+    st: CardSettlement,
+    action: 'mark' | 'unmark' | 'dispute',
+    method?: 'in_person' | 'transferred'
+  ) {
+    if (!token || !st.id) return
+    try {
+      await markSettlement(token, st.id, action, method)
+      const card = await fetchCard(token)
+      if (card) {
+        setBook((prev) => {
+          const next = { ...prev, card, syncedAt: new Date().toISOString() }
+          saveBook(token, next)
+          return next
+        })
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not save that. Try again.')
+    }
+  }
+
   function update(patch: Partial<LocalBook>) {
     if (!token) return
     setBook((prev) => {
@@ -183,6 +208,7 @@ export function PlayerCard() {
               night={n}
               note={book.notes[n.game_id] ?? ''}
               onOpen={() => setNoteNight(n.game_id)}
+              onMark={onMark}
             />
           ))}
         </div>
@@ -202,9 +228,20 @@ export function PlayerCard() {
   )
 }
 
-function NightRow({ night, note, onOpen }: { night: CardNight; note: string; onOpen: () => void }) {
+function NightRow({
+  night,
+  note,
+  onOpen,
+  onMark,
+}: {
+  night: CardNight
+  note: string
+  onOpen: () => void
+  onMark: (st: CardSettlement, action: 'mark' | 'unmark' | 'dispute', method?: 'in_person' | 'transferred') => void
+}) {
   const net = nightNet(night)
   const buyins = Number(night.buyins)
+  const [markFor, setMarkFor] = useState<CardSettlement | null>(null)
   return (
     <div className="border-b border-hairline last:border-b-0">
       <button type="button" onClick={onOpen} className="flex w-full items-center gap-3 px-4 py-3 text-left">
@@ -221,14 +258,13 @@ function NightRow({ night, note, onOpen }: { night: CardNight; note: string; onO
         <div className="mx-4 mb-3 rounded-md bg-surface-soft px-3 py-2">
           <p className="type-label-caption text-muted">Settlement</p>
           {night.settlements.map((st, i) => (
-            <p key={i} className="mt-1 flex items-baseline justify-between gap-3 text-sm">
-              <span className="text-body">
-                {st.direction === 'pay' ? `Pay ${st.other_name ?? 'someone'}` : `${st.other_name ?? 'Someone'} pays you`}
-              </span>
-              <span className={cn('type-figure-md', st.direction === 'pay' ? 'text-error' : 'text-win')}>
-                {toChips(Number(st.amount), night.chip_ratio).toLocaleString('en-US')}
-              </span>
-            </p>
+            <SettlementLine
+              key={st.id ?? i}
+              st={st}
+              ratio={night.chip_ratio}
+              onMarkStart={() => setMarkFor(st)}
+              onMark={onMark}
+            />
           ))}
         </div>
       )}
@@ -242,6 +278,121 @@ function NightRow({ night, note, onOpen }: { night: CardNight; note: string; onO
           {note ? note : 'Add a note'}
         </span>
       </button>
+
+      <Sheet open={markFor != null} onOpenChange={(open) => !open && setMarkFor(null)}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>How was it settled?</SheetTitle>
+          </SheetHeader>
+          <p className="mt-1 text-sm text-body">
+            {markFor?.direction === 'pay' ? `You and ${markFor.other_name ?? 'them'}` : `${markFor?.other_name ?? 'They'} and you`}{' '}
+            both need to mark it before it counts as settled.
+          </p>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {(
+              [
+                ['in_person', 'In person'],
+                ['transferred', 'Transferred'],
+              ] as const
+            ).map(([m, label]) => (
+              <Button
+                key={m}
+                variant="secondary"
+                className="h-16 text-base"
+                onClick={() => {
+                  if (markFor) onMark(markFor, 'mark', m)
+                  setMarkFor(null)
+                }}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
+  )
+}
+
+const METHOD_LABEL = { in_person: 'in person', transferred: 'transferred' } as const
+
+function SettlementLine({
+  st,
+  ratio,
+  onMarkStart,
+  onMark,
+}: {
+  st: CardSettlement
+  ratio: CardNight['chip_ratio']
+  onMarkStart: () => void
+  onMark: (st: CardSettlement, action: 'mark' | 'unmark' | 'dispute', method?: 'in_person' | 'transferred') => void
+}) {
+  const other = st.other_name ?? 'them'
+  const state = st.state ?? 'pending'
+  const canAct = !!st.id
+  const method = st.method ? METHOD_LABEL[st.method] : null
+  return (
+    <div className="mt-2 border-t border-hairline pt-2 first:mt-1 first:border-t-0 first:pt-0">
+      <p className="flex items-baseline justify-between gap-3 text-sm">
+        <span className="text-body">
+          {st.direction === 'pay' ? `Pay ${st.other_name ?? 'someone'}` : `${st.other_name ?? 'Someone'} pays you`}
+        </span>
+        <span className={cn('type-figure-md', st.direction === 'pay' ? 'text-error' : 'text-win')}>
+          {toChips(Number(st.amount), ratio).toLocaleString('en-US')}
+        </span>
+      </p>
+
+      {state === 'settled' && (
+        <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-win/10 px-2 py-0.5 text-xs font-semibold text-win">
+          <BadgeCheck className="h-3.5 w-3.5" /> Settled{method ? ` · ${method}` : ''}
+        </p>
+      )}
+
+      {state === 'marked_by_me' && (
+        <p className="mt-1 flex items-center justify-between gap-2 text-xs text-muted">
+          <span>You marked it. Waiting for {other} to agree.</span>
+          {canAct && (
+            <button type="button" className="font-semibold text-ink underline" onClick={() => onMark(st, 'unmark')}>
+              Undo
+            </button>
+          )}
+        </p>
+      )}
+
+      {state === 'marked_by_other' && (
+        <div className="mt-1">
+          <p className="text-xs text-muted">
+            {other} says it is settled{method ? ` (${method})` : ''}. Is that right?
+          </p>
+          {canAct && (
+            <div className="mt-2 flex gap-2">
+              <Button size="sm" onClick={() => onMark(st, 'mark', st.method ?? 'in_person')}>
+                Yes, settled
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => onMark(st, 'dispute')}>
+                Something is off
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {state === 'disputed' && (
+        <div className="mt-1">
+          <p className="text-xs text-error">Flagged. Sort it out with {other} or your host.</p>
+          {canAct && (
+            <Button size="sm" variant="outline" className="mt-2" onClick={onMarkStart}>
+              Mark settled
+            </Button>
+          )}
+        </div>
+      )}
+
+      {state === 'pending' && canAct && (
+        <Button size="sm" variant="secondary" className="mt-2" onClick={onMarkStart}>
+          Mark settled
+        </Button>
+      )}
     </div>
   )
 }

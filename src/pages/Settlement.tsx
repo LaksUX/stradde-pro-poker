@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { formatChips, fromChips, toChips, type ChipRatio } from '../lib/chips'
+import { SETTLE_LABEL, settleState, type MarkColumns } from '../lib/settlement'
+import { Badge } from '../components/ui/badge'
 import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { Button } from '../components/ui/button'
@@ -25,7 +27,7 @@ type Transfer = {
   amount: number
   status: 'pending' | 'confirmed' | 'disputed'
   request_note: string | null
-}
+} & MarkColumns
 
 // See PAGE_PROMPTS.md "Settlement". Reached from Live Game's "End game &
 // settle". Settlement is never frozen — the host can keep editing after
@@ -62,7 +64,7 @@ export function Settlement() {
 
     const { data: ts } = await supabase
       .from('settlement_transfers')
-      .select('id, from_player_id, to_player_id, amount, status, request_note')
+      .select('id, from_player_id, to_player_id, amount, status, request_note, payer_marked_at, payee_marked_at, disputed_at')
       .eq('game_id', gameId)
     setTransfers((ts ?? []) as Transfer[])
   }
@@ -123,7 +125,7 @@ export function Settlement() {
         amount: 1,
         status: 'pending',
       })
-      .select('id, from_player_id, to_player_id, amount, status, request_note')
+      .select('id, from_player_id, to_player_id, amount, status, request_note, payer_marked_at, payee_marked_at, disputed_at')
       .single()
     if (error) {
       toast.error(navigator.onLine ? error.message : "Couldn't add — you're offline. Reconnect and try again.")
@@ -143,6 +145,11 @@ export function Settlement() {
           ? 'Send each player their private card. It shows their night and who they settle with.'
           : 'Who settles with whom. Tap a line to change it.'}
       </p>
+      {transfers.length > 0 && (
+        <p className="mt-2 text-sm font-semibold text-ink">
+          {transfers.filter((t) => settleState(t) === 'settled').length} of {transfers.length} settled
+        </p>
+      )}
       {gameId && (
         <PlayerCardsSheet
           open={cardsOpen}
@@ -197,6 +204,13 @@ export function Settlement() {
                     <div className="flex items-center gap-2">
                       <div className="flex flex-col items-end gap-1">
                         <ChipsFigure amount={t.amount} ratio={ratio} />
+                        <Badge
+                          variant={
+                            settleState(t) === 'settled' ? 'win' : settleState(t) === 'disputed' ? 'error' : 'muted'
+                          }
+                        >
+                          {settleState(t) === 'marked' ? 'Marked' : SETTLE_LABEL[settleState(t)]}
+                        </Badge>
                       </div>
                       <ChevronDown
                         className={`h-4 w-4 shrink-0 text-muted transition-transform ${editing ? 'rotate-180' : ''}`}
