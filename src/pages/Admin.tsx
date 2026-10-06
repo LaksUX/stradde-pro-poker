@@ -90,7 +90,6 @@ export function Admin() {
               key={r.id}
               avatar={<NamedAvatar name={r.full_name ?? '—'} className="h-12 w-12" />}
               title={r.full_name ?? '—'}
-              subtitle={r.phone}
               trailing={
                 <>
                   <Badge variant={r.role === 'host' && r.approved ? 'win' : 'muted'}>

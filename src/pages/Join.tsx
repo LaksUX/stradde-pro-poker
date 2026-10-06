@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { continueWithPhone } from '../hooks/useAuth'
+import { continueWithName } from '../hooks/useAuth'
 import { withTimeout } from '../lib/errors'
 import { BuyinPicker } from '../components/ui/buyin-picker'
 import { Button } from '../components/ui/button'
@@ -31,7 +31,6 @@ export function Join() {
   const [game, setGame] = useState<GameSummary | null>(null)
   const [seated, setSeated] = useState(0)
   const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
   const [count, setCount] = useState(1)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -81,14 +80,14 @@ export function Join() {
   // in 0002_rls_policies.sql). Default to 1:1 for this display-only estimate.
 
   async function handleSubmit() {
-    if (!name.trim() || !phone.trim() || !gameId) {
-      setError('Name and phone are both required')
+    if (!name.trim() || !gameId) {
+      setError('Add your name')
       return
     }
     setSubmitting(true)
     setError(null)
     try {
-      const profile = await withTimeout(continueWithPhone(name.trim(), phone.trim()))
+      const profile = await withTimeout(continueWithName(name.trim()))
       const { error: reqError } = await supabase.from('buyin_requests').insert({
         game_id: gameId,
         profile_id: profile.id,
@@ -135,16 +134,6 @@ export function Join() {
       <div className="mt-4 flex flex-col gap-1.5">
         <Label htmlFor="join-name">Name</Label>
         <Input id="join-name" className="h-14" value={name} onChange={(e) => setName(e.target.value)} />
-      </div>
-      <div className="mt-3 flex flex-col gap-1.5">
-        <Label htmlFor="join-phone">Phone</Label>
-        <Input
-          id="join-phone"
-          type="tel"
-          className="h-14"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-        />
       </div>
 
       <p className="mt-4 text-sm font-medium text-muted">How many buy-ins?</p>

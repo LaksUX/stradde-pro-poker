@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { continueWithPhone, useAuth } from '../hooks/useAuth'
+import { useAuth } from '../hooks/useAuth'
 import { withTimeout } from '../lib/errors'
 import { Button } from '../components/ui/button'
 import { PageSpinner } from '../components/ui/spinner'
@@ -16,14 +16,12 @@ export function Continue() {
   const { session, profile, loading } = useAuth()
   const navigate = useNavigate()
   const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [linkExpired, setLinkExpired] = useState(false)
   // MVP 2.0: hosts start a group (name + PIN) or get back in with a group ID
-  // and PIN. The original name + phone form stays as the "player" path for
-  // anyone opening the app from an old-style join.
-  const [mode, setMode] = useState<'start' | 'signin' | 'player'>('start')
+  // and PIN. Phone sign-in is gone, and players never sign in at all.
+  const [mode, setMode] = useState<'start' | 'signin'>('start')
   const [groupName, setGroupName] = useState('')
   const [groupId, setGroupId] = useState('')
   const [pin, setPin] = useState('')
@@ -95,31 +93,6 @@ export function Continue() {
     }
   }
 
-  async function handleContinue() {
-    if (!name.trim() || !phone.trim()) {
-      setError('Name and phone are both required')
-      return
-    }
-    setSubmitting(true)
-    setError(null)
-    try {
-      const p = await withTimeout(continueWithPhone(name.trim(), phone.trim()))
-      if (p.role === 'host' && p.approved) navigate('/games/new')
-      else if (p.role === 'host' && !p.approved) navigate('/pending-approval')
-      else navigate('/home')
-    } catch (e) {
-      setError(
-        !navigator.onLine
-          ? "You're offline — reconnect and try again."
-          : e instanceof Error
-            ? e.message
-            : ((e as { message?: string })?.message ?? 'Something went wrong')
-      )
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center gap-4 p-4 sm:p-6">
       <div className="mb-4 flex flex-col items-center gap-2">
@@ -131,33 +104,11 @@ export function Continue() {
 
       {linkExpired && (
         <p className="type-body-md rounded-md border border-hairline bg-surface-strong p-3 text-center text-body">
-          That link has expired or already been used. Sign in below instead — no email needed
-          anymore, just your name and phone.
+          That link has expired or already been used. Sign in below with your group ID and PIN.
         </p>
       )}
 
-      {mode === 'player' ? (
-        <>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="continue-name">Name</Label>
-            <Input id="continue-name" className="h-14" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="continue-phone">Phone</Label>
-            <Input
-              id="continue-phone"
-              type="tel"
-              className="h-14"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-          </div>
-          {error && <p className="text-sm text-error">{error}</p>}
-          <Button block disabled={submitting} onClick={handleContinue}>
-            {submitting ? 'Continuing…' : 'Continue'}
-          </Button>
-        </>
-      ) : mode === 'signin' ? (
+      {mode === 'signin' ? (
         <>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="continue-group">Group ID</Label>
@@ -235,11 +186,6 @@ export function Continue() {
         {mode !== 'signin' && (
           <button className="font-semibold text-muted underline" onClick={() => { setMode('signin'); setError(null) }}>
             I have a group ID
-          </button>
-        )}
-        {mode !== 'player' && (
-          <button className="text-muted-soft underline" onClick={() => { setMode('player'); setError(null) }}>
-            Continue with a phone number instead
           </button>
         )}
       </div>

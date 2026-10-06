@@ -69,139 +69,30 @@ export function useAuth() {
 }
 
 /**
- * The one entry mechanism for everyone — see pages/Continue.tsx (no game
- * context) and pages/Join.tsx (in the context of a specific game link). Both
- * call this same function.
- *
- * Cross-device/cross-session rejoin: when the phone belongs to a different
- * auth identity than the current session, this now calls the
- * join-as-player Edge Function (supabase/functions/join-as-player/) to mint
- * a real session for the EXISTING profile via a synthetic-email magic-link
- * token — see that file for the full explanation. Deployed and tested live
- * — including a real CORS bug (missing Access-Control-Allow-Origin) that
- * blocked it from an actual browser despite working over curl, now fixed
- * in the function itself.
- *
- * New profiles default to `role: 'player'` — hosting is never inferred here,
- * only granted by an admin.
+ * Name-only entry for someone opening an old join link: signs in anonymously
+ * (no phone, no email, no password) and creates a profile with just a name.
+ * If this browser already has a profile, it is reused as is.
  */
-export async function continueWithPhone(name: string, phoneE164: string): Promise<Profile> {
-  // The phone lookup this function used to do BEFORE signing in was
-  // silently broken: profiles' RLS only allows reading a row where
-  // id = auth.uid(), so an unauthenticated client can never find someone
-  // else's row by phone number, regardless of whether it exists. That
-  // pre-check always returned nothing, making it theater — the database's
-  // own unique constraint on profiles.phone is the only thing that was
-  // ever actually enforcing "one profile per phone," and it was throwing a
-  // raw Postgrest error the UI never caught cleanly, showing a useless
-  // generic message instead of a real explanation.
+export async function continueWithName(name: string): Promise<Profile> {
   let user: User | null = (await supabase.auth.getSession()).data.session?.user ?? null
-
-  // Join.tsx shows this same form to ANYONE who opens a game link,
-  // regardless of whether their browser already has an active session —
-  // e.g. a host testing their own game's join link on the same phone/tab
-  // they're hosting from. Reusing that session's id below would upsert the
-  // name/phone just typed straight onto the ALREADY-signed-in person's own
-  // profile row, silently renaming and re-phone-ing them (and, since a
-  // host/admin's self-update isn't blocked, demoting them too) — this is
-  // almost certainly why a freshly-appointed host's own game went blank
-  // for them mid-test. Only reuse the existing session when it's actually
-  // the same phone continuing; otherwise sign out first and fall through
-  // to a genuinely fresh anonymous identity below.
-  if (user) {
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('phone')
-      .eq('id', user.id)
-      .maybeSingle()
-    if (existingProfile && existingProfile.phone !== phoneE164) {
-      await supabase.auth.signOut()
-      user = null
-    }
-  }
-
   if (!user) {
     const { data, error } = await supabase.auth.signInAnonymously()
     if (error) throw error
     user = data.user
   }
-  if (!user) throw new Error('Anonymous sign-in did not return a user')
+  if (!user) throw new Error('Could not start a session')
 
-  // RPC, not a plain upsert — see 0016_preserve_role_on_signin.sql. A plain
-  // upsert() here always sends role/approved in the payload, which
-  // overwrites them back to 'player'/false on every single sign-in for an
-  // EXISTING profile, not just a new one. The RPC only applies those as
-  // defaults on a genuine insert; an existing row's role/approved are never
-  // touched by this call.
-  const { data: created, error: upsertError } = await supabase
-    .rpc('upsert_own_profile', { p_full_name: name, p_phone: phoneE164 })
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('id, full_name, phone, role, approved')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (existing) return existing as Profile
+
+  const { data: created, error } = await supabase
+    .rpc('upsert_own_profile', { p_full_name: name, p_phone: null })
     .select('id, full_name, phone, role, approved')
     .single()
-
-  if (upsertError) {
-    if (upsertError.code === '23505') {
-      // This phone already belongs to a different auth identity than the
-      // current session. Try the Edge Function's session-minting path —
-      // see supabase/functions/join-as-player/index.ts. If this also
-      // fails, fall through to a clear error rather than a silent one.
-      //
-      // [decision] Retries once after a short delay before giving up.
-      // Verified live: this call failed once with a 500 from Supabase's
-      // own admin.auth.admin.updateUserById ("Error updating user") and
-      // then succeeded on the very next attempt seconds later with no
-      // code change — a transient blip on Supabase's side, not a
-      // deterministic bug. A real user shouldn't eat a hard failure for
-      // that; one retry costs at most ~1s and should absorb it.
-      let lastError: unknown
-      for (let attempt = 0; attempt < 2; attempt++) {
-        if (attempt > 0) await new Promise((r) => setTimeout(r, 800))
-        try {
-          const res = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/join-as-player`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-              },
-              body: JSON.stringify({ phone: phoneE164 }),
-            }
-          )
-          const json = await res.json()
-          if (!res.ok || json.error) {
-            throw new Error(json.error || `join-as-player returned ${res.status}`)
-          }
-          if (!json.exists || !json.hashed_token) {
-            throw new Error('join-as-player did not return a usable session token')
-          }
-          const { error: verifyError } = await supabase.auth.verifyOtp({
-            token_hash: json.hashed_token,
-            type: 'magiclink',
-          })
-          if (verifyError) throw verifyError
-
-          const { data: reloaded, error: reloadError } = await supabase
-            .from('profiles')
-            .select('id, full_name, phone, role, approved')
-            .eq('phone', phoneE164)
-            .single()
-          if (reloadError) throw reloadError
-          return reloaded as Profile
-        } catch (edgeFnError) {
-          lastError = edgeFnError
-          console.error(`join-as-player Edge Function call failed (attempt ${attempt + 1}):`, edgeFnError)
-        }
-      }
-      throw new Error(
-        'This phone is already signed in on another device or browser, and reconnecting ' +
-          'to it failed twice in a row. Try again in a moment, or sign in from the ' +
-          'original device instead.' +
-          (lastError instanceof Error ? ` (${lastError.message})` : '')
-      )
-    }
-    throw new Error(upsertError.message || 'Could not sign in — please try again.')
-  }
-
+  if (error) throw new Error(error.message || 'Could not continue, please try again.')
   return created as Profile
 }
-
