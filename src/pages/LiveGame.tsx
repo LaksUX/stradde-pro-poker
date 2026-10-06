@@ -89,6 +89,7 @@ export function LiveGame() {
   const [sheetPlayerId, setSheetPlayerId] = useState<string | null>(null)
   const [cardsOpen, setCardsOpen] = useState(false)
   const [managersOpen, setManagersOpen] = useState(false)
+  const [noAccess, setNoAccess] = useState(false)
   // Lets writes refresh the player list right away instead of waiting on the
   // realtime echo (which can lag or drop), so totals update the moment you save.
   const reloadPlayersRef = useRef<(() => Promise<void>) | null>(null)
@@ -125,8 +126,18 @@ export function LiveGame() {
     if (!gameId) return
 
     async function loadGame() {
-      const { data } = await supabase.from('games').select('*').eq('id', gameId).single()
-      setGame(data as Game)
+      const { data, error } = await supabase.from('games').select('*').eq('id', gameId).maybeSingle()
+      // No row back means this account can no longer see the game (a co-host
+      // who was removed, or a link to someone else's game). Say so instead of
+      // spinning forever. A network error is not the same thing: keep waiting.
+      if (!error && !data) {
+        setNoAccess(true)
+        return
+      }
+      if (data) {
+        setNoAccess(false)
+        setGame(data as Game)
+      }
     }
     async function loadPending() {
       const { data } = await supabase
@@ -532,6 +543,17 @@ export function LiveGame() {
     }
   }
 
+  if (noAccess) {
+    return (
+      <div className="mx-auto flex min-h-[60vh] w-full max-w-sm flex-col items-center justify-center gap-3 p-6 text-center">
+        <h1 className="type-page-title text-ink">You no longer have access to this game</h1>
+        <p className="type-body-md text-body">
+          The host may have removed you as co-host, or this link is for a different game.
+        </p>
+        <Button onClick={() => navigate('/home')}>Go to Home</Button>
+      </div>
+    )
+  }
   if (!game) return <PageSpinner />
   if (!profile) return <div className="p-6 text-center text-muted">Sign in required.</div>
 
