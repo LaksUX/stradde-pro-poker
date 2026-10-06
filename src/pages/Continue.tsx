@@ -20,8 +20,7 @@ export function Continue() {
   const [submitting, setSubmitting] = useState(false)
   const [linkExpired, setLinkExpired] = useState(false)
   // MVP 2.0: hosts start a group (name + PIN) or get back in with a group ID
-  // and PIN. Phone sign-in is gone: players never sign in, and hosts use a group ID + PIN.
-  // anyone opening the app from an old-style join.
+  // and PIN. Phone sign-in is gone, and players never sign in at all.
   const [mode, setMode] = useState<'start' | 'signin'>('start')
   const [groupName, setGroupName] = useState('')
   const [groupId, setGroupId] = useState('')
