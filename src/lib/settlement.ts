@@ -47,3 +47,25 @@ export function computeInitialSettlement(players: PlayerForSettlement[]): Comput
   }
   return transfers
 }
+
+// How far a line has got, from the marks on it (see 0029_settlement_marking.sql).
+export type MarkColumns = {
+  payer_marked_at?: string | null
+  payee_marked_at?: string | null
+  disputed_at?: string | null
+}
+export type SettleState = 'pending' | 'marked' | 'settled' | 'disputed'
+
+export function settleState(t: MarkColumns): SettleState {
+  if (t.disputed_at) return 'disputed'
+  if (t.payer_marked_at && t.payee_marked_at) return 'settled'
+  if (t.payer_marked_at || t.payee_marked_at) return 'marked'
+  return 'pending'
+}
+
+export const SETTLE_LABEL: Record<SettleState, string> = {
+  pending: 'Pending',
+  marked: 'Waiting for the other side',
+  settled: 'Settled',
+  disputed: 'Disputed',
+}

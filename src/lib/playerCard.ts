@@ -6,10 +6,14 @@ import { toChips, type ChipRatio } from './chips'
 // this phone's localStorage and is never sent anywhere.
 
 export type CardSettlement = {
+  id?: string
   direction: 'pay' | 'receive'
   other_name: string | null
   amount: number
   status: 'pending' | 'confirmed' | 'disputed'
+  // Older copies saved on a phone have no state: treated as pending.
+  state?: 'pending' | 'marked_by_me' | 'marked_by_other' | 'settled' | 'disputed'
+  method?: 'in_person' | 'transferred' | null
 }
 
 export type CardNight = {
@@ -114,4 +118,21 @@ export function lastCardToken(): string | null {
   } catch {
     return null
   }
+}
+
+// Mark, un-mark or dispute one of the player's own settlement lines. The card
+// link proves who they are; the database checks the line is theirs.
+export async function markSettlement(
+  token: string,
+  transferId: string,
+  action: 'mark' | 'unmark' | 'dispute',
+  method?: 'in_person' | 'transferred'
+): Promise<void> {
+  const { error } = await supabase.rpc('mark_settlement', {
+    p_token: token,
+    p_transfer_id: transferId,
+    p_action: action,
+    p_method: method ?? null,
+  })
+  if (error) throw new Error(error.message)
 }

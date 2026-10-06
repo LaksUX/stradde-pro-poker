@@ -12,6 +12,7 @@ import { NamedAvatar } from '../components/ui/avatar'
 import { ChipsFigure } from '../components/ui/chips-figure'
 import { LineChart } from '../components/ui/line-chart'
 import { StatCard } from '../components/ui/stat-card'
+import { SETTLE_LABEL, settleState, type SettleState } from '../lib/settlement'
 import { ArrowRight, IdCard } from 'lucide-react'
 import { PlayerCardsSheet } from '../components/ui/player-cards-sheet'
 
@@ -43,7 +44,7 @@ export function GameDetail() {
   const { isHost: canManage, loading: hostCheckLoading } = useIsGameHost(gameId, game?.host_id)
   const [players, setPlayers] = useState<PlayerRow[]>([])
   const [transfers, setTransfers] = useState<
-    { from: string; to: string; amount: number; status: string }[]
+    { from: string; to: string; amount: number; state: SettleState }[]
   >([])
   const [venueTrend, setVenueTrend] = useState<number[]>([])
   const [venueLabels, setVenueLabels] = useState<string[]>([])
@@ -82,7 +83,7 @@ export function GameDetail() {
       {
         const { data: ts } = await supabase
           .from('settlement_transfers')
-          .select('from_player_id, to_player_id, amount, status')
+          .select('from_player_id, to_player_id, amount, payer_marked_at, payee_marked_at, disputed_at')
           .eq('game_id', gameId)
         const byId = new Map((rows ?? []).map((r: any) => [r.id, r.profiles?.full_name ?? '—']))
         setTransfers(
@@ -90,7 +91,7 @@ export function GameDetail() {
             from: byId.get(t.from_player_id) ?? '—',
             to: byId.get(t.to_player_id) ?? '—',
             amount: t.amount,
-            status: t.status,
+            state: settleState(t),
           }))
         )
       }
@@ -177,7 +178,9 @@ export function GameDetail() {
       </ListGroup>
       {transfers.length > 0 && (
         <>
-          <h2 className="type-label-caption mb-2 mt-5 text-muted">Settlement</h2>
+          <h2 className="type-label-caption mb-2 mt-5 text-muted">
+            Settlement · {transfers.filter((t) => t.state === 'settled').length} of {transfers.length} settled
+          </h2>
           <ListGroup>
             {transfers.map((t, i) => (
               <ListRow
@@ -198,10 +201,8 @@ export function GameDetail() {
                 trailing={
                   <>
                     <ChipsFigure amount={t.amount} ratio={ratio} />
-                    <Badge
-                      variant={t.status === 'confirmed' ? 'win' : t.status === 'disputed' ? 'error' : 'muted'}
-                    >
-                      {t.status}
+                    <Badge variant={t.state === 'settled' ? 'win' : t.state === 'disputed' ? 'error' : 'muted'}>
+                      {t.state === 'marked' ? 'Marked' : SETTLE_LABEL[t.state]}
                     </Badge>
                   </>
                 }
