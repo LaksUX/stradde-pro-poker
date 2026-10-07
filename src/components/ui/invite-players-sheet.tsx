@@ -15,6 +15,7 @@ function normalizeName(n: string): string {
   return n.trim().replace(/\s+/g, ' ').toLowerCase()
 }
 
+type CircleName = { profile_id: string; full_name: string; games: number }
 type Regular = { other_id: string; full_name: string; games_played: number }
 
 // Add players to a live game from the host's OWN list: people from games this
@@ -44,6 +45,7 @@ export function InvitePlayersSheet({
   const [inviting, setInviting] = useState(false)
   const [newName, setNewName] = useState('')
   const [addingGuest, setAddingGuest] = useState(false)
+  const [circle, setCircle] = useState<CircleName[]>([])
 
   useEffect(() => {
     if (!open || !profile) return
@@ -55,6 +57,48 @@ export function InvitePlayersSheet({
       .order('games_played', { ascending: false })
       .then(({ data }) => setRegulars((data ?? []) as Regular[]))
   }, [open, profile])
+
+  // Names from the host's circle (hosts linked by invites), names only.
+  // Picking one seats the same person instead of making a duplicate.
+  useEffect(() => {
+    const q = newName.trim()
+    if (!open || q.length < 2) {
+      setCircle([])
+      return
+    }
+    let cancelled = false
+    const t = setTimeout(() => {
+      supabase
+        .rpc('circle_names', { p_game_id: gameId, p_query: q })
+        .then(({ data, error }) => {
+          if (!cancelled) setCircle(error ? [] : ((data ?? []) as CircleName[]))
+        })
+    }, 250)
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+    }
+  }, [open, newName, gameId])
+
+  const circleMatches = circle.filter(
+    (c) =>
+      !existingProfileIds.includes(c.profile_id) &&
+      !regulars.some((r) => r.other_id === c.profile_id) &&
+      !existingNames.some((n) => normalizeName(n) === normalizeName(c.full_name))
+  )
+
+  async function addFromCircle(c: CircleName) {
+    setAddingGuest(true)
+    const ok = await runWrite(
+      () => supabase.rpc('add_circle_player', { p_game_id: gameId, p_profile_id: c.profile_id }),
+      'Adding player'
+    )
+    setAddingGuest(false)
+    if (ok) {
+      setNewName('')
+      onInvited?.()
+    }
+  }
 
   const invitable = regulars.filter((r) => !existingProfileIds.includes(r.other_id))
 
@@ -95,6 +139,17 @@ export function InvitePlayersSheet({
           setNewName('')
           onInvited?.()
         }
+        return
+      }
+    }
+    const circleMatch = circle.find((c) => normalizeName(c.full_name) === key)
+    if (circleMatch && !existingProfileIds.includes(circleMatch.profile_id)) {
+      const useExisting = await confirmDialog(`${circleMatch.full_name} already plays in your group. Use them?`, {
+        confirmLabel: 'Use existing',
+        cancelLabel: 'Add as new person',
+      })
+      if (useExisting) {
+        await addFromCircle(circleMatch)
         return
       }
     }
@@ -147,6 +202,24 @@ export function InvitePlayersSheet({
             {addingGuest ? 'Adding…' : 'Add'}
           </Button>
         </div>
+
+        {circleMatches.length > 0 && (
+          <div className="mt-3">
+            <p className="type-label-caption text-muted">Already playing in your group</p>
+            <ListGroup className="mt-2">
+              {circleMatches.map((c) => (
+                <ListRow
+                  key={c.profile_id}
+                  className="cursor-pointer"
+                  onClick={() => addFromCircle(c)}
+                  avatar={<NamedAvatar name={c.full_name} className="h-10 w-10" />}
+                  title={c.full_name}
+                  trailing={<span className="text-xs font-semibold text-primary">Add</span>}
+                />
+              ))}
+            </ListGroup>
+          </div>
+        )}
 
         {invitable.length === 0 ? (
           <p className="mt-4 text-center text-sm text-muted">
