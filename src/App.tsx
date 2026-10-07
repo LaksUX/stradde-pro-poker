@@ -33,10 +33,10 @@ function RootRedirect() {
     const card = lastCardToken()
     return <Navigate to={card ? `/c/${card}` : '/continue'} replace />
   }
-  // An admin can also act as a host (0009_admin_can_host.sql) — route them
-  // straight to game creation too, same as an approved host.
+  // Hosts land on Home (their games, a Start game button, Group settings), not
+  // a bare create-game form: opening the installed app should never strand them.
   if ((profile?.role === 'host' || profile?.role === 'admin') && profile.approved)
-    return <Navigate to="/games/new" replace />
+    return <Navigate to="/home" replace />
   if (profile?.role === 'host' && !profile.approved) return <Navigate to="/pending-approval" replace />
   return <Navigate to="/home" replace />
 }
