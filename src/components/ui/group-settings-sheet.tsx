@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react'
-import { Copy } from 'lucide-react'
+import { Copy, Share2 } from 'lucide-react'
 import { changeGroupPin, createGroupForCurrentHost, getMyGroup } from '../../lib/groupAuth'
 import { getOrCreateOwnEntity } from '../../lib/entities'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { Switch } from './switch'
 import { toast } from '../../lib/toast'
+import {
+  ensureHostInvite,
+  hostInviteUrl,
+  myInvitedHosts,
+  setHostPaused,
+  type InvitedHost,
+} from '../../lib/hostInvites'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from './sheet'
 import { Button } from './button'
 import { Input } from './input'
@@ -28,10 +35,14 @@ export function GroupSettingsSheet({
   const [saving, setSaving] = useState(false)
   const { profile } = useAuth()
   const [isClub, setIsClub] = useState(false)
+  const [invited, setInvited] = useState<InvitedHost[]>([])
 
   useEffect(() => {
     if (!open) return
     setPin('')
+    myInvitedHosts()
+      .then(setInvited)
+      .catch(() => {})
     getMyGroup()
       .then(setGroup)
       .catch(() => setGroup(null))
@@ -60,6 +71,31 @@ export function GroupSettingsSheet({
     } catch {
       setIsClub(!next)
       toast.error('Could not save that')
+    }
+  }
+
+  async function sendInvite() {
+    try {
+      const url = hostInviteUrl(await ensureHostInvite())
+      const text = `Run your own game nights on Straddle. Open this to get started:\n${url}`
+      if (navigator.share) {
+        await navigator.share({ title: 'Host on Straddle', text }).catch(() => {})
+      } else {
+        await navigator.clipboard.writeText(text)
+        toast.success('Invite copied')
+      }
+    } catch {
+      toast.error('Could not make the invite link')
+    }
+  }
+
+  async function togglePaused(h: InvitedHost) {
+    try {
+      await setHostPaused(h.host_id, !h.paused)
+      setInvited((list) => list.map((x) => (x.host_id === h.host_id ? { ...x, paused: !h.paused } : x)))
+      toast.success(h.paused ? `${h.name} can host again` : `${h.name} is paused`)
+    } catch {
+      toast.error('Could not change that')
     }
   }
 
@@ -165,6 +201,42 @@ export function GroupSettingsSheet({
               </span>
               <Switch checked={isClub} onCheckedChange={toggleClub} />
             </label>
+
+            <div className="mt-5 rounded-md border border-hairline p-3">
+              <p className="text-sm font-semibold text-ink">Invite a host</p>
+              <p className="mt-0.5 text-xs text-muted">
+                A friend who opens your link starts their own group. Their players and results stay theirs; you see
+                their games here and can pause them.
+              </p>
+              <Button variant="secondary" block className="mt-3" onClick={sendInvite}>
+                <Share2 className="mr-1.5 h-4 w-4" /> Send invite link
+              </Button>
+              {invited.length > 0 && (
+                <ul className="mt-3 divide-y divide-hairline">
+                  {invited.map((h) => (
+                    <li key={h.host_id} className="flex items-center gap-3 py-2.5">
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-ink">
+                          {h.group ?? h.name}
+                          {h.paused ? ' · paused' : ''}
+                        </span>
+                        <span className="block text-xs text-muted">
+                          {h.name} · {h.games} game{h.games === 1 ? '' : 's'} · {h.players} player
+                          {h.players === 1 ? '' : 's'}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => togglePaused(h)}
+                        className="text-xs font-semibold text-muted hover:text-ink"
+                      >
+                        {h.paused ? 'Resume' : 'Pause'}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
             <div className="mt-5 flex flex-col gap-1.5">
               <Label htmlFor="settings-pin">Change PIN</Label>

@@ -25,8 +25,8 @@ export function PendingApproval() {
     <div className="mx-auto w-full max-w-sm p-4 sm:p-6 text-center">
       <h1 className="type-page-title text-ink">Pending approval</h1>
       <p className="type-body-md mt-2 text-body">
-        Your host application exists — an admin needs to approve it before you can create
-        games. This doesn't affect joining games other people host.
+        Hosting is paused for your account. Ask the person who invited you, or an admin, to
+        turn it back on. This doesn't affect joining games other people host.
       </p>
       <button className="mt-6 text-sm text-primary underline" onClick={() => navigate('/home')}>
         Back to Home
