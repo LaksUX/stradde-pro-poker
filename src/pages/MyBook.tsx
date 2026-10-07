@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BadgeCheck, Building2, ChevronDown, ChevronRight, Home, Pencil, Plus } from 'lucide-react'
+import { BadgeCheck, Building2, ChevronDown, ChevronRight, Home, Pencil, Plus, Shield } from 'lucide-react'
 import { cn } from 'cn'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -76,7 +76,10 @@ export function MyBook() {
     }
   }, [])
 
-  const hostTotal = cards.reduce((s, c) => s + cardTotal(c.token), 0)
+  const hostedTotal = cards.filter((c) => c.hosted).reduce((s, c) => s + cardTotal(c.token), 0)
+  const playedTotal = cards.filter((c) => !c.hosted).reduce((s, c) => s + cardTotal(c.token), 0)
+  const hasHosted = cards.some((c) => c.hosted)
+  const hostTotal = hostedTotal + playedTotal
   const ownTotal = own.reduce((s, g) => s + ownNet(g), 0)
   const total = hostTotal + ownTotal
   const shown = useCountUp(total)
@@ -98,12 +101,20 @@ export function MyBook() {
       <div className="mt-5 rounded-xl border border-hairline bg-canvas p-5">
         <span className="type-label-caption text-muted">Overall</span>
         <p className={cn('type-figure-hero mt-2', tone(total))}>{signed(shown)}</p>
-        <div className="mt-4 grid grid-cols-2 gap-3 border-t border-hairline pt-4">
+        <div className={cn('mt-4 grid gap-3 border-t border-hairline pt-4', hasHosted ? 'grid-cols-3' : 'grid-cols-2')}>
+          {hasHosted && (
+            <div>
+              <p className="flex items-center gap-1 text-xs text-muted">
+                <Shield className="h-3.5 w-3.5" /> You host
+              </p>
+              <p className={cn('type-figure-md mt-1', tone(hostedTotal))}>{signed(hostedTotal)}</p>
+            </div>
+          )}
           <div>
             <p className="flex items-center gap-1 text-xs text-muted">
-              <BadgeCheck className="h-3.5 w-3.5 text-primary" /> On Straddle
+              <BadgeCheck className="h-3.5 w-3.5 text-primary" /> {hasHosted ? 'Played' : 'On Straddle'}
             </p>
-            <p className={cn('type-figure-md mt-1', tone(hostTotal))}>{signed(hostTotal)}</p>
+            <p className={cn('type-figure-md mt-1', tone(playedTotal))}>{signed(playedTotal)}</p>
           </div>
           <div>
             <p className="flex items-center gap-1 text-xs text-muted">
