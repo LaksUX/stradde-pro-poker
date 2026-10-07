@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Download, MoreVertical, PlusSquare, Share } from 'lucide-react'
+import { Copy, Download } from 'lucide-react'
 import { promptInstall, useInstallMode } from '../../lib/install'
 import { toast } from '../../lib/toast'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from './sheet'
@@ -14,22 +14,6 @@ function dismissCount(): number {
   } catch {
     return 0
   }
-}
-
-function Steps({ items }: { items: { icon: React.ReactNode; text: React.ReactNode }[] }) {
-  return (
-    <ol className="mt-4 flex flex-col gap-3">
-      {items.map((it, i) => (
-        <li key={i} className="flex items-center gap-3 rounded-lg bg-surface-soft p-3">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
-            {i + 1}
-          </span>
-          <span className="flex-1 text-sm text-ink">{it.text}</span>
-          <span className="text-primary">{it.icon}</span>
-        </li>
-      ))}
-    </ol>
-  )
 }
 
 // Players lose links in chat history and never come back. This asks them to put
@@ -74,10 +58,12 @@ export function InstallPrompt({ label }: { label: string }) {
     }
   }
 
-  async function copyLink() {
+  const shortcut = `${window.location.host}/wpa`
+
+  async function copyShortcut() {
     try {
-      await navigator.clipboard.writeText(window.location.href)
-      toast.success('Copied. Paste it into your browser.')
+      await navigator.clipboard.writeText(shortcut)
+      toast.success('Shortcut copied')
     } catch {
       toast.error('Could not copy')
     }
@@ -106,7 +92,7 @@ export function InstallPrompt({ label }: { label: string }) {
             <SheetTitle>Keep {label} on your phone</SheetTitle>
           </SheetHeader>
           <p className="mt-1 text-sm text-body">
-            Add it to your home screen. One tap opens your card, and you never have to find the link again.
+            Keep a shortcut to your card, so you never have to find the link again.
           </p>
 
           {mode === 'native' && (
@@ -115,39 +101,17 @@ export function InstallPrompt({ label }: { label: string }) {
             </Button>
           )}
 
-          {mode === 'ios' && (
-            <Steps
-              items={[
-                { text: <>Tap the <b>Share</b> button at the bottom of Safari</>, icon: <Share className="h-5 w-5" /> },
-                { text: <>Scroll down and tap <b>Add to Home Screen</b></>, icon: <PlusSquare className="h-5 w-5" /> },
-                { text: <>Tap <b>Add</b>. Open it from your home screen</>, icon: <Download className="h-5 w-5" /> },
-              ]}
-            />
-          )}
-
-          {mode === 'android' && (
-            <Steps
-              items={[
-                { text: <>Tap the <b>menu</b> (three dots) in your browser</>, icon: <MoreVertical className="h-5 w-5" /> },
-                { text: <>Tap <b>Install app</b> or <b>Add to Home screen</b></>, icon: <PlusSquare className="h-5 w-5" /> },
-                { text: <>Tap <b>Install</b>. Open it from your home screen</>, icon: <Download className="h-5 w-5" /> },
-              ]}
-            />
-          )}
-
-          {mode === 'inapp' && (
-            <>
-              <Steps
-                items={[
-                  { text: <>Tap the <b>menu</b> or compass icon in this window</>, icon: <MoreVertical className="h-5 w-5" /> },
-                  { text: <>Choose <b>Open in browser</b> (Safari or Chrome)</>, icon: <Share className="h-5 w-5" /> },
-                  { text: <>Then add it to your home screen from there</>, icon: <PlusSquare className="h-5 w-5" /> },
-                ]}
-              />
-              <Button variant="secondary" block className="mt-3" onClick={copyLink}>
-                Copy link for my browser
-              </Button>
-            </>
+          {mode !== 'native' && (
+            <div className="mt-5 rounded-xl bg-surface-soft p-4">
+              <p className="text-xs text-muted">Your shortcut</p>
+              <div className="mt-1 flex items-center justify-between gap-3">
+                <span className="truncate text-lg font-bold text-ink">{shortcut}</span>
+                <Button variant="secondary" onClick={copyShortcut}>
+                  <Copy className="mr-1.5 h-4 w-4" /> Copy
+                </Button>
+              </div>
+              <p className="mt-2 text-xs text-muted">Type it in your browser any time to open your card.</p>
+            </div>
           )}
 
           <button
