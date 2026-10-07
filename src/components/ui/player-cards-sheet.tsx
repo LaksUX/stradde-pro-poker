@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Copy, Share2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { cardMessage, cardUrl } from '../../lib/playerCard'
+import { cardMessage, cardUrl, fetchCard } from '../../lib/playerCard'
+import { rememberCard } from '../../lib/myBook'
 import { confirmDialog } from '../../lib/confirmDialog'
 import { toast } from '../../lib/toast'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from './sheet'
@@ -20,6 +21,7 @@ export function PlayerCardsSheet({
   gameName,
   gameDate,
   players,
+  hostProfileId,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -27,6 +29,9 @@ export function PlayerCardsSheet({
   gameName: string
   gameDate: string
   players: CardPlayer[]
+  // The signed-in host. If they also play, their own row is "You" and the
+  // card is added to their My book automatically.
+  hostProfileId?: string
 }) {
   const [tokens, setTokens] = useState<Record<string, string>>({})
   const [failed, setFailed] = useState(false)
@@ -46,7 +51,16 @@ export function PlayerCardsSheet({
         return [p.profile_id, data as string] as const
       })
     )
-      .then((pairs) => !cancelled && setTokens(Object.fromEntries(pairs)))
+      .then((pairs) => {
+        if (cancelled) return
+        setTokens(Object.fromEntries(pairs))
+        const mine = pairs.find(([id]) => id === hostProfileId)
+        if (mine) {
+          fetchCard(mine[1])
+            .then((card) => card && rememberCard(mine[1], card, { hosted: true }))
+            .catch(() => {})
+        }
+      })
       .catch(() => !cancelled && setFailed(true))
     return () => {
       cancelled = true
@@ -130,7 +144,7 @@ export function PlayerCardsSheet({
             <ListRow
               key={p.profile_id}
               avatar={<NamedAvatar name={p.full_name} className="h-10 w-10" />}
-              title={p.full_name}
+              title={p.profile_id === hostProfileId ? `${p.full_name} (you)` : p.full_name}
               subtitle={
                 tokens[p.profile_id] ? (
                   <button

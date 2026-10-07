@@ -651,6 +651,7 @@ export function LiveGame() {
               gameName={game.name}
               gameDate={game.closed_at ?? game.scheduled_for}
               players={players.map((p) => ({ profile_id: p.profile_id, full_name: p.full_name }))}
+              hostProfileId={profile?.id}
             />
           </div>
         )}

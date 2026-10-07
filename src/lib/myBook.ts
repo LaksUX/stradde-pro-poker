@@ -11,7 +11,7 @@ const INCLUDE_KEY = 'straddle:own-included'
 
 export type PlaceKind = 'house' | 'club'
 
-export type KnownCard = { token: string; group: string | null; name: string | null; kind: PlaceKind }
+export type KnownCard = { token: string; group: string | null; name: string | null; kind: PlaceKind; hosted?: boolean }
 
 export type OwnGame = {
   id: string
@@ -43,9 +43,21 @@ export function knownCards(): KnownCard[] {
   return read<KnownCard[]>(CARDS_KEY, []).map((c) => ({ ...c, kind: c.kind ?? 'house' }))
 }
 
-export function rememberCard(token: string, card: Pick<CardData, 'group' | 'name' | 'kind'>) {
-  const rest = knownCards().filter((c) => c.token !== token)
-  write(CARDS_KEY, [{ token, group: card.group, name: card.name, kind: card.kind ?? 'house' }, ...rest])
+// `hosted` marks the card the person holds for games they run themselves; once
+// set it stays set when the card is refreshed later.
+export function rememberCard(
+  token: string,
+  card: Pick<CardData, 'group' | 'name' | 'kind'>,
+  opts: { hosted?: boolean } = {}
+) {
+  const all = knownCards()
+  const before = all.find((c) => c.token === token)
+  const rest = all.filter((c) => c.token !== token)
+  const hosted = opts.hosted ?? before?.hosted
+  write(CARDS_KEY, [
+    { token, group: card.group, name: card.name, kind: card.kind ?? 'house', ...(hosted ? { hosted } : {}) },
+    ...rest,
+  ])
 }
 
 export function ownGames(): OwnGame[] {
