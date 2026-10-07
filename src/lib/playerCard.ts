@@ -136,3 +136,12 @@ export async function markSettlement(
   })
   if (error) throw new Error(error.message)
 }
+
+export type CardSibling = { token: string; group: string; kind: 'house' | 'club' }
+
+// The same person's cards at other hosts (migration 0032).
+export async function fetchSiblings(token: string): Promise<CardSibling[]> {
+  const { data, error } = await supabase.rpc('get_card_siblings', { p_token: token })
+  if (error) throw new Error(error.message)
+  return (data as CardSibling[]) ?? []
+}

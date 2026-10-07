@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button'
 import { InstallPrompt } from '../components/ui/install-prompt'
 import { useCountUp } from '../hooks/useCountUp'
 import { toChips } from '../lib/chips'
-import { rememberCard } from '../lib/myBook'
+import { addCardToBook, adoptSiblings, dismissSiblings, markMe, rememberCard } from '../lib/myBook'
 import { toast } from '../lib/toast'
 import { cn } from 'cn'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
@@ -76,6 +76,8 @@ export function PlayerCard() {
     book.card ? 'ready' : 'loading'
   )
   const [noteNight, setNoteNight] = useState<string | null>(null)
+  // Other places the same person plays: offered once, added on a yes.
+  const [siblings, setSiblings] = useState<{ token: string; group: string }[]>([])
 
   const title = book.card
     ? `${book.card.group ?? 'Game night'} · ${book.card.name ?? 'Me'}`
@@ -100,6 +102,9 @@ export function PlayerCard() {
         rememberLastCard(token)
         rememberCard(token, card)
         setStatus('ready')
+        adoptSiblings(token)
+          .then((r) => !cancelled && setSiblings(r.pending))
+          .catch(() => {})
       })
       .catch(() => {
         if (!cancelled) setStatus((s) => (s === 'loading' ? 'offline' : s))
@@ -108,6 +113,19 @@ export function PlayerCard() {
       cancelled = true
     }
   }, [token])
+
+  async function addSiblings() {
+    if (!token) return
+    markMe([token, ...siblings.map((x) => x.token)])
+    for (const x of siblings) await addCardToBook(x.token).catch(() => {})
+    setSiblings([])
+    toast.success('Added to your book')
+  }
+
+  function notMe() {
+    dismissSiblings(siblings.map((x) => x.token))
+    setSiblings([])
+  }
 
   // Mark / un-mark / dispute one of my settlement lines, then refresh the card.
   async function onMark(
@@ -192,6 +210,22 @@ export function PlayerCard() {
             : ''}
         </p>
       </div>
+
+      {siblings.length > 0 && (
+        <div className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+          <p className="text-sm font-semibold text-ink">Is this you?</p>
+          <p className="mt-1 text-xs text-muted">
+            {book.card?.name ?? 'You'} also plays at {siblings.map((x) => x.group).join(', ')}. Add{' '}
+            {siblings.length === 1 ? 'it' : 'them'} to your book so everything is in one place.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <Button onClick={addSiblings}>Yes, add</Button>
+            <Button variant="secondary" onClick={notMe}>
+              Not me
+            </Button>
+          </div>
+        </div>
+      )}
 
       <InstallPrompt label={book.card?.group ?? 'your card'} />
 

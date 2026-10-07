@@ -12,6 +12,7 @@ import { chipMultiplier } from '../lib/chips'
 import {
   cardTotal,
   deleteOwnGame,
+  adoptSiblings,
   knownCards,
   newId,
   ownGames,
@@ -66,6 +67,14 @@ export function MyBook() {
           if (cancelled || !card) return
           saveBook(c.token, { ...loadBook(c.token), card, syncedAt: new Date().toISOString() })
           rememberCard(c.token, card)
+          setCards(knownCards())
+          setTick((t) => t + 1)
+        })
+        .catch(() => {})
+      // A confirmed player's other venues appear here on their own.
+      adoptSiblings(c.token)
+        .then((r) => {
+          if (cancelled || r.added === 0) return
           setCards(knownCards())
           setTick((t) => t + 1)
         })

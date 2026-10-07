@@ -15,7 +15,12 @@ function normalizeName(n: string): string {
   return n.trim().replace(/\s+/g, ' ').toLowerCase()
 }
 
-type CircleName = { profile_id: string; full_name: string; games: number }
+type CircleName = { profile_id: string; full_name: string; games: number; last_at: string | null }
+
+function lastPlayed(at: string | null): string {
+  if (!at) return ''
+  return `, last played ${new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`
+}
 type Regular = { other_id: string; full_name: string; games_played: number }
 
 // Add players to a live game from the host's OWN list: people from games this
@@ -87,7 +92,13 @@ export function InvitePlayersSheet({
       !existingNames.some((n) => normalizeName(n) === normalizeName(c.full_name))
   )
 
-  async function addFromCircle(c: CircleName) {
+  // Names can repeat, so the host confirms it is the same person first.
+  async function addFromCircle(c: CircleName): Promise<boolean> {
+    const same = await confirmDialog(
+      `${c.full_name} · ${c.games} game${c.games === 1 ? '' : 's'}${lastPlayed(c.last_at)}. Is this the same person?`,
+      { confirmLabel: 'Yes, same person', cancelLabel: 'No' }
+    )
+    if (!same) return false
     setAddingGuest(true)
     const ok = await runWrite(
       () => supabase.rpc('add_circle_player', { p_game_id: gameId, p_profile_id: c.profile_id }),
@@ -98,6 +109,7 @@ export function InvitePlayersSheet({
       setNewName('')
       onInvited?.()
     }
+    return true
   }
 
   const invitable = regulars.filter((r) => !existingProfileIds.includes(r.other_id))
@@ -144,14 +156,9 @@ export function InvitePlayersSheet({
     }
     const circleMatch = circle.find((c) => normalizeName(c.full_name) === key)
     if (circleMatch && !existingProfileIds.includes(circleMatch.profile_id)) {
-      const useExisting = await confirmDialog(`${circleMatch.full_name} already plays in your group. Use them?`, {
-        confirmLabel: 'Use existing',
-        cancelLabel: 'Add as new person',
-      })
-      if (useExisting) {
-        await addFromCircle(circleMatch)
-        return
-      }
+      // Declined = a different person with the same name: fall through and
+      // add them as new.
+      if (await addFromCircle(circleMatch)) return
     }
     setAddingGuest(true)
     const ok = await runWrite(
