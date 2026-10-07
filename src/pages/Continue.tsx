@@ -7,6 +7,7 @@ import { PageSpinner } from '../components/ui/spinner'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { signInWithGroup, startGroup } from '../lib/groupAuth'
+import { claimPendingInvite } from '../lib/hostInvites'
 
 // See PAGE_PROMPTS.md "Continue" — replaces Login. One entry point for
 // everyone, whether they're about to host or just wanted to open the app
@@ -68,6 +69,7 @@ export function Continue() {
     setError(null)
     try {
       await withTimeout(startGroup(name.trim(), groupName.trim(), pin))
+      await claimPendingInvite().catch(() => {})
       navigate('/games/new')
     } catch (e) {
       setError(describe(e))

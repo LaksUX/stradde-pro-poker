@@ -12,6 +12,7 @@ import { EntityLink } from './pages/EntityLink'
 import { PlayerCard } from './pages/PlayerCard'
 import { ManagerJoin } from './pages/ManagerJoin'
 import { MyBook } from './pages/MyBook'
+import { HostJoin } from './pages/HostJoin'
 import { WpaShortcut } from './pages/WpaShortcut'
 import { lastCardToken } from './lib/playerCard'
 import { LiveGame } from './pages/LiveGame'
@@ -58,6 +59,7 @@ export default function App() {
         <Route path="/c/:token" element={<PlayerCard />} />
         <Route path="/m/:token" element={<ManagerJoin />} />
         <Route path="/book" element={<MyBook />} />
+        <Route path="/h/:token" element={<HostJoin />} />
         <Route path="/wpa" element={<WpaShortcut />} />
 
         {/* Everything below is "inside the app" — signed-in screens that
