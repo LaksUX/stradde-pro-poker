@@ -7,7 +7,7 @@ import { PageSpinner } from '../components/ui/spinner'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { signInWithGroup, startGroup } from '../lib/groupAuth'
-import { claimPendingInvite } from '../lib/hostInvites'
+import { clearPendingInvite, pendingInvite } from '../lib/hostInvites'
 
 // See PAGE_PROMPTS.md "Continue" — replaces Login. One entry point for
 // everyone, whether they're about to host or just wanted to open the app
@@ -22,7 +22,10 @@ export function Continue() {
   const [linkExpired, setLinkExpired] = useState(false)
   // MVP 2.0: hosts start a group (name + PIN) or get back in with a group ID
   // and PIN. Phone sign-in is gone, and players never sign in at all.
-  const [mode, setMode] = useState<'start' | 'signin'>('start')
+  // Hosting is by invitation: the start form only shows once an invite link has
+  // been opened on this phone.
+  const invite = pendingInvite()
+  const [mode, setMode] = useState<'start' | 'signin'>(invite ? 'start' : 'signin')
   const [groupName, setGroupName] = useState('')
   const [groupId, setGroupId] = useState('')
   const [pin, setPin] = useState('')
@@ -68,8 +71,8 @@ export function Continue() {
     setSubmitting(true)
     setError(null)
     try {
-      await withTimeout(startGroup(name.trim(), groupName.trim(), pin))
-      await claimPendingInvite().catch(() => {})
+      await withTimeout(startGroup(name.trim(), groupName.trim(), pin, invite))
+      clearPendingInvite()
       navigate('/games/new')
     } catch (e) {
       setError(describe(e))
@@ -180,10 +183,13 @@ export function Continue() {
       )}
 
       <div className="flex flex-col items-center gap-1 text-xs">
-        {mode !== 'start' && (
+        {mode !== 'start' && invite && (
           <button className="font-semibold text-muted underline" onClick={() => { setMode('start'); setError(null) }}>
             Start a new group
           </button>
+        )}
+        {!invite && (
+          <p className="text-center text-muted">Hosting is by invitation. Open the link a host sent you to start.</p>
         )}
         {mode !== 'signin' && (
           <button className="font-semibold text-muted underline" onClick={() => { setMode('signin'); setError(null) }}>

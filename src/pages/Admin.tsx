@@ -8,6 +8,8 @@ import { PageSpinner, InlineSpinner } from '../components/ui/spinner'
 import { ListGroup, ListRow } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
+import { ensureHostInvite, hostInviteUrl } from '../lib/hostInvites'
+import { toast } from '../lib/toast'
 
 type ProfileRow = {
   id: string
@@ -79,6 +81,26 @@ export function Admin() {
   return (
     <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
       <h1 className="type-page-title text-ink">Admin</h1>
+      <Button
+        variant="secondary"
+        block
+        className="mt-4"
+        onClick={async () => {
+          try {
+            const url = hostInviteUrl(await ensureHostInvite())
+            const text = `Run your own game nights on Straddle. Open this to get started:\n${url}`
+            if (navigator.share) await navigator.share({ title: 'Host on Straddle', text }).catch(() => {})
+            else {
+              await navigator.clipboard.writeText(text)
+              toast.success('Invite copied')
+            }
+          } catch {
+            toast.error('Could not make the invite link')
+          }
+        }}
+      >
+        Send a host invite link
+      </Button>
       {loadingRows && <InlineSpinner />}
       {!loadingRows && rows.length === 0 && (
         <p className="mt-4 text-center text-sm text-muted">No profiles yet.</p>

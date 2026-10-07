@@ -5,7 +5,12 @@ import type { Profile } from '../hooks/useAuth'
 // group ID + 4-digit PIN (checked server-side, see migration 0023 and the
 // group-login Edge Function) gets the host back in on a new phone.
 
-export async function startGroup(name: string, groupName: string, pin: string): Promise<string> {
+export async function startGroup(
+  name: string,
+  groupName: string,
+  pin: string,
+  invite: string | null = null
+): Promise<string> {
   let user = (await supabase.auth.getSession()).data.session?.user ?? null
   if (!user) {
     const { data, error } = await supabase.auth.signInAnonymously()
@@ -20,7 +25,11 @@ export async function startGroup(name: string, groupName: string, pin: string): 
     if (error) throw new Error(error.message)
   }
 
-  const { data, error } = await supabase.rpc('start_hosting', { p_group_name: groupName, p_pin: pin })
+  const { data, error } = await supabase.rpc('start_hosting', {
+    p_group_name: groupName,
+    p_pin: pin,
+    p_invite: invite,
+  })
   if (error) throw new Error(error.message)
   return data as string
 }

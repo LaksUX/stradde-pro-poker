@@ -1,5 +1,5 @@
 import { chipMultiplier } from './chips'
-import { loadBook, totalNet, type CardData } from './playerCard'
+import { fetchCard, fetchSiblings, loadBook, saveBook, totalNet, type CardData, type CardSibling } from './playerCard'
 
 // "My book": everything a player keeps on this phone. Which cards (groups) they
 // have opened, plus nights they log themselves at places that do not use
@@ -8,6 +8,8 @@ import { loadBook, totalNet, type CardData } from './playerCard'
 const CARDS_KEY = 'straddle:cards'
 const OWN_KEY = 'straddle:own'
 const INCLUDE_KEY = 'straddle:own-included'
+const ME_KEY = 'straddle:me-tokens'
+const DISMISSED_KEY = 'straddle:sibling-dismissed'
 
 export type PlaceKind = 'house' | 'club'
 
@@ -100,4 +102,53 @@ export function newId(): string {
   return typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
     : String(Date.now()) + Math.random().toString(16).slice(2)
+}
+
+// ---------------------------------------------------------------------------
+// Same person at several hosts. Once a player says "yes, that is me" for a
+// card, every other card for that person is added to this phone's book
+// automatically, now and whenever a new host seats them. Until they say so,
+// the other places are only offered, never added.
+// ---------------------------------------------------------------------------
+
+function tokenSet(key: string): Set<string> {
+  return new Set(read<string[]>(key, []))
+}
+
+export function markMe(tokens: string[]) {
+  const all = tokenSet(ME_KEY)
+  for (const t of tokens) all.add(t)
+  write(ME_KEY, [...all])
+}
+
+export function dismissSiblings(tokens: string[]) {
+  const all = tokenSet(DISMISSED_KEY)
+  for (const t of tokens) all.add(t)
+  write(DISMISSED_KEY, [...all])
+}
+
+export async function addCardToBook(token: string): Promise<void> {
+  const card = await fetchCard(token)
+  if (!card) return
+  saveBook(token, { ...loadBook(token), card, syncedAt: new Date().toISOString() })
+  rememberCard(token, card)
+}
+
+// Looks for this person's other cards. Confirmed players get them added;
+// anyone else gets the list back to ask "is this you?".
+export async function adoptSiblings(token: string): Promise<{ added: number; pending: CardSibling[] }> {
+  const siblings = await fetchSiblings(token)
+  const known = new Set(knownCards().map((c) => c.token))
+  const fresh = siblings.filter((s) => !known.has(s.token))
+  const me = tokenSet(ME_KEY)
+  if (me.has(token)) {
+    for (const s of fresh) {
+      await addCardToBook(s.token).catch(() => {})
+      me.add(s.token)
+    }
+    write(ME_KEY, [...me])
+    return { added: fresh.length, pending: [] }
+  }
+  const dismissed = tokenSet(DISMISSED_KEY)
+  return { added: 0, pending: fresh.filter((s) => !dismissed.has(s.token)) }
 }

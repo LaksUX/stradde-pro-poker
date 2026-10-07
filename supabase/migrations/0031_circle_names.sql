@@ -24,8 +24,9 @@ $$;
 
 -- Matching names for the host of p_game_id (callable by the host or a co-host).
 -- One row per distinct name: the person who has played the most.
+drop function if exists circle_names(uuid, text);
 create or replace function circle_names(p_game_id uuid, p_query text)
-returns table (profile_id uuid, full_name text, games bigint)
+returns table (profile_id uuid, full_name text, games bigint, last_at timestamptz)
 language plpgsql
 stable
 security definer
@@ -44,11 +45,12 @@ begin
   select host_id into v_host from games where id = p_game_id;
 
   return query
-  select d.profile_id, d.full_name, d.games
+  select d.profile_id, d.full_name, d.games, d.last_at
   from (
-    select distinct on (lower(btrim(a.full_name))) a.profile_id, a.full_name, a.games
+    select distinct on (lower(btrim(a.full_name))) a.profile_id, a.full_name, a.games, a.last_at
     from (
-      select p.id as profile_id, p.full_name, count(distinct g.id) as games
+      select p.id as profile_id, p.full_name, count(distinct g.id) as games,
+             max(coalesce(g.closed_at, g.scheduled_for)) as last_at
       from games g
       join game_players gp on gp.game_id = g.id
       join profiles p on p.id = gp.profile_id
