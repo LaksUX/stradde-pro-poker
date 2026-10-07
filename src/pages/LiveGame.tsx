@@ -897,22 +897,19 @@ export function LiveGame() {
           </Button>
         </>
       ) : (
-        <>
-          {activePlayers.length > 0 && (
+        // The settle button only appears once everyone has cashed out.
+        activePlayers.length > 0 || players.length === 0 ? (
+          players.length > 0 && (
             <p className="mt-4 text-center text-xs text-muted">
-              {activePlayers.length === 1 ? '1 player hasn\'t' : `${activePlayers.length} players haven't`}{' '}
-              cashed out yet — closing now counts their buy-ins as a loss to the table.
+              {activePlayers.length === 1 ? '1 player is' : `${activePlayers.length} players are`} still playing.
+              Settle appears once everyone has cashed out.
             </p>
-          )}
-          <Button
-            block
-            className={activePlayers.length > 0 ? 'mt-2' : 'mt-4'}
-            disabled={closing}
-            onClick={closeAndSettle}
-          >
+          )
+        ) : (
+          <Button block className="mt-4" disabled={closing} onClick={closeAndSettle}>
             {closing ? 'Closing…' : 'Done cashing out · Settle'}
           </Button>
-        </>
+        )
       )}
 
       <Sheet open={sheetPlayerId != null} onOpenChange={(open) => !open && setSheetPlayerId(null)}>
