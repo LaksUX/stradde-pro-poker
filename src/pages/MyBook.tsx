@@ -149,7 +149,7 @@ export function MyBook() {
                         <span className="block text-sm font-semibold text-ink">{c.group ?? 'Game night'}</span>
                         <span className="mt-0.5 flex items-center gap-2 text-xs text-muted">
                           <span className="inline-flex items-center gap-1 rounded-full bg-surface-strong px-2 py-0.5 font-semibold text-ink">
-                            <BadgeCheck className="h-3 w-3 text-primary" /> On Straddle
+                            <BadgeCheck className="h-3 w-3 text-primary" /> {c.hosted ? 'You host' : 'On Straddle'}
                           </span>
                           {nightsLabel(n)}
                         </span>
