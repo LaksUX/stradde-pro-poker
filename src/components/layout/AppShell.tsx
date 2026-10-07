@@ -17,7 +17,9 @@ export function AppShell() {
       <header className="sticky top-0 z-40 flex h-12 items-center bg-surface-soft/95 px-2 backdrop-blur">
         {!isHome ? (
           <button
-            onClick={() => navigate(-1)}
+            // First screen in this tab or installed app: there is nothing to go
+            // back to, so Back goes Home instead of doing nothing.
+            onClick={() => (location.key === 'default' ? navigate('/home') : navigate(-1))}
             aria-label="Back"
             className="flex h-9 w-9 items-center justify-center rounded-full text-ink transition-colors active:scale-95 hover:bg-surface"
           >

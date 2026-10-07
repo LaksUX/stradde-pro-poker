@@ -45,7 +45,7 @@ export function Continue() {
 
   // Already signed in — route by role/approval, never re-show the form.
   if (session && profile) {
-    if (profile.role === 'host' && profile.approved) return <Navigate to="/games/new" replace />
+    if (profile.role === 'host' && profile.approved) return <Navigate to="/home" replace />
     if (profile.role === 'host' && !profile.approved)
       return <Navigate to="/pending-approval" replace />
     return <Navigate to="/home" replace />
