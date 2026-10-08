@@ -758,9 +758,22 @@ export function LiveGame() {
             </button>
           </div>
           {players.length > 0 && (
-            <p className="mt-3 border-t border-hairline-soft pt-3 text-center text-xs text-muted">
-              {cashedOutPlayers.length} of {players.length} cashed out
-            </p>
+            <div className="mt-3 border-t border-hairline-soft pt-3 text-center text-xs text-muted">
+              <p>
+                {cashedOutPlayers.length} of {players.length} cashed out
+              </p>
+              {activePlayers.length > 0 && (
+                <p className="mt-1">
+                  Still in play{' '}
+                  <span className="font-semibold text-ink">
+                    {formatChips(
+                      players.reduce((s, p) => s + p.confirmed_buyins * game.stake - (p.cashout ?? 0), 0),
+                      ratio
+                    )}
+                  </span>
+                </p>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
