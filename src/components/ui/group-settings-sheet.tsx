@@ -228,7 +228,7 @@ export function GroupSettingsSheet({
                       <button
                         type="button"
                         onClick={() => togglePaused(h)}
-                        className="text-xs font-semibold text-muted hover:text-ink"
+                        className="cta-soft text-xs font-semibold text-muted hover:text-ink"
                       >
                         {h.paused ? 'Resume' : 'Pause'}
                       </button>

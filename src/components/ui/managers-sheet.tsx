@@ -151,7 +151,7 @@ export function ManagersSheet({
                   type="button"
                   disabled={busy}
                   onClick={newLink}
-                  className="mt-3 w-full text-center text-xs font-semibold text-muted hover:text-ink"
+                  className="cta-soft mt-3 w-full py-2.5 text-xs font-semibold text-muted hover:text-ink"
                 >
                   Make a new link
                 </button>

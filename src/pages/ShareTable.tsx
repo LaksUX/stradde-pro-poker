@@ -345,7 +345,7 @@ export function ShareTable() {
           </Button>
           <button
             onClick={() => navigate(`/t/${gameId}?display=1`, { replace: true })}
-            className="mt-2 w-full text-center text-xs text-muted underline"
+            className="cta-soft mt-2 w-full py-2.5 text-xs text-muted"
           >
             Put this device on table display
           </button>
