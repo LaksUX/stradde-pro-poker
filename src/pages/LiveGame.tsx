@@ -22,7 +22,7 @@ import { PlayerCardsSheet } from '../components/ui/player-cards-sheet'
 import { ManagersSheet } from '../components/ui/managers-sheet'
 import { Slider } from '../components/ui/slider'
 import { Switch } from '../components/ui/switch'
-import { UserPlus, ArrowUp, ArrowDown, ChevronDown, Shield, IdCard } from 'lucide-react'
+import { UserPlus, ArrowUp, ArrowDown, ChevronDown, Shield, IdCard, Pencil } from 'lucide-react'
 
 const MAX_BUYINS = 100
 
@@ -81,6 +81,8 @@ export function LiveGame() {
   const [players, setPlayers] = useState<PlayerRow[]>([])
   const [now, setNow] = useState(() => Date.now())
   const [rakeOpen, setRakeOpen] = useState(false)
+  // Rake stays masked until tapped; then the number shows with an edit button.
+  const [rakeShown, setRakeShown] = useState(false)
   const [rakeValue, setRakeValue] = useState('')
   const [savingRake, setSavingRake] = useState(false)
   const [closing, setClosing] = useState(false)
@@ -766,14 +768,35 @@ export function LiveGame() {
             <span>
               {players.length > 0 ? `${cashedOutPlayers.length} of ${players.length} cashed out` : 'No players yet'}
             </span>
-            <button
-              type="button"
-              onClick={openRakeSheet}
-              aria-label="Edit rake"
-              className="flex items-center gap-1.5 hover:text-ink"
-            >
-              Rake <span className="tracking-widest">••••</span>
-            </button>
+            {rakeShown ? (
+              <span className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setRakeShown(false)}
+                  aria-label="Hide rake"
+                  className="hover:text-ink"
+                >
+                  Rake <span className="font-semibold text-ink">{formatChips(game.rake, ratio)}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={openRakeSheet}
+                  aria-label="Edit rake"
+                  className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-strong text-muted hover:text-ink"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setRakeShown(true)}
+                aria-label="Show rake"
+                className="flex items-center gap-1.5 hover:text-ink"
+              >
+                Rake <span className="tracking-widest">••••</span>
+              </button>
+            )}
           </div>
         </CardContent>
       </Card>
