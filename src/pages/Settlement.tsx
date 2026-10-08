@@ -263,7 +263,7 @@ export function Settlement() {
                       />
                     </div>
                     <button
-                      className="mt-2 text-xs text-error underline"
+                      className="cta-soft mt-2 text-xs text-error"
                       onClick={() => removeTransfer(t.id)}
                     >
                       Remove transfer

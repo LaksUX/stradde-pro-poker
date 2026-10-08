@@ -184,7 +184,7 @@ export function Continue() {
 
       <div className="flex flex-col items-center gap-1 text-xs">
         {mode !== 'start' && invite && (
-          <button className="font-semibold text-muted underline" onClick={() => { setMode('start'); setError(null) }}>
+          <button className="cta-soft font-semibold text-muted" onClick={() => { setMode('start'); setError(null) }}>
             Start a new group
           </button>
         )}
@@ -192,7 +192,7 @@ export function Continue() {
           <p className="text-center text-muted">Hosting is by invitation. Open the link a host sent you to start.</p>
         )}
         {mode !== 'signin' && (
-          <button className="font-semibold text-muted underline" onClick={() => { setMode('signin'); setError(null) }}>
+          <button className="cta-soft font-semibold text-muted" onClick={() => { setMode('signin'); setError(null) }}>
             I have a group ID
           </button>
         )}

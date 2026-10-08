@@ -149,7 +149,7 @@ export function PlayerCardsSheet({
                 tokens[p.profile_id] ? (
                   <button
                     type="button"
-                    className="text-xs font-semibold text-muted hover:text-ink"
+                    className="cta-soft text-xs font-semibold text-muted hover:text-ink"
                     onClick={() => regenerate(p)}
                   >
                     New link

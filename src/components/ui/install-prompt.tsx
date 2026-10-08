@@ -117,7 +117,7 @@ export function InstallPrompt({ label }: { label: string }) {
           <button
             type="button"
             onClick={notNow}
-            className="mt-4 w-full text-center text-sm font-semibold text-muted hover:text-ink"
+            className="cta-soft mt-4 w-full py-2.5 text-sm font-semibold text-muted hover:text-ink"
           >
             Not now
           </button>

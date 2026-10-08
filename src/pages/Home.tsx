@@ -402,7 +402,7 @@ export function Home() {
             </span>
           </button>
         )}
-        <button className="mt-2 text-xs text-muted underline" onClick={handleLogout}>
+        <button className="cta-soft mt-2 text-xs text-muted" onClick={handleLogout}>
           Log out
         </button>
       </header>

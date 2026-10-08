@@ -28,10 +28,10 @@ export function PendingApproval() {
         Hosting is paused for your account. Ask the person who invited you, or an admin, to
         turn it back on. This doesn't affect joining games other people host.
       </p>
-      <button className="mt-6 text-sm text-primary underline" onClick={() => navigate('/home')}>
+      <button className="cta-soft mt-6 text-sm text-primary" onClick={() => navigate('/home')}>
         Back to Home
       </button>
-      <button className="mt-4 block w-full text-sm text-muted underline" onClick={handleLogout}>
+      <button className="cta-soft mt-4 w-full py-2.5 text-sm text-muted" onClick={handleLogout}>
         Log out
       </button>
     </div>

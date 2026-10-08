@@ -9,10 +9,10 @@ const buttonVariants = cva(
         default:
           "bg-primary text-on-primary hover:bg-primary-active disabled:bg-primary-disabled disabled:cursor-not-allowed disabled:text-ink/50",
         secondary: "bg-canvas text-ink border border-hairline hover:bg-surface-strong",
-        ghost: "bg-transparent text-ink border border-hairline hover:bg-canvas",
+        ghost: "bg-surface-strong/60 text-ink border border-hairline hover:bg-surface-strong",
         destructive: "bg-canvas text-error border border-error/40 hover:bg-error/10",
-        outline: "border border-hairline bg-transparent text-ink hover:bg-surface-strong",
-        link: "text-primary underline-offset-4 hover:underline",
+        outline: "border border-hairline bg-surface-strong/60 text-ink hover:bg-surface-strong",
+        link: "rounded-full bg-primary/10 text-primary hover:bg-primary/15",
       },
       size: {
         default: "h-12 px-6 text-[16px]",

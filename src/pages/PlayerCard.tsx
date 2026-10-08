@@ -386,7 +386,7 @@ function SettlementLine({
         <p className="mt-1 flex items-center justify-between gap-2 text-xs text-muted">
           <span>You marked it. Waiting for {other} to agree.</span>
           {canAct && (
-            <button type="button" className="font-semibold text-ink underline" onClick={() => onMark(st, 'unmark')}>
+            <button type="button" className="cta-soft font-semibold text-ink" onClick={() => onMark(st, 'unmark')}>
               Undo
             </button>
           )}
