@@ -716,7 +716,7 @@ export function LiveGame() {
         </div>
       )}
 
-      <Card className="mt-3">
+      <Card className="summary-dark mt-3">
         <CardContent>
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="min-w-0">

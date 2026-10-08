@@ -107,7 +107,7 @@ export function MyBook() {
       <h1 className="text-3xl font-bold text-ink">My book</h1>
       <p className="mt-1 text-xs text-muted">Kept on this phone only.</p>
 
-      <div className="mt-5 rounded-xl border border-hairline bg-canvas p-5">
+      <div className="summary-dark mt-5 rounded-xl p-5">
         <span className="type-label-caption text-muted">Overall</span>
         <p className={cn('type-figure-hero mt-2', tone(total))}>{signed(shown)}</p>
         <div className={cn('mt-4 grid gap-3 border-t border-hairline pt-4', hasHosted ? 'grid-cols-3' : 'grid-cols-2')}>

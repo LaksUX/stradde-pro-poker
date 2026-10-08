@@ -288,7 +288,7 @@ export function MyGame() {
     <div className="mx-auto w-full max-w-sm p-4 sm:p-6">
       <h1 className="type-page-title text-ink">{game.name}</h1>
 
-      <div className="mt-4 text-center">
+      <div className="summary-dark mt-4 rounded-xl p-5 text-center">
         <p className="text-xs font-medium uppercase tracking-wider text-muted">
           {netBanks == null ? 'Total buy-ins' : 'Your result'}
         </p>

@@ -209,3 +209,26 @@ body {
     line-height: 1.5;
   }
 }
+/*
+  Summary cards (totals, results, the overall figure) are highlighted in dark
+  on the light canvas. The tokens are re-declared inside the card, so every
+  text-ink / text-muted / bg-canvas / text-win inside it flips automatically.
+*/
+.summary-dark {
+  --color-card: #16202e;
+  --color-card-foreground: #f4f6fa;
+  --color-canvas: #202c40;
+  --color-surface-soft: #1c2738;
+  --color-surface-strong: #2a3850;
+  --color-ink: #f4f6fa;
+  --color-body: #d4dbe7;
+  --color-muted: #a3b0c4;
+  --color-muted-soft: #8391a7;
+  --color-hairline: #33425b;
+  --color-hairline-soft: #2a3850;
+  --color-border-strong: #44566f;
+  --color-win: #3ddc97;
+  --color-error: #ff7b72;
+  background: #16202e;
+  color: #f4f6fa;
+}
