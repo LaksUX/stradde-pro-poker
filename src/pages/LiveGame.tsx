@@ -764,6 +764,31 @@ export function LiveGame() {
               </div>
             )}
           </div>
+          {activePlayers.length > 0 &&
+            (() => {
+              const totalIn = players.reduce((sum, p) => sum + p.confirmed_buyins * game.stake, 0)
+              if (totalIn <= 0) return null
+              const totalOut = players.reduce((sum, p) => sum + (p.cashout ?? 0), 0)
+              const outPct = Math.max(0, Math.min(100, (totalOut / totalIn) * 100))
+              return (
+                <div
+                  className="mt-4"
+                  role="img"
+                  aria-label={`${Math.round(outPct)}% of the chips are cashed out, ${Math.round(100 - outPct)}% still in play`}
+                >
+                  <div className="flex h-2 w-full overflow-hidden rounded-full bg-ink/25">
+                    <div
+                      className="h-full bg-win transition-[width] duration-500"
+                      style={{ width: `${outPct}%` }}
+                    />
+                  </div>
+                  <div className="mt-1.5 flex justify-between text-[11px] text-muted">
+                    <span>{Math.round(outPct)}% cashed out</span>
+                    <span>{Math.round(100 - outPct)}% in play</span>
+                  </div>
+                </div>
+              )
+            })()}
           <div className="mt-3 flex items-center justify-between border-t border-hairline-soft pt-3 text-xs text-muted">
             <span>
               {players.length > 0 ? `${cashedOutPlayers.length} of ${players.length} cashed out` : 'No players yet'}
