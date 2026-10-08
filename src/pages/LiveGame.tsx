@@ -718,9 +718,11 @@ export function LiveGame() {
 
       <Card className="summary-dark mt-3">
         <CardContent>
-          <div className="grid grid-cols-3 gap-2 text-center">
+          {/* The night in three beats: what came in, what has gone out, what is
+              still on the table. Rake stays quiet on the second row. */}
+          <div className={`grid gap-2 text-center ${activePlayers.length > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <div className="min-w-0">
-              <p className="type-label-caption text-muted">Buy-ins</p>
+              <p className="type-label-caption text-muted">Bought in</p>
               <p className="mt-1">
                 <ChipsFigure
                   amount={players.reduce((s, p) => s + p.confirmed_buyins * game.stake, 0)}
@@ -732,7 +734,7 @@ export function LiveGame() {
               </p>
             </div>
             <div className="min-w-0">
-              <p className="type-label-caption text-muted">Cash-out</p>
+              <p className="type-label-caption text-muted">Cashed out</p>
               <p className="mt-1">
                 <ChipsFigure amount={players.reduce((s, p) => s + (p.cashout ?? 0), 0)} ratio={ratio} />
               </p>
@@ -745,36 +747,34 @@ export function LiveGame() {
                 </p>
               )}
             </div>
+            {activePlayers.length > 0 && (
+              <div className="min-w-0">
+                <p className="type-label-caption text-muted">Still in play</p>
+                <p className="mt-1">
+                  <ChipsFigure
+                    amount={players.reduce((s, p) => s + p.confirmed_buyins * game.stake - (p.cashout ?? 0), 0)}
+                    ratio={ratio}
+                  />
+                </p>
+                <p className="mt-0.5 text-[12.5px] text-muted">
+                  {activePlayers.length} player{activePlayers.length === 1 ? '' : 's'}
+                </p>
+              </div>
+            )}
+          </div>
+          <div className="mt-3 flex items-center justify-between border-t border-hairline-soft pt-3 text-xs text-muted">
+            <span>
+              {players.length > 0 ? `${cashedOutPlayers.length} of ${players.length} cashed out` : 'No players yet'}
+            </span>
             <button
               type="button"
-              className="min-w-0"
               onClick={openRakeSheet}
               aria-label="Edit rake"
+              className="flex items-center gap-1.5 hover:text-ink"
             >
-              <p className="type-label-caption text-muted">Rake</p>
-              <p className="mt-1">
-                <span className="type-figure-md tracking-widest text-muted">••••</span>
-              </p>
+              Rake <span className="tracking-widest">••••</span>
             </button>
           </div>
-          {players.length > 0 && (
-            <div className="mt-3 border-t border-hairline-soft pt-3 text-center text-xs text-muted">
-              <p>
-                {cashedOutPlayers.length} of {players.length} cashed out
-              </p>
-              {activePlayers.length > 0 && (
-                <p className="mt-1">
-                  Still in play{' '}
-                  <span className="font-semibold text-ink">
-                    {formatChips(
-                      players.reduce((s, p) => s + p.confirmed_buyins * game.stake - (p.cashout ?? 0), 0),
-                      ratio
-                    )}
-                  </span>
-                </p>
-              )}
-            </div>
-          )}
         </CardContent>
       </Card>
 
