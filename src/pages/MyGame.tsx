@@ -467,7 +467,7 @@ export function MyGame() {
 
             <TabsContent value="cashout" className="mt-4">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="cashout-amount">Cash-out amount · 1 buy-in = {formatChips(1, ratio)}</Label>
+                <Label htmlFor="cashout-amount">Type your total chip count</Label>
                 <Input
                   id="cashout-amount"
                   type="number"

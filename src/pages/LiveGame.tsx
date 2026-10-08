@@ -1048,7 +1048,7 @@ export function LiveGame() {
                     }}
                   />
                   <p className="text-xs text-muted">
-                    1 buy-in = {formatChips(game.stake, ratio)}
+                    Type your total chip count
                   </p>
                   {sheetPlayer.cashout != null && sheetPlayer.cashout_confirm_status === 'confirmed' && (
                     <p className="text-xs text-muted">
