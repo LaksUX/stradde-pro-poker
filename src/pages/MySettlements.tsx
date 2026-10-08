@@ -112,7 +112,7 @@ export function MySettlements() {
       <h1 className="type-page-title text-ink">My settlements</h1>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <Card>
+        <Card className="summary-dark">
           <CardHeader>
             <CardTitle>Owed to you</CardTitle>
           </CardHeader>
@@ -122,7 +122,7 @@ export function MySettlements() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="summary-dark">
           <CardHeader>
             <CardTitle>You owe</CardTitle>
           </CardHeader>

@@ -195,7 +195,7 @@ export function PlayerCard() {
         </Link>
       </div>
 
-      <div className="mt-5 rounded-xl border border-hairline bg-canvas p-5">
+      <div className="summary-dark mt-5 rounded-xl p-5">
         <div className="flex items-center justify-between">
           <span className="type-label-caption text-muted">
             Your book · {nights.length} night{nights.length === 1 ? '' : 's'}
