@@ -1,58 +1,18 @@
-import { formatChips, toChips, valueFactor, type ChipRatio } from '../../lib/chips'
-import { cn } from 'cn'
+import { toChips, valueFactor, type ChipRatio } from '../../lib/chips'
 
-function signed(n: number): string {
-  const abs = Math.abs(n).toLocaleString('en-US')
-  return n > 0 ? `+${abs}` : n < 0 ? `−${abs}` : '0'
-}
-
-// Maps one player's buy-ins and counted chips to their result, side by side:
-// the chips as they sit on the table, and what they are worth at this table's
-// ratio. Amounts are banks (chips / 10,000), like everywhere else.
-export function ConversionTable({
-  buyinBanks,
-  cashoutBanks,
-  ratio,
-}: {
-  buyinBanks: number
-  cashoutBanks: number
-  ratio: ChipRatio
-}) {
+// 1:2 tables only: the typed chip count and what it is worth, with a legend.
+// At 1:1 chips equal value, so nothing is shown.
+export function ConversionTable({ cashoutBanks, ratio }: { cashoutBanks: number; ratio: ChipRatio }) {
   const f = valueFactor(ratio)
-  const half = f !== 1
-  const resultBanks = cashoutBanks - buyinBanks
-  const val = (banks: number) => Math.round(toChips(banks, ratio) * f)
-  const tone = (n: number) => (n > 0 ? 'text-win' : n < 0 ? 'text-error' : 'text-ink')
-
+  if (f === 1) return null
+  const value = Math.round(toChips(cashoutBanks, ratio) * f * 10) / 10
   return (
-    <div className="mt-3 rounded-lg bg-surface-strong px-3 py-2.5 text-sm">
-      <div className="grid grid-cols-[1fr_auto_auto] items-baseline gap-x-4 gap-y-1">
-        <span />
-        <span className="text-right text-[11px] font-semibold uppercase tracking-wide text-muted">Chips</span>
-        {half ? (
-          <span className="text-right text-[11px] font-semibold uppercase tracking-wide text-muted">Value × ½</span>
-        ) : (
-          <span />
-        )}
-
-        <span className="text-muted">Bought in</span>
-        <span className="text-right text-ink">{formatChips(buyinBanks, ratio)}</span>
-        {half ? <span className="text-right text-ink">{val(buyinBanks).toLocaleString('en-US')}</span> : <span />}
-
-        <span className="text-muted">Cash-out</span>
-        <span className="text-right text-ink">{formatChips(cashoutBanks, ratio)}</span>
-        {half ? <span className="text-right text-ink">{val(cashoutBanks).toLocaleString('en-US')}</span> : <span />}
-
-        <span className="font-semibold text-ink">Result</span>
-        <span className={cn('text-right font-semibold', tone(resultBanks))}>
-          {signed(toChips(resultBanks, ratio))}
-        </span>
-        {half ? (
-          <span className={cn('text-right font-semibold', tone(resultBanks))}>{signed(val(resultBanks))}</span>
-        ) : (
-          <span />
-        )}
-      </div>
+    <div className="mt-2 flex items-baseline justify-between rounded-lg bg-surface-strong px-3 py-2.5">
+      <span className="text-xs text-muted">Cash-out value</span>
+      <span className="flex items-baseline gap-2">
+        <span className="type-figure-md text-ink">{value.toLocaleString('en-US')}</span>
+        <span className="rounded-full bg-canvas px-2 py-0.5 text-[11px] font-semibold text-muted">× ½</span>
+      </span>
     </div>
   )
 }
