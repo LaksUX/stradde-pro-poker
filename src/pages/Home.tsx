@@ -21,7 +21,7 @@ import { LineChart } from '../components/ui/line-chart'
 import { GroupSettingsSheet } from '../components/ui/group-settings-sheet'
 import { getMyGroup } from '../lib/groupAuth'
 import { ownGames, ownNet, type OwnGame } from '../lib/myBook'
-import { OwnGameSheet } from './MyBook'
+import { OwnGameSheet } from '../components/ui/own-game-sheet'
 import { Plus, Bell, BellOff, Trash2, Settings } from 'lucide-react'
 
 type HostedGame = {
@@ -543,11 +543,7 @@ export function Home() {
                   <Plus className="mr-2 h-4 w-4" /> Add a game I played
                 </Button>
                 <p className="mt-2 text-center text-xs text-muted">
-                  For places that do not use Straddle. Only you see it. Same as{' '}
-                  <button type="button" className="font-semibold text-ink underline" onClick={() => navigate('/book')}>
-                    My book
-                  </button>
-                  .
+                  For places that do not use Straddle. Only you see it.
                 </p>
                 </>
               )}

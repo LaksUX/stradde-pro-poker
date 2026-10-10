@@ -11,7 +11,6 @@ import { ShareTable } from './pages/ShareTable'
 import { EntityLink } from './pages/EntityLink'
 import { PlayerCard } from './pages/PlayerCard'
 import { ManagerJoin } from './pages/ManagerJoin'
-import { MyBook } from './pages/MyBook'
 import { HostJoin } from './pages/HostJoin'
 import { WpaShortcut } from './pages/WpaShortcut'
 import { lastCardToken } from './lib/playerCard'
@@ -58,7 +57,7 @@ export default function App() {
         <Route path="/e/:slug" element={<EntityLink />} />
         <Route path="/c/:token" element={<PlayerCard />} />
         <Route path="/m/:token" element={<ManagerJoin />} />
-        <Route path="/book" element={<MyBook />} />
+        <Route path="/book" element={<Navigate to="/" replace />} />
         <Route path="/h/:token" element={<HostJoin />} />
         <Route path="/wpa" element={<WpaShortcut />} />
 
