@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { runWrite } from '../../lib/errors'
+import { giveStartingBuyin } from '../../lib/seat'
 import { confirmDialog } from '../../lib/confirmDialog'
 import { toast } from '../../lib/toast'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from './sheet'
@@ -104,6 +105,7 @@ export function InvitePlayersSheet({
       () => supabase.rpc('add_circle_player', { p_game_id: gameId, p_profile_id: c.profile_id }),
       'Adding player'
     )
+    if (ok) await giveStartingBuyin(gameId, c.profile_id, c.full_name)
     setAddingGuest(false)
     if (ok) {
       setNewName('')
@@ -146,6 +148,7 @@ export function InvitePlayersSheet({
           () => supabase.from('game_players').insert({ game_id: gameId, profile_id: match.other_id }),
           'Adding player'
         )
+        if (ok) await giveStartingBuyin(gameId, match.other_id, match.full_name)
         setAddingGuest(false)
         if (ok) {
           setNewName('')
@@ -161,10 +164,13 @@ export function InvitePlayersSheet({
       if (await addFromCircle(circleMatch)) return
     }
     setAddingGuest(true)
-    const ok = await runWrite(
-      () => supabase.rpc('add_guest_player', { p_game_id: gameId, p_name: name }),
-      'Adding player'
-    )
+    let newId: string | null = null
+    const ok = await runWrite(async () => {
+      const r = await supabase.rpc('add_guest_player', { p_game_id: gameId, p_name: name })
+      newId = (r.data as string | null) ?? null
+      return r
+    }, 'Adding player')
+    if (ok && newId) await giveStartingBuyin(gameId, newId, name)
     setAddingGuest(false)
     if (ok) {
       setNewName('')
@@ -182,6 +188,12 @@ export function InvitePlayersSheet({
           .insert([...selected].map((profile_id) => ({ game_id: gameId, profile_id }))),
       'Inviting'
     )
+    if (ok) {
+      for (const id of selected) {
+        const r = regulars.find((x) => x.other_id === id)
+        if (r) await giveStartingBuyin(gameId, id, r.full_name)
+      }
+    }
     setInviting(false)
     if (ok) {
       onInvited?.()

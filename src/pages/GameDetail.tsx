@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useIsGameHost } from '../hooks/useIsGameHost'
-import { toChips, type ChipRatio } from '../lib/chips'
+import { netValue, toChips, type ChipRatio } from '../lib/chips'
 import { PageSpinner } from '../components/ui/spinner'
 import { ListGroup, ListRow } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
@@ -167,9 +167,9 @@ export function GameDetail() {
                 <span className="type-figure-md text-muted">In play</span>
               ) : (
                 <ChipsFigure
-                  amount={p.cashout - p.buyins * game.stake}
+                  amount={netValue(p.cashout, p.buyins * game.stake, ratio)}
                   ratio={ratio}
-                  tone={p.cashout - p.buyins * game.stake >= 0 ? 'win' : 'error'}
+                  tone={netValue(p.cashout, p.buyins * game.stake, ratio) >= 0 ? 'win' : 'error'}
                 />
               )
             }

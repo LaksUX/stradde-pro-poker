@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { formatChips, fromChips, toChips, type ChipRatio } from '../lib/chips'
+import { formatChips, fromChips, netValue, toChips, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { Button } from '../components/ui/button'
@@ -202,7 +202,8 @@ export function MyGame() {
   const confirmedBuyins = requests
     .filter((r) => r.status === 'confirmed')
     .reduce((s, r) => s + r.count, 0)
-  const netBanks = myPlayer.cashout == null ? null : myPlayer.cashout - confirmedBuyins * game.stake
+  const netBanks =
+    myPlayer.cashout == null ? null : netValue(myPlayer.cashout, confirmedBuyins * game.stake, ratio)
   // While still playing, the one thing worth interrupting the player for is
   // an outstanding request — everything else in the activity feed is just
   // history. Surfaced right under the hero instead of buried at the bottom
