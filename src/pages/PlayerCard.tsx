@@ -1,12 +1,24 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { BadgeCheck, NotebookPen } from 'lucide-react'
+import { BadgeCheck, ChevronRight, NotebookPen, Plus } from 'lucide-react'
 import { PageSpinner } from '../components/ui/spinner'
 import { Button } from '../components/ui/button'
 import { InstallPrompt } from '../components/ui/install-prompt'
 import { useCountUp } from '../hooks/useCountUp'
 import { toChips } from '../lib/chips'
-import { addCardToBook, adoptSiblings, dismissSiblings, markMe, rememberCard } from '../lib/myBook'
+import {
+  addCardToBook,
+  adoptSiblings,
+  cardTotal,
+  dismissSiblings,
+  knownCards,
+  markMe,
+  ownGames,
+  ownNet,
+  rememberCard,
+  type OwnGame,
+} from '../lib/myBook'
+import { OwnGameSheet } from '../components/ui/own-game-sheet'
 import { toast } from '../lib/toast'
 import { cn } from 'cn'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
@@ -78,6 +90,9 @@ export function PlayerCard() {
     book.card ? 'ready' : 'loading'
   )
   const [noteNight, setNoteNight] = useState<string | null>(null)
+  // Games the player records themselves, and the other places they play.
+  const [own, setOwn] = useState<OwnGame[]>(() => ownGames())
+  const [editingOwn, setEditingOwn] = useState<OwnGame | 'new' | null>(null)
   // Other places the same person plays: offered once, added on a yes.
   const [siblings, setSiblings] = useState<{ token: string; group: string }[]>([])
 
@@ -189,12 +204,6 @@ export function PlayerCard() {
           <p className="text-xs text-muted">{book.card?.group ?? 'Game night'}</p>
           <h1 className="mt-0.5 text-3xl font-bold text-ink">Hi {book.card?.name ?? 'there'}</h1>
         </div>
-        <Link
-          to="/book"
-          className="rounded-full border border-hairline px-3 py-1.5 text-xs font-bold text-ink hover:bg-surface-strong"
-        >
-          My book
-        </Link>
       </div>
 
       <div className="summary-dark mt-5 rounded-xl p-5">
@@ -250,6 +259,75 @@ export function PlayerCard() {
           ))}
         </div>
       )}
+
+      {(() => {
+        const others = knownCards().filter((c) => c.token !== token)
+        return (
+          <>
+            {others.length > 0 && (
+              <>
+                <h2 className="type-label-caption mt-6 mb-2 text-muted">Other places you play</h2>
+                <div className="overflow-hidden rounded-xl border border-hairline bg-canvas">
+                  {others.map((c) => {
+                    const t = cardTotal(c.token)
+                    return (
+                      <Link
+                        key={c.token}
+                        to={`/c/${c.token}`}
+                        className="flex items-center gap-3 border-b border-hairline px-4 py-3 last:border-b-0"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-semibold text-ink">{c.group ?? 'Game night'}</span>
+                          <span className="text-xs text-muted">{c.kind === 'club' ? 'Club' : 'Home game'}</span>
+                        </span>
+                        <span className={cn('type-figure-md', tone(t))}>{signed(t)}</span>
+                        <ChevronRight className="h-4 w-4 text-muted" />
+                      </Link>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+
+            <h2 className="type-label-caption mt-6 mb-2 text-muted">Games outside Straddle</h2>
+            {own.length > 0 && (
+              <div className="overflow-hidden rounded-xl border border-hairline bg-canvas">
+                {own.map((g) => {
+                  const n = ownNet(g)
+                  return (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => setEditingOwn(g)}
+                      className="flex w-full items-center gap-3 border-b border-hairline px-4 py-3 text-left last:border-b-0"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold text-ink">{g.place}</span>
+                        <span className="text-xs text-muted">Self-reported · {g.date}</span>
+                      </span>
+                      <span className={cn('type-figure-md', tone(n))}>{signed(n)}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            <Button variant="secondary" block className="mt-3" onClick={() => setEditingOwn('new')}>
+              <Plus className="mr-2 h-4 w-4" /> Add a game I played
+            </Button>
+          </>
+        )
+      })()}
+
+      <OwnGameSheet
+        game={editingOwn}
+        defaultKind="house"
+        places={Array.from(new Set(own.map((g) => g.place)))}
+        onClose={() => setEditingOwn(null)}
+        onSaved={() => {
+          setOwn(ownGames())
+          setEditingOwn(null)
+        }}
+      />
 
       <p className="mt-6 text-center text-xs text-muted">
         Only you can see this card. Your records and notes stay on this phone.

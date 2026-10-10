@@ -20,8 +20,11 @@ export type OwnGame = {
   place: string
   kind: PlaceKind
   date: string // YYYY-MM-DD
-  entries: number
-  finished: number // same units the app shows: 1 buy-in = 10,000
+  // What the player says they won or lost, in value. New games only need this.
+  net?: number
+  // Older entries recorded entries and what they finished with instead.
+  entries?: number
+  finished?: number // same units the app shows: 1 buy-in = 10,000
 }
 
 function read<T>(key: string, fallback: T): T {
@@ -81,7 +84,8 @@ export function deleteOwnGame(id: string) {
 }
 
 export function ownNet(g: OwnGame): number {
-  return Math.round(g.finished - g.entries * chipMultiplier('1:1'))
+  if (g.net != null) return Math.round(g.net)
+  return Math.round((g.finished ?? 0) - (g.entries ?? 0) * chipMultiplier('1:1'))
 }
 
 export function includeOwn(): boolean {
