@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { netValue, toChips, type ChipRatio } from './chips'
+import { netValue, toChips, valueFactor, type ChipRatio } from './chips'
 
 // MVP 2.0 player card. The server hands back one player's nights for one
 // host (get_player_card, migration 0022). Everything personal (notes) lives only in
@@ -155,7 +155,7 @@ export type RecordCheck =
   | { state: 'empty' }
   | { state: 'waiting' }
   | { state: 'match' }
-  | { state: 'differs'; hostEntries: number; hostChips: number; entryDiff: number; chipDiff: number }
+  | { state: 'differs'; hostEntries: number; hostValue: number; entryDiff: number; valueDiff: number }
 
 // Compares the player's own record with what the host published. Only a night
 // with a cash-out from the host is comparable; until then it is "waiting".
@@ -163,9 +163,10 @@ export function checkRecord(night: CardNight, rec: MyRecord | undefined): Record
   if (!rec || (rec.entries.trim() === '' && rec.finished.trim() === '')) return { state: 'empty' }
   if (night.cashout == null) return { state: 'waiting' }
   const hostEntries = Number(night.buyins)
-  const hostChips = toChips(Number(night.cashout), night.chip_ratio)
+  // The record is in value: what the player finished with, at this table's ratio.
+  const hostValue = Math.round(toChips(Number(night.cashout), night.chip_ratio) * valueFactor(night.chip_ratio))
   const entryDiff = rec.entries.trim() === '' ? 0 : Number(rec.entries) - hostEntries
-  const chipDiff = rec.finished.trim() === '' ? 0 : Number(rec.finished) - hostChips
-  if (entryDiff === 0 && chipDiff === 0) return { state: 'match' }
-  return { state: 'differs', hostEntries, hostChips, entryDiff, chipDiff }
+  const valueDiff = rec.finished.trim() === '' ? 0 : Number(rec.finished) - hostValue
+  if (entryDiff === 0 && valueDiff === 0) return { state: 'match' }
+  return { state: 'differs', hostEntries, hostValue, entryDiff, valueDiff }
 }
