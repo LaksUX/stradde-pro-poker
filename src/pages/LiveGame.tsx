@@ -1149,11 +1149,7 @@ export function LiveGame() {
                     Type your total chip count
                   </p>
                   {cashoutValue.trim() !== '' && (
-                    <ConversionTable
-                      buyinBanks={sheetPlayer.confirmed_buyins * game.stake}
-                      cashoutBanks={fromChips(Number(cashoutValue) || 0, ratio)}
-                      ratio={ratio}
-                    />
+                    <ConversionTable cashoutBanks={fromChips(Number(cashoutValue) || 0, ratio)} ratio={ratio} />
                   )}
                   {sheetPlayer.cashout != null && sheetPlayer.cashout_confirm_status === 'confirmed' && (
                     <p className="text-xs text-muted">
