@@ -486,7 +486,7 @@ function NoteSheet({
 
         <h3 className="type-label-caption mt-3 text-muted">My record</h3>
         <p className="mt-1 text-xs text-muted">
-          What you counted yourself. Only on this phone. When the host enters the night, we compare.
+          What you counted yourself, in value. Only on this phone. When the host enters the night, we compare.
         </p>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1.5 text-xs text-muted">
@@ -501,7 +501,7 @@ function NoteSheet({
             />
           </label>
           <label className="flex flex-col gap-1.5 text-xs text-muted">
-            Chips I finished with
+            {night?.chip_ratio === '1:2' ? 'Value I finished with (chips × ½)' : 'What I finished with'}
             <input
               type="number"
               inputMode="numeric"
@@ -524,11 +524,11 @@ function NoteSheet({
                 {check.hostEntries + check.entryDiff}.
               </p>
             )}
-            {check.chipDiff !== 0 && (
+            {check.valueDiff !== 0 && (
               <p>
-                Host counted {check.hostChips.toLocaleString('en-US')} chips, you have{' '}
-                {(check.hostChips + check.chipDiff).toLocaleString('en-US')} (
-                {Math.abs(check.chipDiff).toLocaleString('en-US')} apart).
+                Host has {check.hostValue.toLocaleString('en-US')}, you have{' '}
+                {(check.hostValue + check.valueDiff).toLocaleString('en-US')} (
+                {Math.abs(check.valueDiff).toLocaleString('en-US')} apart).
               </p>
             )}
             <p className="mt-1 text-muted">Worth checking with your host.</p>
