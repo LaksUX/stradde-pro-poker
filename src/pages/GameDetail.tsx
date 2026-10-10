@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useIsGameHost } from '../hooks/useIsGameHost'
-import { netValue, toChips, type ChipRatio } from '../lib/chips'
+import { toChips, type ChipRatio } from '../lib/chips'
 import { PageSpinner } from '../components/ui/spinner'
 import { ListGroup, ListRow } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
@@ -11,6 +11,7 @@ import { Button } from '../components/ui/button'
 import { NamedAvatar } from '../components/ui/avatar'
 import { ChipsFigure } from '../components/ui/chips-figure'
 import { LineChart } from '../components/ui/line-chart'
+import { BankSheet } from '../components/ui/bank-sheet'
 import { StatCard } from '../components/ui/stat-card'
 import { SETTLE_LABEL, settleState, type SettleState } from '../lib/settlement'
 import { ArrowRight, IdCard } from 'lucide-react'
@@ -155,27 +156,11 @@ export function GameDetail() {
         <StatCard title="Players" value={players.length} />
       </div>
 
-      <ListGroup className="mt-4">
-        {players.map((p) => (
-          <ListRow
-            key={p.id}
-            avatar={<NamedAvatar name={p.full_name} className="h-12 w-12" />}
-            title={p.full_name}
-            subtitle={`${p.buyins} buy-in${p.buyins === 1 ? '' : 's'}`}
-            trailing={
-              p.cashout == null ? (
-                <span className="type-figure-md text-muted">In play</span>
-              ) : (
-                <ChipsFigure
-                  amount={netValue(p.cashout, p.buyins * game.stake, ratio)}
-                  ratio={ratio}
-                  tone={netValue(p.cashout, p.buyins * game.stake, ratio) >= 0 ? 'win' : 'error'}
-                />
-              )
-            }
-          />
-        ))}
-      </ListGroup>
+      <BankSheet
+        rows={players.map((p) => ({ id: p.id, name: p.full_name, buyins: p.buyins, cashout: p.cashout }))}
+        stake={game.stake}
+        ratio={ratio}
+      />
       {transfers.length > 0 && (
         <>
           <h2 className="type-label-caption mb-2 mt-5 text-muted">
