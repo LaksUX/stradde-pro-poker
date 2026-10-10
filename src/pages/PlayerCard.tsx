@@ -305,7 +305,11 @@ export function PlayerCard() {
                         <span className="block text-sm font-semibold text-ink">{g.place}</span>
                         <span className="text-xs text-muted">Self-reported · {g.date}</span>
                       </span>
-                      <span className={cn('type-figure-md', tone(n))}>{signed(n)}</span>
+                      {n != null ? (
+                        <span className={cn('type-figure-md', tone(n))}>{signed(n)}</span>
+                      ) : (
+                        <span className="text-sm text-muted">Finished {(g.finished ?? 0).toLocaleString('en-US')}</span>
+                      )}
                     </button>
                   )
                 })}

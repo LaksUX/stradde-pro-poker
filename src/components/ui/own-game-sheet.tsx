@@ -5,7 +5,7 @@ import { Button } from './button'
 import { Input } from './input'
 import { Label } from './label'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from './sheet'
-import { deleteOwnGame, newId, ownNet, saveOwnGame, type OwnGame, type PlaceKind } from '../../lib/myBook'
+import { deleteOwnGame, newId, saveOwnGame, type OwnGame, type PlaceKind } from '../../lib/myBook'
 
 function today(): string {
   const d = new Date()
@@ -32,8 +32,8 @@ export function OwnGameSheet({
   const [kind, setKind] = useState<PlaceKind>('house')
   const [place, setPlace] = useState('')
   const [date, setDate] = useState(today())
-  const [won, setWon] = useState(true)
-  const [amount, setAmount] = useState('')
+  const [finished, setFinished] = useState('')
+  const [entries, setEntries] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -42,29 +42,31 @@ export function OwnGameSheet({
       setKind(defaultKind)
       setPlace('')
       setDate(today())
-      setWon(true)
-      setAmount('')
+      setFinished('')
+      setEntries('')
     } else {
-      const net = ownNet(game)
       setKind(game.kind)
       setPlace(game.place)
       setDate(game.date)
-      setWon(net >= 0)
-      setAmount(String(Math.abs(net)))
+      setFinished(game.finished != null ? String(game.finished) : '')
+      setEntries(game.entries != null ? String(game.entries) : '')
     }
     setError(null)
   }, [game, defaultKind])
 
   function save() {
     if (!place.trim()) return setError(kind === 'club' ? 'Which club?' : 'Whose place?')
-    const a = Number(amount)
-    if (amount.trim() === '' || !(a >= 0)) return setError('How much did you win or lose? Type 0 if even.')
+    const f = Number(finished)
+    if (finished.trim() === '' || !(f >= 0)) return setError('What did you finish with? Type 0 if nothing.')
+    const e = entries.trim() === '' ? undefined : Number(entries)
+    if (e != null && !(e >= 0)) return setError('Entries must be a number.')
     saveOwnGame({
       id: game && game !== 'new' ? game.id : newId(),
       place: place.trim().slice(0, 60),
       kind,
       date,
-      net: won ? a : -a,
+      finished: f,
+      ...(e != null ? { entries: e } : {}),
     })
     onSaved()
   }
@@ -120,34 +122,30 @@ export function OwnGameSheet({
             <Input id="own-date" type="date" className="h-12" value={date} onChange={(ev) => setDate(ev.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="own-amount">Final result</Label>
-            <div className="grid grid-cols-[auto_1fr] gap-2">
-              <div className="grid grid-cols-2 gap-1 rounded-full bg-surface-strong p-1">
-                {([true, false] as const).map((w) => (
-                  <button
-                    key={String(w)}
-                    type="button"
-                    onClick={() => setWon(w)}
-                    className={cn(
-                      'rounded-full px-3 py-2 text-sm font-semibold',
-                      won === w ? (w ? 'bg-win text-white' : 'bg-error text-white') : 'text-muted'
-                    )}
-                  >
-                    {w ? 'Won' : 'Lost'}
-                  </button>
-                ))}
-              </div>
-              <Input
-                id="own-amount"
-                type="number"
-                inputMode="numeric"
-                min={0}
-                className="h-12"
-                placeholder="Amount"
-                value={amount}
-                onChange={(ev) => setAmount(ev.target.value)}
-              />
-            </div>
+            <Label htmlFor="own-finished">Amount I finished with</Label>
+            <Input
+              id="own-finished"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              className="h-12"
+              value={finished}
+              onChange={(ev) => setFinished(ev.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="own-entries">Entries (optional)</Label>
+            <Input
+              id="own-entries"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              className="h-12"
+              placeholder="Add to see win or loss"
+              value={entries}
+              onChange={(ev) => setEntries(ev.target.value)}
+            />
+            <p className="text-xs text-muted">1 entry = 10,000.</p>
           </div>
           {error && <p className="text-sm text-error">{error}</p>}
         </div>
