@@ -335,11 +335,11 @@ export function Home() {
 
   const isApprovedHost = !!profile && isApprovedHostRole(profile) && profile.approved
   const showTabSwitcher = profile?.role !== 'player'
-  const ownTotal = own.reduce((s, g) => s + ownNet(g), 0)
+  const ownTotal = own.reduce((s, g) => s + (ownNet(g) ?? 0), 0)
   const lifetimeNet = playedGames.reduce((s, g) => s + toChips(g.net, g.chip_ratio), 0) + ownTotal
   const lifetimeBuyins = playedGames.reduce((s, g) => s + toChips(g.buyins, g.chip_ratio), 0)
   const lifetimeCashout = playedGames.reduce((s, g) => s + toChips(g.cashout, g.chip_ratio), 0)
-  const wins = playedGames.filter((g) => g.net > 0).length + own.filter((g) => ownNet(g) > 0).length
+  const wins = playedGames.filter((g) => g.net > 0).length + own.filter((g) => (ownNet(g) ?? 0) > 0).length
   const gamesPlayedCount = playedGames.length + own.length
   const totalRake = hostedGames.reduce((s, g) => s + toChips(g.rake, g.chip_ratio), 0)
   const avgBuyins = hostedGames.length
@@ -533,7 +533,17 @@ export function Home() {
                         title={g.place}
                         subtitle={<Badge variant="muted">Self-reported</Badge>}
                         trailing={
-                          <ChipsFigure amount={ownNet(g) / 10000} ratio="1:1" tone={ownNet(g) >= 0 ? 'win' : 'error'} />
+                          ownNet(g) != null ? (
+                            <ChipsFigure
+                              amount={(ownNet(g) as number) / 10000}
+                              ratio="1:1"
+                              tone={(ownNet(g) as number) >= 0 ? 'win' : 'error'}
+                            />
+                          ) : (
+                            <span className="text-sm text-muted">
+                              Finished {(g.finished ?? 0).toLocaleString('en-US')}
+                            </span>
+                          )
                         }
                       />
                     ))}
