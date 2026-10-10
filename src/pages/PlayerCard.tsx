@@ -284,6 +284,8 @@ function NightRow({
           <p className="mt-0.5 text-xs text-muted">
             {night.status === 'live' ? 'In play · ' : ''}
             {buyins} entr{buyins === 1 ? 'y' : 'ies'}
+            {night.cashout != null ? ` · counted ${toChips(Number(night.cashout), night.chip_ratio).toLocaleString('en-US')}` : ''}
+            {night.chip_ratio === '1:2' ? ' · 1:2, result at half value' : ''}
           </p>
         </div>
         <span className={cn('type-figure-md', tone(net))}>{net == null ? '…' : signed(net)}</span>

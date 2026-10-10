@@ -932,7 +932,8 @@ export function LiveGame() {
             <h2 className="type-label-caption mb-2 mt-4 text-muted">Cashed out ({cashedOutPlayers.length})</h2>
             <ListGroup>
               {cashedOutPlayers.map((p) => {
-                const bankNet = netValue(p.cashout!, p.confirmed_buyins * game.stake, ratio)
+                // Live screens stay in chips; the bank sheet turns them into value.
+                const bankNet = p.cashout! - p.confirmed_buyins * game.stake
                 return (
                   <ListRow
                     key={p.id}

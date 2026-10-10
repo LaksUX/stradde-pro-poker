@@ -326,6 +326,10 @@ export function MyGame() {
           </div>
         )}
 
+        {ratio === '1:2' && netBanks != null && (
+          <p className="mt-2 text-xs text-muted">1:2 table: your result counts the chips at half value.</p>
+        )}
+
         {myPlayer.cashout != null && (
           <div className="mt-3 border-t border-hairline-soft pt-3 text-left">
             <p className="text-xs text-muted">
