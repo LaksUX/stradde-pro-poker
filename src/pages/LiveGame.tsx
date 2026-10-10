@@ -102,7 +102,6 @@ export function LiveGame() {
   const [historyByPlayer, setHistoryByPlayer] = useState<Map<string, HistoryEntry[]>>(new Map())
   const [historyOpen, setHistoryOpen] = useState(false)
   const [managerIds, setManagerIds] = useState<Set<string>>(new Set())
-  const [quickAddingId, setQuickAddingId] = useState<string | null>(null)
 
   const sheetPlayer = players.find((p) => p.id === sheetPlayerId) ?? null
   const sheetDelta = sheetPlayer ? sliderValue - sheetPlayer.confirmed_buyins : 0
@@ -379,17 +378,6 @@ export function LiveGame() {
       }
     }
     return true
-  }
-
-  // One tap = one more buy-in (10,000), entered against the player's name.
-  async function quickAddBuyin(p: PlayerRow) {
-    setQuickAddingId(p.id)
-    try {
-      const ok = await applyBuyinChange(p, p.confirmed_buyins + 1)
-      if (ok) await reloadPlayersRef.current?.()
-    } finally {
-      setQuickAddingId(null)
-    }
   }
 
   async function saveSheetChanges() {
@@ -904,18 +892,6 @@ export function LiveGame() {
                   title={`${p.full_name}${p.is_host ? ' (host)' : managerIds.has(p.profile_id) ? ' (manager)' : ''}`}
                   trailing={
                     <>
-                      <button
-                        type="button"
-                        aria-label={`Add a buy-in for ${p.full_name}`}
-                        disabled={quickAddingId === p.id}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          void quickAddBuyin(p)
-                        }}
-                        className="cta-soft mr-2 !px-3 text-sm font-bold text-ink disabled:opacity-50"
-                      >
-                        +1
-                      </button>
                       <span className="type-figure-md text-lg text-ink">{p.confirmed_buyins}</span>
                       <span className="text-[12.5px] text-muted">
                         buy-in{p.confirmed_buyins === 1 ? '' : 's'}
