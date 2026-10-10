@@ -252,7 +252,7 @@ export function MyBook() {
   )
 }
 
-function OwnGameSheet({
+export function OwnGameSheet({
   game,
   defaultKind,
   places,

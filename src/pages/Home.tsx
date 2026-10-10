@@ -20,6 +20,8 @@ import { SettlementRow } from '../components/ui/settlement-row'
 import { LineChart } from '../components/ui/line-chart'
 import { GroupSettingsSheet } from '../components/ui/group-settings-sheet'
 import { getMyGroup } from '../lib/groupAuth'
+import { ownGames, ownNet, type OwnGame } from '../lib/myBook'
+import { OwnGameSheet } from './MyBook'
 import { Plus, Bell, BellOff, Trash2, Settings } from 'lucide-react'
 
 type HostedGame = {
@@ -96,6 +98,10 @@ export function Home() {
   const [pushBusy, setPushBusy] = useState(false)
   const [pendingRequestCount, setPendingRequestCount] = useState(0)
   const [playerSection, setPlayerSection] = useState<'upcoming' | 'games' | 'settlements'>('games')
+  // Games the player logs themselves (places that do not use Straddle). Same
+  // list and sheet as My book, kept on this phone.
+  const [own, setOwn] = useState<OwnGame[]>(() => ownGames())
+  const [editingOwn, setEditingOwn] = useState<OwnGame | 'new' | null>(null)
   const [adminSection, setAdminSection] = useState<'games' | 'people'>('games')
 
   useEffect(() => {
@@ -329,10 +335,12 @@ export function Home() {
 
   const isApprovedHost = !!profile && isApprovedHostRole(profile) && profile.approved
   const showTabSwitcher = profile?.role !== 'player'
-  const lifetimeNet = playedGames.reduce((s, g) => s + toChips(g.net, g.chip_ratio), 0)
+  const ownTotal = own.reduce((s, g) => s + ownNet(g), 0)
+  const lifetimeNet = playedGames.reduce((s, g) => s + toChips(g.net, g.chip_ratio), 0) + ownTotal
   const lifetimeBuyins = playedGames.reduce((s, g) => s + toChips(g.buyins, g.chip_ratio), 0)
   const lifetimeCashout = playedGames.reduce((s, g) => s + toChips(g.cashout, g.chip_ratio), 0)
-  const wins = playedGames.filter((g) => g.net > 0).length
+  const wins = playedGames.filter((g) => g.net > 0).length + own.filter((g) => ownNet(g) > 0).length
+  const gamesPlayedCount = playedGames.length + own.length
   const totalRake = hostedGames.reduce((s, g) => s + toChips(g.rake, g.chip_ratio), 0)
   const avgBuyins = hostedGames.length
     ? Math.round(hostedGames.reduce((s, g) => s + toChips(g.buyins, g.chip_ratio), 0) / hostedGames.length)
@@ -456,10 +464,10 @@ export function Home() {
                   />
                 )}
               </StatCard>
-              <StatCard title="Games played" value={playedGames.length} />
+              <StatCard title="Games played" value={gamesPlayedCount} />
               <StatCard
                 title="Win rate"
-                value={playedGames.length ? Math.round((wins / playedGames.length) * 100) : 0}
+                value={gamesPlayedCount ? Math.round((wins / gamesPlayedCount) * 100) : 0}
                 suffix="%"
               />
               <StatCard title="Buy-ins" value={lifetimeBuyins} />
@@ -488,7 +496,8 @@ export function Home() {
               )}
 
               {playerSection === 'games' && (
-                playedGames.length === 0 ? (
+                <>
+                {playedGames.length === 0 ? (
                   <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
                     No closed games yet.
                   </p>
@@ -510,7 +519,37 @@ export function Home() {
                       </div>
                     ))}
                   </ListGroup>
-                )
+                )}
+
+                <h3 className="type-label-caption mb-2 mt-5 text-muted">Games outside Straddle</h3>
+                {own.length > 0 && (
+                  <ListGroup>
+                    {own.map((g) => (
+                      <ListRow
+                        key={g.id}
+                        className="cursor-pointer"
+                        onClick={() => setEditingOwn(g)}
+                        avatar={<NamedAvatar name={g.place} className="h-12 w-12" />}
+                        title={g.place}
+                        subtitle={<Badge variant="muted">Self-reported</Badge>}
+                        trailing={
+                          <ChipsFigure amount={ownNet(g) / 10000} ratio="1:1" tone={ownNet(g) >= 0 ? 'win' : 'error'} />
+                        }
+                      />
+                    ))}
+                  </ListGroup>
+                )}
+                <Button variant="secondary" block className="mt-3" onClick={() => setEditingOwn('new')}>
+                  <Plus className="mr-2 h-4 w-4" /> Add a game I played
+                </Button>
+                <p className="mt-2 text-center text-xs text-muted">
+                  For places that do not use Straddle. Only you see it. Same as{' '}
+                  <button type="button" className="font-semibold text-ink underline" onClick={() => navigate('/book')}>
+                    My book
+                  </button>
+                  .
+                </p>
+                </>
               )}
 
               {playerSection === 'settlements' && (
@@ -728,6 +767,17 @@ export function Home() {
           <Plus className="h-6 w-6" />
         </button>
       )}
+
+      <OwnGameSheet
+        game={editingOwn}
+        defaultKind="house"
+        places={Array.from(new Set(own.map((g) => g.place)))}
+        onClose={() => setEditingOwn(null)}
+        onSaved={() => {
+          setOwn(ownGames())
+          setEditingOwn(null)
+        }}
+      />
     </div>
   )
 }
