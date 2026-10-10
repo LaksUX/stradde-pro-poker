@@ -347,11 +347,24 @@ export function Home() {
     : 0
   const pendingAdminCount = adminRows.filter((r) => r.role === 'host' && !r.approved).length
 
-  const chartGames = [...playedGames].reverse()
+  // The lifetime line runs through every game with a known result, in date
+  // order: Straddle games and the ones the player recorded themselves.
+  const chartItems = [
+    ...playedGames.map((g) => ({
+      t: g.closed_at ? new Date(g.closed_at).getTime() : 0,
+      v: toChips(g.net, g.chip_ratio),
+    })),
+    ...own
+      .filter((g) => ownNet(g) != null)
+      .map((g) => {
+        const [y, m, d] = g.date.split('-').map(Number)
+        return { t: new Date(y, (m || 1) - 1, d || 1).getTime(), v: ownNet(g) as number }
+      }),
+  ].sort((a, b) => a.t - b.t)
   let running = 0
-  const netChartPoints = chartGames.map((g) => (running += toChips(g.net, g.chip_ratio)))
-  const netChartLabels = chartGames.map((g) =>
-    g.closed_at ? new Date(g.closed_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : ''
+  const netChartPoints = chartItems.map((it) => (running += it.v))
+  const netChartLabels = chartItems.map((it) =>
+    it.t ? new Date(it.t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : ''
   )
 
   return (
@@ -448,8 +461,8 @@ export function Home() {
                 tone="auto"
                 value={lifetimeNet}
                 trend={
-                  playedGames.length > 0
-                    ? { amount: toChips(playedGames[0].net, playedGames[0].chip_ratio), label: 'last game' }
+                  chartItems.length > 0
+                    ? { amount: chartItems[chartItems.length - 1].v, label: 'last game' }
                     : undefined
                 }
               >
