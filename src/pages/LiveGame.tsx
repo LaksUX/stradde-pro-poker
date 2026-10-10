@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { formatChips, fromChips, netValue, toChips, type ChipRatio } from '../lib/chips'
+import { formatChips, fromChips, netValue, toChips, valueFactor, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { confirmDialog } from '../lib/confirmDialog'
@@ -17,6 +17,7 @@ import { Badge } from '../components/ui/badge'
 import { NamedAvatar } from '../components/ui/avatar'
 import { ChipsFigure } from '../components/ui/chips-figure'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
+import { ConversionTable } from '../components/ui/conversion-table'
 import { InvitePlayersSheet } from '../components/ui/invite-players-sheet'
 import { PlayerCardsSheet } from '../components/ui/player-cards-sheet'
 import { ManagersSheet } from '../components/ui/managers-sheet'
@@ -749,6 +750,11 @@ export function LiveGame() {
               <p className="mt-0.5 text-[12.5px] text-muted">
                 {totalBuyinCount} buy-in{totalBuyinCount === 1 ? '' : 's'}
               </p>
+              {ratio === '1:2' && (
+                <p className="mt-0.5 text-[11px] text-muted">
+                  = {formatChips(players.reduce((s, p) => s + p.confirmed_buyins * game.stake, 0) * valueFactor(ratio), ratio)} value
+                </p>
+              )}
             </div>
             <div className="min-w-0">
               <p className="type-label-caption text-muted">Cashed out</p>
@@ -758,6 +764,11 @@ export function LiveGame() {
               <p className="mt-0.5 text-[12.5px] text-muted">
                 {cashedOutPlayers.length} player{cashedOutPlayers.length === 1 ? '' : 's'}
               </p>
+              {ratio === '1:2' && (
+                <p className="mt-0.5 text-[11px] text-muted">
+                  = {formatChips(players.reduce((s, p) => s + (p.cashout ?? 0), 0) * valueFactor(ratio), ratio)} value
+                </p>
+              )}
               {requestedBanks > 0 && (
                 <p className="mt-0.5 text-[12.5px] text-primary">
                   +{formatChips(requestedBanks, ratio)} requested
@@ -776,6 +787,11 @@ export function LiveGame() {
                 <p className="mt-0.5 text-[12.5px] text-muted">
                   {activePlayers.length} player{activePlayers.length === 1 ? '' : 's'}
                 </p>
+                {ratio === '1:2' && (
+                  <p className="mt-0.5 text-[11px] text-muted">
+                    = {formatChips(players.reduce((s, p) => s + p.confirmed_buyins * game.stake - (p.cashout ?? 0), 0) * valueFactor(ratio), ratio)} value
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -806,7 +822,7 @@ export function LiveGame() {
             })()}
           {ratio === '1:2' && (
             <p className="mt-3 text-center text-[11px] text-muted">
-              1:2 table: chips count at half value in results and settlement.
+              1:2 table: figures are chips. Value is half of chips.
             </p>
           )}
           <div className="mt-3 flex items-center justify-between border-t border-hairline-soft pt-3 text-xs text-muted">
@@ -932,8 +948,9 @@ export function LiveGame() {
             <h2 className="type-label-caption mb-2 mt-4 text-muted">Cashed out ({cashedOutPlayers.length})</h2>
             <ListGroup>
               {cashedOutPlayers.map((p) => {
-                // Live screens stay in chips; the bank sheet turns them into value.
+                // Chip result as counted, and its value at this table's ratio.
                 const bankNet = p.cashout! - p.confirmed_buyins * game.stake
+                const valueNet = netValue(p.cashout!, p.confirmed_buyins * game.stake, ratio)
                 return (
                   <ListRow
                     key={p.id}
@@ -946,15 +963,15 @@ export function LiveGame() {
                       </span>
                     }
                     title={`${p.full_name}${p.is_host ? ' (host)' : managerIds.has(p.profile_id) ? ' (manager)' : ''}`}
-                    subtitle={`${p.confirmed_buyins} buy-in${p.confirmed_buyins === 1 ? '' : 's'} · cashed out ${formatChips(p.cashout!, ratio)}`}
+                    subtitle={`${p.confirmed_buyins} buy-in${p.confirmed_buyins === 1 ? '' : 's'} · counted ${formatChips(p.cashout!, ratio)}${ratio === '1:2' ? ` (${bankNet >= 0 ? '+' : '−'}${formatChips(Math.abs(bankNet), ratio)} chips)` : ''}`}
                     trailing={
                       <>
                         <ChipsFigure
-                          amount={Math.abs(bankNet)}
+                          amount={Math.abs(valueNet)}
                           ratio={ratio}
-                          tone={bankNet >= 0 ? 'win' : 'error'}
+                          tone={valueNet >= 0 ? 'win' : 'error'}
                           icon={
-                            bankNet >= 0 ? (
+                            valueNet >= 0 ? (
                               <ArrowUp className="h-3.5 w-3.5" />
                             ) : (
                               <ArrowDown className="h-3.5 w-3.5" />
@@ -1131,6 +1148,13 @@ export function LiveGame() {
                   <p className="text-xs text-muted">
                     Type your total chip count
                   </p>
+                  {cashoutValue.trim() !== '' && (
+                    <ConversionTable
+                      buyinBanks={sheetPlayer.confirmed_buyins * game.stake}
+                      cashoutBanks={fromChips(Number(cashoutValue) || 0, ratio)}
+                      ratio={ratio}
+                    />
+                  )}
                   {sheetPlayer.cashout != null && sheetPlayer.cashout_confirm_status === 'confirmed' && (
                     <p className="text-xs text-muted">
                       Changing this will ask {sheetPlayer.full_name} to confirm the new amount instead.

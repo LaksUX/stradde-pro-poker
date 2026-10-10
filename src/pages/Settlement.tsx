@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { formatChips, fromChips, toChips, type ChipRatio } from '../lib/chips'
 import { SETTLE_LABEL, settleState, type MarkColumns } from '../lib/settlement'
-import { BankSheet, type BankSheetRow } from '../components/ui/bank-sheet'
 import { Badge } from '../components/ui/badge'
 import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
@@ -18,7 +17,7 @@ import { ChipsFigure } from '../components/ui/chips-figure'
 import { ArrowRight, ChevronDown, IdCard } from 'lucide-react'
 import { PlayerCardsSheet } from '../components/ui/player-cards-sheet'
 
-type Game = { id: string; name: string; chip_ratio: ChipRatio; stake: number; settlement_published_at: string | null }
+type Game = { id: string; name: string; chip_ratio: ChipRatio; settlement_published_at: string | null }
 type PlayerOpt = { id: string; name: string; profile_id: string }
 type Transfer = {
   id: string
@@ -39,7 +38,6 @@ export function Settlement() {
   const [game, setGame] = useState<Game | null>(null)
   const [players, setPlayers] = useState<PlayerOpt[]>([])
   const [transfers, setTransfers] = useState<Transfer[]>([])
-  const [bank, setBank] = useState<BankSheetRow[]>([])
   const [cardsOpen, setCardsOpen] = useState(false)
   const [sharing, setSharing] = useState(false)
   // Read-only by default, editing entered deliberately per row — a settlement
@@ -52,33 +50,16 @@ export function Settlement() {
     if (!gameId) return
     const { data: g } = await supabase
       .from('games')
-      .select('id, name, chip_ratio, stake, settlement_published_at')
+      .select('id, name, chip_ratio, settlement_published_at')
       .eq('id', gameId)
       .single()
     setGame(g as Game)
 
     const { data: rows } = await supabase
       .from('game_players')
-      .select('id, profile_id, cashout, profiles(full_name)')
+      .select('id, profile_id, profiles(full_name)')
       .eq('game_id', gameId)
     setPlayers((rows ?? []).map((r: any) => ({ id: r.id, profile_id: r.profile_id, name: r.profiles?.full_name ?? '—' })))
-    const { data: reqs } = await supabase
-      .from('buyin_requests')
-      .select('game_player_id, count')
-      .eq('game_id', gameId)
-      .eq('status', 'confirmed')
-    const counts = new Map<string, number>()
-    for (const r of reqs ?? []) {
-      if (r.game_player_id) counts.set(r.game_player_id, (counts.get(r.game_player_id) ?? 0) + r.count)
-    }
-    setBank(
-      (rows ?? []).map((r: any) => ({
-        id: r.id,
-        name: r.profiles?.full_name ?? '—',
-        buyins: counts.get(r.id) ?? 0,
-        cashout: r.cashout == null ? null : Number(r.cashout),
-      }))
-    )
 
     const { data: ts } = await supabase
       .from('settlement_transfers')
@@ -162,9 +143,8 @@ export function Settlement() {
           ? 'Send each player their private card. It shows their night and who they settle with.'
           : 'Who settles with whom. Tap a line to change it.'}
       </p>
-      {!sharing && bank.length > 0 && <BankSheet rows={bank} stake={game.stake} ratio={ratio} />}
       {transfers.length > 0 && (
-        <p className="mt-4 text-sm font-semibold text-ink">
+        <p className="mt-2 text-sm font-semibold text-ink">
           {transfers.filter((t) => settleState(t) === 'settled').length} of {transfers.length} settled
         </p>
       )}
