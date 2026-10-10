@@ -15,12 +15,14 @@ import {
   markSettlement,
   rememberLastCard,
   loadBook,
+  checkRecord,
   nightNet,
   saveBook,
   totalNet,
   type CardNight,
   type CardSettlement,
   type LocalBook,
+  type MyRecord,
 } from '../lib/playerCard'
 
 function signed(n: number): string {
@@ -241,6 +243,7 @@ export function PlayerCard() {
               key={n.game_id}
               night={n}
               note={book.notes[n.game_id] ?? ''}
+              record={book.records?.[n.game_id]}
               onOpen={() => setNoteNight(n.game_id)}
               onMark={onMark}
             />
@@ -249,11 +252,13 @@ export function PlayerCard() {
       )}
 
       <p className="mt-6 text-center text-xs text-muted">
-        Only you can see this card. Notes stay on this phone.
+        Only you can see this card. Your records and notes stay on this phone.
       </p>
 
       <NoteSheet
         night={nights.find((n) => n.game_id === noteNight) ?? null}
+        record={noteNight ? book.records?.[noteNight] : undefined}
+        onRecord={(rec) => noteNight && update({ records: { ...(book.records ?? {}), [noteNight]: rec } })}
         note={noteNight ? (book.notes[noteNight] ?? '') : ''}
         onChange={(text) => noteNight && update({ notes: { ...book.notes, [noteNight]: text } })}
         onClose={() => setNoteNight(null)}
@@ -265,17 +270,20 @@ export function PlayerCard() {
 function NightRow({
   night,
   note,
+  record,
   onOpen,
   onMark,
 }: {
   night: CardNight
   note: string
+  record: MyRecord | undefined
   onOpen: () => void
   onMark: (st: CardSettlement, action: 'mark' | 'unmark' | 'dispute', method?: 'in_person' | 'transferred') => void
 }) {
   const net = nightNet(night)
   const buyins = Number(night.buyins)
   const [markFor, setMarkFor] = useState<CardSettlement | null>(null)
+  const check = checkRecord(night, record)
   return (
     <div className="border-b border-hairline last:border-b-0">
       <button type="button" onClick={onOpen} className="flex w-full items-center gap-3 px-4 py-3 text-left">
@@ -287,6 +295,20 @@ function NightRow({
             {night.cashout != null ? ` · counted ${toChips(Number(night.cashout), night.chip_ratio).toLocaleString('en-US')}` : ''}
             {night.chip_ratio === '1:2' ? ' · 1:2, result at half value' : ''}
           </p>
+          {check.state !== 'empty' && (
+            <p
+              className={cn(
+                'mt-0.5 text-xs font-semibold',
+                check.state === 'match' ? 'text-win' : check.state === 'differs' ? 'text-error' : 'text-muted'
+              )}
+            >
+              {check.state === 'match'
+                ? 'My record matches the host'
+                : check.state === 'differs'
+                  ? 'My record differs from the host'
+                  : 'My record saved'}
+            </p>
+          )}
         </div>
         <span className={cn('type-figure-md', tone(net))}>{net == null ? '…' : signed(net)}</span>
       </button>
@@ -311,7 +333,7 @@ function NightRow({
       >
         <NotebookPen className="mt-0.5 h-3.5 w-3.5 shrink-0" />
         <span className={cn('min-w-0 flex-1 break-words', note ? 'text-body' : '')}>
-          {note ? note : 'Add a note'}
+          {note ? note : 'Add my record or a note'}
         </span>
       </button>
 
@@ -433,33 +455,94 @@ function SettlementLine({
   )
 }
 
-// A bottom sheet for the night's private note. Saved on this phone as you type.
+// A bottom sheet for the night: my own record (what I bought in and finished
+// with) and a private note. Both are saved on this phone as you type. Once the
+// host has entered the night, my record is compared with theirs.
 function NoteSheet({
   night,
+  record,
+  onRecord,
   note,
   onChange,
   onClose,
 }: {
   night: CardNight | null
+  record: MyRecord | undefined
+  onRecord: (rec: MyRecord) => void
   note: string
   onChange: (text: string) => void
   onClose: () => void
 }) {
+  const rec: MyRecord = record ?? { entries: '', finished: '' }
+  const check = night ? checkRecord(night, record) : ({ state: 'empty' } as const)
+  const input =
+    'h-12 w-full rounded-md border border-hairline bg-surface-soft px-3 text-base text-ink outline-none focus:border-primary'
   return (
     <Sheet open={night != null} onOpenChange={(open) => !open && onClose()}>
       <SheetContent>
         <SheetHeader>
           <SheetTitle>{night ? formatDay(night.at) : 'Note'}</SheetTitle>
         </SheetHeader>
-        <p className="mt-1 text-xs text-muted">Your private note. It stays on this phone.</p>
+
+        <h3 className="type-label-caption mt-3 text-muted">My record</h3>
+        <p className="mt-1 text-xs text-muted">
+          What you counted yourself. Only on this phone. When the host enters the night, we compare.
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <label className="flex flex-col gap-1.5 text-xs text-muted">
+            My entries
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              className={input}
+              value={rec.entries}
+              onChange={(e) => onRecord({ ...rec, entries: e.target.value })}
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-xs text-muted">
+            Chips I finished with
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              className={input}
+              value={rec.finished}
+              onChange={(e) => onRecord({ ...rec, finished: e.target.value })}
+            />
+          </label>
+        </div>
+        {check.state === 'waiting' && (
+          <p className="mt-2 text-xs text-muted">Waiting for the host to enter the night.</p>
+        )}
+        {check.state === 'match' && <p className="mt-2 text-xs font-semibold text-win">Matches the host.</p>}
+        {check.state === 'differs' && (
+          <div className="mt-2 rounded-md bg-error/10 p-3 text-xs text-error">
+            {check.entryDiff !== 0 && (
+              <p>
+                Host has {check.hostEntries} entr{check.hostEntries === 1 ? 'y' : 'ies'}, you have{' '}
+                {check.hostEntries + check.entryDiff}.
+              </p>
+            )}
+            {check.chipDiff !== 0 && (
+              <p>
+                Host counted {check.hostChips.toLocaleString('en-US')} chips, you have{' '}
+                {(check.hostChips + check.chipDiff).toLocaleString('en-US')} (
+                {Math.abs(check.chipDiff).toLocaleString('en-US')} apart).
+              </p>
+            )}
+            <p className="mt-1 text-muted">Worth checking with your host.</p>
+          </div>
+        )}
+
+        <h3 className="type-label-caption mt-5 text-muted">Note</h3>
         <textarea
           aria-label="Your note"
-          rows={5}
-          autoFocus
+          rows={3}
           value={note}
           onChange={(e) => onChange(e.target.value)}
           placeholder="What do you want to remember about this night?"
-          className="mt-4 w-full resize-none rounded-md border border-hairline bg-surface-soft p-3 text-base text-ink outline-none focus:border-primary"
+          className="mt-2 w-full resize-none rounded-md border border-hairline bg-surface-soft p-3 text-base text-ink outline-none focus:border-primary"
         />
         <Button block className="mt-4" onClick={onClose}>
           Done

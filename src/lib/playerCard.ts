@@ -35,9 +35,14 @@ export type CardData = {
   nights: CardNight[]
 }
 
+// What the player says they bought in and finished with, kept on this phone.
+// Typed values are kept as text so a half-typed number is not lost.
+export type MyRecord = { entries: string; finished: string }
+
 export type LocalBook = {
   card: CardData | null
   notes: Record<string, string>
+  records?: Record<string, MyRecord>
   syncedAt: string | null
 }
 
@@ -144,4 +149,23 @@ export async function fetchSiblings(token: string): Promise<CardSibling[]> {
   const { data, error } = await supabase.rpc('get_card_siblings', { p_token: token })
   if (error) throw new Error(error.message)
   return (data as CardSibling[]) ?? []
+}
+
+export type RecordCheck =
+  | { state: 'empty' }
+  | { state: 'waiting' }
+  | { state: 'match' }
+  | { state: 'differs'; hostEntries: number; hostChips: number; entryDiff: number; chipDiff: number }
+
+// Compares the player's own record with what the host published. Only a night
+// with a cash-out from the host is comparable; until then it is "waiting".
+export function checkRecord(night: CardNight, rec: MyRecord | undefined): RecordCheck {
+  if (!rec || (rec.entries.trim() === '' && rec.finished.trim() === '')) return { state: 'empty' }
+  if (night.cashout == null) return { state: 'waiting' }
+  const hostEntries = Number(night.buyins)
+  const hostChips = toChips(Number(night.cashout), night.chip_ratio)
+  const entryDiff = rec.entries.trim() === '' ? 0 : Number(rec.entries) - hostEntries
+  const chipDiff = rec.finished.trim() === '' ? 0 : Number(rec.finished) - hostChips
+  if (entryDiff === 0 && chipDiff === 0) return { state: 'match' }
+  return { state: 'differs', hostEntries, hostChips, entryDiff, chipDiff }
 }
