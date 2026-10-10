@@ -15,6 +15,18 @@ export function chipMultiplier(_ratio: ChipRatio): number {
   return 10000
 }
 
+// Chips become value on the bank sheet: 1:1 counts a chip at full value, 1:2
+// at half. Live screens stay in chips; results and settlement use this.
+export function valueFactor(ratio: ChipRatio): number {
+  return ratio === '1:2' ? 0.5 : 1
+}
+
+// A player's result at the table's value: (cash-out - buy-ins) x factor, in
+// banks. All inputs are banks (chips / 10,000).
+export function netValue(cashoutBanks: number, buyinBanks: number, ratio: ChipRatio): number {
+  return Math.round((cashoutBanks - buyinBanks) * valueFactor(ratio) * 10000) / 10000
+}
+
 export function toChips(banks: number, ratio: ChipRatio): number {
   return Math.round(banks * chipMultiplier(ratio))
 }

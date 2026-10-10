@@ -312,7 +312,7 @@ export function CreateGame() {
         </Tabs>
       </div>
       <p className="mt-1 text-xs text-muted">
-        1 buy-in = 10,000 at either ratio. 1:2 is the half-value table. Locked once the game starts.
+        Every buy-in is 10,000 chips at either ratio. At 1:2 each chip counts at half value in results and settlement. Locked once the game starts.
       </p>
 
       <div className="mt-3 flex flex-col gap-1.5">

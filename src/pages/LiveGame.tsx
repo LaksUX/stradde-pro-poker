@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { formatChips, fromChips, toChips, type ChipRatio } from '../lib/chips'
+import { formatChips, fromChips, netValue, toChips, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { confirmDialog } from '../lib/confirmDialog'
@@ -101,6 +101,7 @@ export function LiveGame() {
   const [historyByPlayer, setHistoryByPlayer] = useState<Map<string, HistoryEntry[]>>(new Map())
   const [historyOpen, setHistoryOpen] = useState(false)
   const [managerIds, setManagerIds] = useState<Set<string>>(new Set())
+  const [quickAddingId, setQuickAddingId] = useState<string | null>(null)
 
   const sheetPlayer = players.find((p) => p.id === sheetPlayerId) ?? null
   const sheetDelta = sheetPlayer ? sliderValue - sheetPlayer.confirmed_buyins : 0
@@ -379,6 +380,17 @@ export function LiveGame() {
     return true
   }
 
+  // One tap = one more buy-in (10,000), entered against the player's name.
+  async function quickAddBuyin(p: PlayerRow) {
+    setQuickAddingId(p.id)
+    try {
+      const ok = await applyBuyinChange(p, p.confirmed_buyins + 1)
+      if (ok) await reloadPlayersRef.current?.()
+    } finally {
+      setQuickAddingId(null)
+    }
+  }
+
   async function saveSheetChanges() {
     if (!sheetPlayer) return
     if (sliderValue < sheetPlayer.confirmed_buyins) {
@@ -524,8 +536,11 @@ export function LiveGame() {
       const settlementInput: PlayerForSettlement[] = players.map((p) => ({
         gamePlayerId: p.id,
         name: p.full_name,
-        netBanks:
-          (unfinished.find((u) => u.id === p.id) ? 0 : (p.cashout ?? 0)) - p.confirmed_buyins * game.stake,
+        netBanks: netValue(
+          unfinished.find((u) => u.id === p.id) ? 0 : (p.cashout ?? 0),
+          p.confirmed_buyins * game.stake,
+          game.chip_ratio
+        ),
       }))
       const transfers = computeInitialSettlement(settlementInput)
       if (transfers.length > 0) {
@@ -789,6 +804,11 @@ export function LiveGame() {
                 </div>
               )
             })()}
+          {ratio === '1:2' && (
+            <p className="mt-3 text-center text-[11px] text-muted">
+              1:2 table: chips count at half value in results and settlement.
+            </p>
+          )}
           <div className="mt-3 flex items-center justify-between border-t border-hairline-soft pt-3 text-xs text-muted">
             <span>
               {players.length > 0 ? `${cashedOutPlayers.length} of ${players.length} cashed out` : 'No players yet'}
@@ -883,6 +903,18 @@ export function LiveGame() {
                   title={`${p.full_name}${p.is_host ? ' (host)' : managerIds.has(p.profile_id) ? ' (manager)' : ''}`}
                   trailing={
                     <>
+                      <button
+                        type="button"
+                        aria-label={`Add a buy-in for ${p.full_name}`}
+                        disabled={quickAddingId === p.id}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          void quickAddBuyin(p)
+                        }}
+                        className="cta-soft mr-2 !px-3 text-sm font-bold text-ink disabled:opacity-50"
+                      >
+                        +1
+                      </button>
                       <span className="type-figure-md text-lg text-ink">{p.confirmed_buyins}</span>
                       <span className="text-[12.5px] text-muted">
                         buy-in{p.confirmed_buyins === 1 ? '' : 's'}
@@ -900,7 +932,7 @@ export function LiveGame() {
             <h2 className="type-label-caption mb-2 mt-4 text-muted">Cashed out ({cashedOutPlayers.length})</h2>
             <ListGroup>
               {cashedOutPlayers.map((p) => {
-                const bankNet = p.cashout! - p.confirmed_buyins * game.stake
+                const bankNet = netValue(p.cashout!, p.confirmed_buyins * game.stake, ratio)
                 return (
                   <ListRow
                     key={p.id}

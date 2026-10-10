@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth, type Profile } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { toChips, type ChipRatio } from '../lib/chips'
+import { netValue, toChips, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { confirmDialog } from '../lib/confirmDialog'
@@ -175,7 +175,7 @@ export function Home() {
           .eq('game_player_id', row.id)
           .eq('status', 'confirmed')
         const invested = (reqs ?? []).reduce((s, r) => s + r.count, 0) * g.stake
-        const net = (row.cashout ?? 0) - invested
+        const net = netValue(row.cashout ?? 0, invested, g.chip_ratio)
         results.push({
           id: g.id,
           name: g.name,

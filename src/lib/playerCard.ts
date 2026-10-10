@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { toChips, type ChipRatio } from './chips'
+import { netValue, toChips, type ChipRatio } from './chips'
 
 // MVP 2.0 player card. The server hands back one player's nights for one
 // host (get_player_card, migration 0022). Everything personal (notes) lives only in
@@ -71,7 +71,7 @@ export async function fetchCard(token: string): Promise<CardData | null> {
 // Net for a finished night, in display units. null while still in play.
 export function nightNet(n: CardNight): number | null {
   if (n.cashout == null) return null
-  return toChips(Number(n.cashout) - Number(n.buyins) * Number(n.stake), n.chip_ratio)
+  return toChips(netValue(Number(n.cashout), Number(n.buyins) * Number(n.stake), n.chip_ratio), n.chip_ratio)
 }
 
 export function totalNet(nights: CardNight[]): number {
