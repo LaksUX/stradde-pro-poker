@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { formatChips, fromChips, netValue, toChips, valueFactor, type ChipRatio } from '../lib/chips'
+import { formatChips, fromChips, netValue, toChips, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { confirmDialog } from '../lib/confirmDialog'
@@ -750,11 +750,6 @@ export function LiveGame() {
               <p className="mt-0.5 text-[12.5px] text-muted">
                 {totalBuyinCount} buy-in{totalBuyinCount === 1 ? '' : 's'}
               </p>
-              {ratio === '1:2' && (
-                <p className="mt-0.5 text-[11px] text-muted">
-                  = {formatChips(players.reduce((s, p) => s + p.confirmed_buyins * game.stake, 0) * valueFactor(ratio), ratio)} value
-                </p>
-              )}
             </div>
             <div className="min-w-0">
               <p className="type-label-caption text-muted">Cashed out</p>
@@ -764,11 +759,6 @@ export function LiveGame() {
               <p className="mt-0.5 text-[12.5px] text-muted">
                 {cashedOutPlayers.length} player{cashedOutPlayers.length === 1 ? '' : 's'}
               </p>
-              {ratio === '1:2' && (
-                <p className="mt-0.5 text-[11px] text-muted">
-                  = {formatChips(players.reduce((s, p) => s + (p.cashout ?? 0), 0) * valueFactor(ratio), ratio)} value
-                </p>
-              )}
               {requestedBanks > 0 && (
                 <p className="mt-0.5 text-[12.5px] text-primary">
                   +{formatChips(requestedBanks, ratio)} requested
@@ -787,11 +777,6 @@ export function LiveGame() {
                 <p className="mt-0.5 text-[12.5px] text-muted">
                   {activePlayers.length} player{activePlayers.length === 1 ? '' : 's'}
                 </p>
-                {ratio === '1:2' && (
-                  <p className="mt-0.5 text-[11px] text-muted">
-                    = {formatChips(players.reduce((s, p) => s + p.confirmed_buyins * game.stake - (p.cashout ?? 0), 0) * valueFactor(ratio), ratio)} value
-                  </p>
-                )}
               </div>
             )}
           </div>
@@ -822,7 +807,7 @@ export function LiveGame() {
             })()}
           {ratio === '1:2' && (
             <p className="mt-3 text-center text-[11px] text-muted">
-              1:2 table: figures are chips. Value is half of chips.
+              1:2 table · figures are chips, results are ×½
             </p>
           )}
           <div className="mt-3 flex items-center justify-between border-t border-hairline-soft pt-3 text-xs text-muted">
@@ -945,11 +930,12 @@ export function LiveGame() {
 
         {cashedOutPlayers.length > 0 && (
           <>
-            <h2 className="type-label-caption mb-2 mt-4 text-muted">Cashed out ({cashedOutPlayers.length})</h2>
+            <h2 className="type-label-caption mb-2 mt-4 text-muted">
+              Cashed out ({cashedOutPlayers.length}){ratio === '1:2' ? ' · results × ½' : ''}
+            </h2>
             <ListGroup>
               {cashedOutPlayers.map((p) => {
-                // Chip result as counted, and its value at this table's ratio.
-                const bankNet = p.cashout! - p.confirmed_buyins * game.stake
+                // Counted chips stay in the subtitle; the figure is the result at value.
                 const valueNet = netValue(p.cashout!, p.confirmed_buyins * game.stake, ratio)
                 return (
                   <ListRow
@@ -963,7 +949,7 @@ export function LiveGame() {
                       </span>
                     }
                     title={`${p.full_name}${p.is_host ? ' (host)' : managerIds.has(p.profile_id) ? ' (manager)' : ''}`}
-                    subtitle={`${p.confirmed_buyins} buy-in${p.confirmed_buyins === 1 ? '' : 's'} · counted ${formatChips(p.cashout!, ratio)}${ratio === '1:2' ? ` (${bankNet >= 0 ? '+' : '−'}${formatChips(Math.abs(bankNet), ratio)} chips)` : ''}`}
+                    subtitle={`${p.confirmed_buyins} buy-in${p.confirmed_buyins === 1 ? '' : 's'} · counted ${formatChips(p.cashout!, ratio)}`}
                     trailing={
                       <>
                         <ChipsFigure
@@ -1149,7 +1135,11 @@ export function LiveGame() {
                     Type your total chip count
                   </p>
                   {cashoutValue.trim() !== '' && (
-                    <ConversionTable cashoutBanks={fromChips(Number(cashoutValue) || 0, ratio)} ratio={ratio} />
+                    <ConversionTable
+                      buyinBanks={sheetPlayer.confirmed_buyins * game.stake}
+                      cashoutBanks={fromChips(Number(cashoutValue) || 0, ratio)}
+                      ratio={ratio}
+                    />
                   )}
                   {sheetPlayer.cashout != null && sheetPlayer.cashout_confirm_status === 'confirmed' && (
                     <p className="text-xs text-muted">
