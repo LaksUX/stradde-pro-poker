@@ -233,7 +233,7 @@ export function InvitePlayersSheet({
                   onClick={() => addFromCircle(c)}
                   avatar={<NamedAvatar name={c.full_name} className="h-10 w-10" />}
                   title={c.full_name}
-                  trailing={<span className="text-xs font-semibold text-primary">Add</span>}
+                  trailing={<span className="text-xs font-semibold text-ink">Add</span>}
                 />
               ))}
             </ListGroup>

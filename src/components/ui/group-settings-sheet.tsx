@@ -182,7 +182,7 @@ export function GroupSettingsSheet({
             <div className="mt-4 flex items-center justify-between rounded-md border border-hairline bg-surface-soft px-4 py-3">
               <div>
                 <p className="type-label-caption text-muted">Group ID</p>
-                <p className="mt-1 text-xl font-bold tracking-widest text-primary">{group.group_id}</p>
+                <p className="mt-1 text-xl font-bold tracking-widest text-ink">{group.group_id}</p>
               </div>
               <button
                 type="button"

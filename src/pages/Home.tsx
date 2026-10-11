@@ -416,7 +416,7 @@ export function Home() {
           <button
             type="button"
             onClick={() => setGroupOpen(true)}
-            className="mt-3 w-full rounded-lg border border-primary/30 bg-primary/5 p-3 text-left"
+            className="mt-3 w-full rounded-lg border border-hairline bg-canvas p-3 text-left"
           >
             <span className="block text-sm font-semibold text-ink">Get your group ID</span>
             <span className="block text-xs text-muted">
@@ -545,7 +545,7 @@ export function Home() {
                   </ListGroup>
                 )}
 
-                <h3 className="type-label-caption mb-2 mt-5 text-muted">Games outside Straddle</h3>
+                <h3 className="type-label-caption mb-2 mt-8 text-muted">Games outside Straddle</h3>
                 {own.length > 0 && (
                   <ListGroup>
                     {own.map((g) => (

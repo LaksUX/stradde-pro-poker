@@ -224,7 +224,7 @@ export function PlayerCard() {
       </div>
 
       {siblings.length > 0 && (
-        <div className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+        <div className="mt-3 rounded-xl border border-hairline bg-canvas p-4">
           <p className="text-sm font-semibold text-ink">Is this you?</p>
           <p className="mt-1 text-xs text-muted">
             {book.card?.name ?? 'You'} also plays at {siblings.map((x) => x.group).join(', ')}. Add{' '}
@@ -252,7 +252,7 @@ export function PlayerCard() {
         ]}
       />
 
-      <h2 className="type-label-caption mt-6 mb-2 text-muted">Nights</h2>
+      <h2 className="type-label-caption mt-8 mb-2 text-muted">Nights</h2>
       {nights.length === 0 ? (
         <p className="rounded-xl border border-hairline bg-canvas p-5 text-center text-sm text-muted">
           Nothing here yet. Your nights show up automatically.
@@ -278,7 +278,7 @@ export function PlayerCard() {
           <>
             {others.length > 0 && (
               <>
-                <h2 className="type-label-caption mt-6 mb-2 text-muted">Other places you play</h2>
+                <h2 className="type-label-caption mt-8 mb-2 text-muted">Other places you play</h2>
                 <div className="overflow-hidden rounded-xl border border-hairline bg-canvas">
                   {others.map((c) => {
                     const t = cardTotal(c.token)
@@ -301,7 +301,7 @@ export function PlayerCard() {
               </>
             )}
 
-            <h2 className="type-label-caption mt-6 mb-2 text-muted">Games outside Straddle</h2>
+            <h2 className="type-label-caption mt-8 mb-2 text-muted">Games outside Straddle</h2>
             {own.length > 0 && (
               <div className="overflow-hidden rounded-xl border border-hairline bg-canvas">
                 {own.map((g) => {

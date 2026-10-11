@@ -178,7 +178,7 @@ export function GameDetail() {
       </ListGroup>
       {transfers.length > 0 && (
         <>
-          <h2 className="type-label-caption mb-2 mt-5 text-muted">
+          <h2 className="type-label-caption mb-2 mt-8 text-muted">
             Settlement · {transfers.filter((t) => t.state === 'settled').length} of {transfers.length} settled
           </h2>
           <ListGroup>
@@ -219,7 +219,7 @@ export function GameDetail() {
 
       {game.venue_id && (
         <>
-          <h2 className="type-label-caption mb-2 mt-5 text-muted">Buy-ins trend at this venue</h2>
+          <h2 className="type-label-caption mb-2 mt-8 text-muted">Buy-ins trend at this venue</h2>
           {venueTrend.length > 0 ? (
             <LineChart points={venueTrend} labels={venueLabels} height={150} />
           ) : (

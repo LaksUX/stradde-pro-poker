@@ -76,9 +76,9 @@ export function InstallPrompt({ label }: { label: string }) {
       <button
         type="button"
         onClick={() => (mode === 'native' ? install() : setOpen(true))}
-        className="mt-3 flex w-full items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 text-left"
+        className="mt-3 flex w-full items-center gap-3 rounded-xl border border-hairline bg-canvas p-4 text-left"
       >
-        <Download className="h-5 w-5 shrink-0 text-primary" />
+        <Download className="h-5 w-5 shrink-0 text-ink" />
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold text-ink">Keep this card on your phone</span>
           <span className="block text-xs text-muted">So you never lose the link</span>
