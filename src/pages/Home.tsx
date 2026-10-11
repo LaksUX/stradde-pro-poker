@@ -21,6 +21,7 @@ import { LineChart } from '../components/ui/line-chart'
 import { GroupSettingsSheet } from '../components/ui/group-settings-sheet'
 import { getMyGroup } from '../lib/groupAuth'
 import { OnboardingCard } from '../components/ui/onboarding-card'
+import { AdminGroupSheet } from '../components/ui/admin-group-sheet'
 import { ensureHostInvite, hostInviteUrl } from '../lib/hostInvites'
 import { ownGames, ownNet, type OwnGame } from '../lib/myBook'
 import { OwnGameSheet } from '../components/ui/own-game-sheet'
@@ -60,6 +61,7 @@ type AdminHostRow = {
   host_id: string
   name: string | null
   group_name: string | null
+  group_id: string | null
   approved: boolean
   paused: boolean
   invited_by: string | null
@@ -110,6 +112,7 @@ export function Home() {
   const [playedGames, setPlayedGames] = useState<PlayedGame[]>([])
   const [settlementRows, setSettlementRows] = useState<SettlementRow[]>([])
   const [adminHosts, setAdminHosts] = useState<AdminHostRow[]>([])
+  const [editGroup, setEditGroup] = useState<AdminHostRow | null>(null)
   const [adminGames, setAdminGames] = useState<AdminGameRow[]>([])
   const [loadingData, setLoadingData] = useState(true)
   const [pushEnabled, setPushEnabled] = useState(false)
@@ -307,6 +310,12 @@ export function Home() {
   async function handleLogout() {
     await supabase.auth.signOut()
     navigate('/continue')
+  }
+
+  async function reloadAdmin() {
+    const [h, g] = await Promise.all([supabase.rpc('admin_hosts'), supabase.rpc('admin_games')])
+    setAdminHosts((h.data ?? []) as AdminHostRow[])
+    setAdminGames((g.data ?? []) as AdminGameRow[])
   }
 
   async function makeHost(id: string) {
@@ -714,6 +723,8 @@ export function Home() {
                     {adminHosts.map((h) => (
                       <ListRow
                         key={h.host_id}
+                        className="cursor-pointer"
+                        onClick={() => setEditGroup(h)}
                         avatar={<NamedAvatar name={h.group_name ?? h.name ?? '—'} />}
                         title={h.group_name ?? h.name ?? '—'}
                         subtitle={
@@ -749,12 +760,19 @@ export function Home() {
                             <Button
                               variant={h.approved ? 'secondary' : 'default'}
                               className="h-7 px-2.5 text-xs"
-                              onClick={() => (h.approved ? removeHost(h.host_id) : makeHost(h.host_id))}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                if (h.approved) removeHost(h.host_id)
+                                else makeHost(h.host_id)
+                              }}
                             >
                               {h.approved ? 'Revoke' : 'Approve'}
                             </Button>
                             <button
-                              onClick={() => deleteProfile(h.host_id)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                deleteProfile(h.host_id)
+                              }}
                               className="flex h-7 w-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-error/10 hover:text-error"
                               aria-label="Delete host"
                             >
@@ -851,6 +869,13 @@ export function Home() {
           setOwn(ownGames())
           setEditingOwn(null)
         }}
+      />
+
+      <AdminGroupSheet
+        host={editGroup}
+        others={adminHosts.filter((h) => h.host_id !== editGroup?.host_id)}
+        onClose={() => setEditGroup(null)}
+        onChanged={reloadAdmin}
       />
     </div>
   )
