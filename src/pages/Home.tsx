@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth, type Profile } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { netValue, toChips, type ChipRatio } from '../lib/chips'
+import { formatChips, netValue, toChips, type ChipRatio } from '../lib/chips'
 import { runWrite } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { confirmDialog } from '../lib/confirmDialog'
@@ -21,6 +21,7 @@ import { LineChart } from '../components/ui/line-chart'
 import { GroupSettingsSheet } from '../components/ui/group-settings-sheet'
 import { getMyGroup } from '../lib/groupAuth'
 import { OnboardingCard } from '../components/ui/onboarding-card'
+import { ensureHostInvite, hostInviteUrl } from '../lib/hostInvites'
 import { ownGames, ownNet, type OwnGame } from '../lib/myBook'
 import { OwnGameSheet } from '../components/ui/own-game-sheet'
 import { Plus, Bell, BellOff, Trash2, Settings } from 'lucide-react'
@@ -53,18 +54,34 @@ type SettlementRow = {
   status: 'pending' | 'confirmed' | 'disputed'
   chip_ratio: ChipRatio
 }
-type AdminRow = {
-  id: string
-  full_name: string | null
-  phone: string | null
-  role: 'player' | 'host' | 'admin'
+// Host-level admin data (migration 0033): totals per host and per game, never
+// player names.
+type AdminHostRow = {
+  host_id: string
+  name: string | null
+  group_name: string | null
   approved: boolean
+  paused: boolean
+  invited_by: string | null
+  games: number
+  live: number
+  players: number
+  buyins: number
+  rake: number
+  last_game_at: string | null
 }
 type AdminGameRow = {
   id: string
   name: string
   status: 'scheduled' | 'live' | 'closed'
-  scheduled_for: string
+  chip_ratio: ChipRatio
+  at: string
+  host_name: string | null
+  group_name: string | null
+  players: number
+  buyins: number
+  cashed_out: number
+  rake: number
 }
 
 function isApprovedHostRole(profile: Profile): boolean {
@@ -92,7 +109,7 @@ export function Home() {
   const [hostedGames, setHostedGames] = useState<HostedGame[]>([])
   const [playedGames, setPlayedGames] = useState<PlayedGame[]>([])
   const [settlementRows, setSettlementRows] = useState<SettlementRow[]>([])
-  const [adminRows, setAdminRows] = useState<AdminRow[]>([])
+  const [adminHosts, setAdminHosts] = useState<AdminHostRow[]>([])
   const [adminGames, setAdminGames] = useState<AdminGameRow[]>([])
   const [loadingData, setLoadingData] = useState(true)
   const [pushEnabled, setPushEnabled] = useState(false)
@@ -103,7 +120,7 @@ export function Home() {
   // list and sheet as My book, kept on this phone.
   const [own, setOwn] = useState<OwnGame[]>(() => ownGames())
   const [editingOwn, setEditingOwn] = useState<OwnGame | 'new' | null>(null)
-  const [adminSection, setAdminSection] = useState<'games' | 'people'>('games')
+  const [adminSection, setAdminSection] = useState<'hosts' | 'games'>('hosts')
 
   useEffect(() => {
     if (isPushSupported()) isSubscribedToPush().then(setPushEnabled)
@@ -245,19 +262,13 @@ export function Home() {
 
     async function loadAdminRows() {
       if (profile!.role !== 'admin') return
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, full_name, phone, role, approved')
-        .neq('role', 'admin')
-      if (!cancelled) setAdminRows((data ?? []) as AdminRow[])
+      const { data } = await supabase.rpc('admin_hosts')
+      if (!cancelled) setAdminHosts((data ?? []) as AdminHostRow[])
     }
 
     async function loadAdminGames() {
       if (profile!.role !== 'admin') return
-      const { data } = await supabase
-        .from('games')
-        .select('id, name, status, scheduled_for')
-        .order('scheduled_for', { ascending: false })
+      const { data } = await supabase.rpc('admin_games')
       if (!cancelled) setAdminGames((data ?? []) as AdminGameRow[])
     }
 
@@ -303,7 +314,7 @@ export function Home() {
       () => supabase.from('profiles').update({ role: 'host', approved: true }).eq('id', id),
       'Making host'
     )
-    if (ok) setAdminRows((prev) => prev.map((r) => (r.id === id ? { ...r, role: 'host', approved: true } : r)))
+    if (ok) setAdminHosts((prev) => prev.map((r) => (r.host_id === id ? { ...r, approved: true } : r)))
   }
 
   async function removeHost(id: string) {
@@ -311,7 +322,7 @@ export function Home() {
       () => supabase.from('profiles').update({ role: 'player', approved: false }).eq('id', id),
       'Removing host'
     )
-    if (ok) setAdminRows((prev) => prev.map((r) => (r.id === id ? { ...r, role: 'player', approved: false } : r)))
+    if (ok) setAdminHosts((prev) => prev.map((r) => (r.host_id === id ? { ...r, approved: false } : r)))
   }
 
   async function deleteGame(id: string) {
@@ -326,12 +337,12 @@ export function Home() {
 
   async function deleteProfile(id: string) {
     const confirmed = await confirmDialog(
-      "Delete this player's profile? This cannot be undone.",
-      { confirmLabel: 'Delete player', danger: true }
+      "Delete this host's profile? This cannot be undone.",
+      { confirmLabel: 'Delete host', danger: true }
     )
     if (!confirmed) return
     const ok = await runWrite(() => supabase.from('profiles').delete().eq('id', id), 'Deleting player')
-    if (ok) setAdminRows((prev) => prev.filter((r) => r.id !== id))
+    if (ok) setAdminHosts((prev) => prev.filter((r) => r.host_id !== id))
   }
 
   const isApprovedHost = !!profile && isApprovedHostRole(profile) && profile.approved
@@ -346,7 +357,7 @@ export function Home() {
   const avgBuyins = hostedGames.length
     ? Math.round(hostedGames.reduce((s, g) => s + toChips(g.buyins, g.chip_ratio), 0) / hostedGames.length)
     : 0
-  const pendingAdminCount = adminRows.filter((r) => r.role === 'host' && !r.approved).length
+  const pendingAdminCount = adminHosts.filter((r) => !r.approved).length
 
   // The lifetime line runs through every game with a known result, in date
   // order: Straddle games and the ones the player recorded themselves.
@@ -664,12 +675,99 @@ export function Home() {
               onValueChange={(v) => setAdminSection(v as typeof adminSection)}
             >
               <SubTabsList>
+                <SubTabsTrigger value="hosts">Hosts</SubTabsTrigger>
                 <SubTabsTrigger value="games">Games</SubTabsTrigger>
-                <SubTabsTrigger value="people">People</SubTabsTrigger>
               </SubTabsList>
             </Tabs>
 
             <div className="mt-3">
+              {adminSection === 'hosts' && (
+                <div className="mb-3 flex justify-end">
+                  <button
+                    type="button"
+                    className="cta-soft !px-3 !py-1 text-xs font-semibold text-muted hover:text-ink"
+                    onClick={async () => {
+                      try {
+                        const url = hostInviteUrl(await ensureHostInvite())
+                        const text = `Run your own game nights on Straddle. Open this to get started:\n${url}`
+                        if (navigator.share) await navigator.share({ title: 'Host on Straddle', text }).catch(() => {})
+                        else {
+                          await navigator.clipboard.writeText(text)
+                          toast.success('Invite copied')
+                        }
+                      } catch {
+                        toast.error('Could not make the invite link')
+                      }
+                    }}
+                  >
+                    <Plus className="mr-1 h-3.5 w-3.5" /> Invite a host
+                  </button>
+                </div>
+              )}
+              {adminSection === 'hosts' && (
+                adminHosts.length === 0 ? (
+                  <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
+                    No hosts yet.
+                  </p>
+                ) : (
+                  <ListGroup>
+                    {adminHosts.map((h) => (
+                      <ListRow
+                        key={h.host_id}
+                        avatar={<NamedAvatar name={h.group_name ?? h.name ?? '—'} />}
+                        title={h.group_name ?? h.name ?? '—'}
+                        subtitle={
+                          <span className="block">
+                            <span className="block">
+                              {h.name}
+                              {h.invited_by ? ` · invited by ${h.invited_by}` : ''}
+                            </span>
+                            <span className="block">
+                              {h.games} game{h.games === 1 ? '' : 's'}
+                              {h.live > 0 ? ` (${h.live} live)` : ''} · {h.players} player
+                              {h.players === 1 ? '' : 's'} · in {formatChips(h.buyins, '1:1')} · rake{' '}
+                              {formatChips(h.rake, '1:1')}
+                            </span>
+                            <span className="mt-1 flex items-center gap-1.5">
+                              <Badge variant={h.approved && !h.paused ? 'win' : 'muted'} className="text-[12px]">
+                                {!h.approved ? 'Pending' : h.paused ? 'Paused' : 'Active'}
+                              </Badge>
+                              {h.last_game_at && (
+                                <span className="text-xs text-muted">
+                                  last game{' '}
+                                  {new Date(h.last_game_at).toLocaleDateString(undefined, {
+                                    month: 'short',
+                                    day: 'numeric',
+                                  })}
+                                </span>
+                              )}
+                            </span>
+                          </span>
+                        }
+                        trailing={
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant={h.approved ? 'secondary' : 'default'}
+                              className="h-7 px-2.5 text-xs"
+                              onClick={() => (h.approved ? removeHost(h.host_id) : makeHost(h.host_id))}
+                            >
+                              {h.approved ? 'Revoke' : 'Approve'}
+                            </Button>
+                            <button
+                              onClick={() => deleteProfile(h.host_id)}
+                              className="flex h-7 w-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-error/10 hover:text-error"
+                              aria-label="Delete host"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        }
+                      />
+                    ))}
+                  </ListGroup>
+                )
+              )}
+
               {adminSection === 'games' && (
                 adminGames.length === 0 ? (
                   <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
@@ -680,19 +778,28 @@ export function Home() {
                     {adminGames.map((g) => (
                       <ListRow
                         key={g.id}
-                        className="cursor-pointer"
-                        onClick={() => navigate(`/games/${g.id}`)}
                         title={g.name}
                         subtitle={
-                          <span className="flex items-center gap-1.5">
-                            {new Date(g.scheduled_for).toLocaleDateString(undefined, {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })}
-                            <Badge variant={g.status === 'live' ? 'win' : 'muted'} className="text-[12px]">
-                              {g.status}
-                            </Badge>
+                          <span className="block">
+                            <span className="block">{g.group_name ?? g.host_name ?? '—'}</span>
+                            <span className="mt-0.5 flex items-center gap-1.5">
+                              {new Date(g.at).toLocaleDateString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                              <Badge variant={g.status === 'live' ? 'win' : 'muted'} className="text-[12px]">
+                                {g.status}
+                              </Badge>
+                              <span className="text-xs text-muted">
+                                {g.players} player{g.players === 1 ? '' : 's'}
+                                {g.chip_ratio === '1:2' ? ' · 1:2' : ''}
+                              </span>
+                            </span>
+                            <span className="mt-0.5 block text-xs text-muted">
+                              in {formatChips(g.buyins, g.chip_ratio)} · out {formatChips(g.cashed_out, g.chip_ratio)} · rake{' '}
+                              {formatChips(g.rake, g.chip_ratio)}
+                            </span>
                           </span>
                         }
                         trailing={
@@ -707,85 +814,6 @@ export function Home() {
                       />
                     ))}
                   </ListGroup>
-                )
-              )}
-
-              {adminSection === 'people' && (
-                adminRows.length === 0 ? (
-                  <p className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-muted">
-                    No profiles yet.
-                  </p>
-                ) : (
-                  <>
-                    {adminRows.some((r) => r.role === 'host') && (
-                      <>
-                        <h3 className="type-label-caption mb-2 text-muted">Hosts</h3>
-                        <ListGroup>
-                          {adminRows.filter((r) => r.role === 'host').map((r) => (
-                            <ListRow
-                              key={r.id}
-                              avatar={<NamedAvatar name={r.full_name ?? '—'} />}
-                              title={r.full_name ?? '—'}
-                              subtitle={
-                                <span className="flex items-center gap-1.5">
-                                  <Badge variant={r.approved ? 'win' : 'muted'} className="text-[12px]">
-                                    {r.approved ? 'Approved' : 'Pending'}
-                                  </Badge>
-                                </span>
-                              }
-                              trailing={
-                                <div className="flex items-center gap-1">
-                                  <Button
-                                    variant={r.approved ? 'destructive' : 'default'}
-                                    className="h-7 px-2.5 text-xs"
-                                    onClick={() => (r.approved ? removeHost(r.id) : makeHost(r.id))}
-                                  >
-                                    {r.approved ? 'Revoke' : 'Approve'}
-                                  </Button>
-                                  <button
-                                    onClick={() => deleteProfile(r.id)}
-                                    className="flex h-7 w-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-error/10 hover:text-error"
-                                    aria-label="Delete profile"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </button>
-                                </div>
-                              }
-                            />
-                          ))}
-                        </ListGroup>
-                      </>
-                    )}
-
-                    <h3 className={`type-label-caption mb-2 text-muted ${adminRows.some((r) => r.role === 'host') ? 'mt-5' : ''}`}>Players</h3>
-                    <ListGroup>
-                      {adminRows.filter((r) => r.role === 'player').map((r) => (
-                        <ListRow
-                          key={r.id}
-                          avatar={<NamedAvatar name={r.full_name ?? '—'} />}
-                          title={r.full_name ?? '—'}
-                          trailing={
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="default"
-                                className="h-7 px-2.5 text-xs"
-                                onClick={() => makeHost(r.id)}
-                              >
-                                Make host
-                              </Button>
-                              <button
-                                onClick={() => deleteProfile(r.id)}
-                                className="flex h-7 w-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-error/10 hover:text-error"
-                                aria-label="Delete profile"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          }
-                        />
-                      ))}
-                    </ListGroup>
-                  </>
                 )
               )}
             </div>
