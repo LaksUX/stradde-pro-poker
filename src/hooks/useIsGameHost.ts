@@ -22,7 +22,8 @@ export function useIsGameHost(gameId: string | undefined, hostId: string | undef
       return
     }
 
-    if (hostId === profile.id) {
+    // An admin can manage any host's game (migration 0034).
+    if (hostId === profile.id || profile.role === 'admin') {
       setIsHost(true)
       setLoading(false)
       return
