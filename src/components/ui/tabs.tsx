@@ -25,7 +25,7 @@ function TabsList({
         // segmented-tab, DESIGN-dashboard.md "components" — 48px, fully
         // rounded stadium shape, not the smaller rounded-rect tab bar
         // shadcn ships by default.
-        "relative inline-flex h-12 w-full items-center gap-1 rounded-full bg-surface-strong p-1",
+        "relative inline-flex h-12 w-full items-center gap-1 rounded-full bg-surface-strong/70 p-1",
         className
       )}
       {...props}
