@@ -780,7 +780,7 @@ export function LiveGame() {
                   role="img"
                   aria-label={`${Math.round(outPct)}% of the chips are cashed out, ${Math.round(100 - outPct)}% still in play`}
                 >
-                  <div className="flex h-2 w-full overflow-hidden rounded-full bg-ink/25">
+                  <div className="flex h-2 w-full overflow-hidden rounded-full bg-ink/10">
                     <div
                       className="h-full bg-win transition-[width] duration-500"
                       style={{ width: `${outPct}%` }}

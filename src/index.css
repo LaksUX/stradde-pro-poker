@@ -19,7 +19,7 @@
      that need to read as clearly interactive against a card. */
   --color-canvas: #ffffff;
   --color-surface-soft: #eef1f5;
-  --color-surface-strong: #e1e6ee;
+  --color-surface-strong: #e9edf3; /* lighter grey fills: tabs, pills, tracks */
   --color-ink: #16202e;
   --color-body: #3a4659;
   --color-muted: #6b778a;
@@ -34,8 +34,8 @@
   --color-brand: #e5383b; /* The red of the logo and the app icon */
   --color-on-primary: #ffffff;
 
-  --color-error: #b42318;
-  --color-error-hover: #912018;
+  --color-error: #e5383b; /* the logo red, for losses and warnings */
+  --color-error-hover: #c92a2d;
 
   --color-win: #138a63;
   --color-loss: var(--color-error);
