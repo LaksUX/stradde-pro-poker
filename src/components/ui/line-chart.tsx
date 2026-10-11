@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { cn } from "cn"
 
 // Catmull-Rom to cubic Bezier: a smooth curve that still passes exactly
@@ -24,7 +24,7 @@ function smoothPath(pts: { x: number; y: number }[]): string {
 const defaultFormat = (v: number) => Math.round(v).toLocaleString("en-US")
 
 // The app's one trend chart. Drawn at the real pixel width of its container
-// (no stretching, so text and dots stay a normal size), with a soft area under
+// (no stretching, so text and dots stay a normal size), with
 // the line, a dashed zero line when the data crosses zero, thinned date
 // labels, and tap-or-drag to read any point.
 function LineChart({
@@ -45,7 +45,6 @@ function LineChart({
   const wrapRef = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(300)
   const [active, setActive] = useState<number | null>(null)
-  const gradId = useId().replace(/:/g, "")
 
   useEffect(() => {
     const el = wrapRef.current
@@ -73,8 +72,6 @@ function LineChart({
   const toX = (i: number) => (points.length === 1 ? width / 2 : padX + (i / (points.length - 1)) * innerW)
   const coords = points.map((v, i) => ({ x: toX(i), y: toY(v) }))
   const line = smoothPath(coords)
-  const baseY = toY(Math.max(min, 0) === 0 ? 0 : min)
-  const area = `${line} L${coords[coords.length - 1]!.x},${baseY} L${coords[0]!.x},${baseY} Z`
   const crossesZero = min < 0 && max > 0
   const last = points[points.length - 1]!
   const tone = colorBySign ? (last >= 0 ? "var(--color-win)" : "var(--color-error)") : "var(--color-primary)"
@@ -122,13 +119,6 @@ function LineChart({
         role="img"
         aria-label={`Trend of ${points.length} points, latest ${format(last)}`}
       >
-        <defs>
-          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={tone} stopOpacity="0.22" />
-            <stop offset="100%" stopColor={tone} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-
         {crossesZero && (
           <line
             x1={padX}
@@ -141,7 +131,6 @@ function LineChart({
           />
         )}
 
-        {points.length > 1 && <path d={area} fill={`url(#${gradId})`} />}
         <path d={line} fill="none" stroke={tone} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
 
         {points.length <= 14 &&
