@@ -136,7 +136,7 @@ export function LiveGame() {
 
     async function loadGame() {
       const { data, error } = await supabase.from('games').select('*').eq('id', gameId).maybeSingle()
-      // No row back means this account can no longer see the game (a co-host
+      // No row back means this account can no longer see the game (a manager
       // who was removed, or a link to someone else's game). Say so instead of
       // spinning forever. A network error is not the same thing: keep waiting.
       if (!error && !data) {
@@ -239,7 +239,7 @@ export function LiveGame() {
       .subscribe()
 
     // Safety net for the realtime channel: changes made on ANOTHER phone (a
-    // co-host, a second device) can arrive late or not at all, which left the
+    // manager, a second device) can arrive late or not at all, which left the
     // top totals stale. Re-read every few seconds while the screen is visible,
     // and straight away when the app comes back to the foreground.
     function refresh() {
@@ -586,7 +586,7 @@ export function LiveGame() {
       <div className="mx-auto flex min-h-[60vh] w-full max-w-sm flex-col items-center justify-center gap-3 p-6 text-center">
         <h1 className="type-page-title text-ink">You no longer have access to this game</h1>
         <p className="type-body-md text-body">
-          The host may have removed you as co-host, or this link is for a different game.
+          The host may have removed you as manager, or this link is for a different game.
         </p>
         <Button onClick={() => navigate('/home')}>Go to Home</Button>
       </div>
@@ -637,7 +637,7 @@ export function LiveGame() {
                   type="button"
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-hairline text-muted hover:bg-surface-strong hover:text-ink"
                   onClick={() => setManagersOpen(true)}
-                  aria-label="Co-hosts"
+                  aria-label="Managers"
                 >
                   <Shield className="h-[18px] w-[18px]" />
                 </button>

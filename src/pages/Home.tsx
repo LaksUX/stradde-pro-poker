@@ -22,6 +22,7 @@ import { GroupSettingsSheet } from '../components/ui/group-settings-sheet'
 import { getMyGroup } from '../lib/groupAuth'
 import { OnboardingCard } from '../components/ui/onboarding-card'
 import { AdminGroupSheet } from '../components/ui/admin-group-sheet'
+import { HostReport } from '../components/ui/host-report'
 import { ensureHostInvite, hostInviteUrl } from '../lib/hostInvites'
 import { ownGames, ownNet, type OwnGame } from '../lib/myBook'
 import { OwnGameSheet } from '../components/ui/own-game-sheet'
@@ -645,6 +646,8 @@ export function Home() {
                   <StatCard title="Rake collected" value={totalRake} />
                   <StatCard className="col-span-2" title="Average buy-ins" value={avgBuyins} />
                 </div>
+
+                <HostReport games={hostedGames} />
 
                 <div className="mt-4">
                   {hostedGames.length === 0 ? (

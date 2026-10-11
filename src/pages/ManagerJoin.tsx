@@ -6,7 +6,7 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { PageSpinner } from '../components/ui/spinner'
 
-// MVP 2.0 co-host link (/m/:token): open it, type a name, and you can run
+// MVP 2.0 manager link (/m/:token): open it, type a name, and you can run
 // that one game. No phone number, PIN or account. See 0024_manager_invites.sql.
 export function ManagerJoin() {
   const { token } = useParams()
@@ -74,7 +74,7 @@ export function ManagerJoin() {
       ) : (
         <>
           <p className="type-body-md text-center text-body">
-            You've been invited as a co-host. Add your name and you can approve buy-ins and enter cash-outs.
+            You've been invited as a manager. Add your name and you can approve buy-ins and enter cash-outs.
           </p>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="manager-name">Your name</Label>
@@ -82,7 +82,7 @@ export function ManagerJoin() {
           </div>
           {error && <p className="text-sm text-error">{error}</p>}
           <Button block disabled={busy || !name.trim()} onClick={() => claim(name.trim())}>
-            {busy ? 'Joining…' : 'Join as co-host'}
+            {busy ? 'Joining…' : 'Join as manager'}
           </Button>
         </>
       )}

@@ -12,7 +12,7 @@ import { InviteQrCard } from './invite-qr-card'
 
 type Manager = { profile_id: string; full_name: string }
 
-// Co-hosts for a live game: see who is managing, remove them, and invite a new
+// Managers for a live game: see who is managing, remove them, and invite a new
 // one with a link or QR. Removing + inviting is how a manager is swapped
 // mid-game. Original host only. See 0024_manager_invites.sql.
 export function ManagersSheet({
@@ -63,14 +63,14 @@ export function ManagersSheet({
   const url = token ? `${window.location.origin}/m/${token}` : ''
 
   async function remove(m: Manager) {
-    const ok = await confirmDialog(`Remove ${m.full_name} as co-host? They lose access right away.`, {
+    const ok = await confirmDialog(`Remove ${m.full_name} as manager? They lose access right away.`, {
       confirmLabel: 'Remove',
       danger: true,
     })
     if (!ok) return
     const done = await runWrite(
       () => supabase.from('game_managers').delete().eq('game_id', gameId).eq('profile_id', m.profile_id),
-      'Removing co-host'
+      'Removing manager'
     )
     if (done) loadManagers()
   }
@@ -87,7 +87,7 @@ export function ManagersSheet({
   async function share() {
     if (navigator.share) {
       try {
-        await navigator.share({ title: `Co-host ${gameName}`, url })
+        await navigator.share({ title: `Manager ${gameName}`, url })
       } catch {
         // dismissed
       }
@@ -97,7 +97,7 @@ export function ManagersSheet({
   }
 
   async function newLink() {
-    const ok = await confirmDialog('Make a new co-host link? The old link stops working.', {
+    const ok = await confirmDialog('Make a new manager link? The old link stops working.', {
       confirmLabel: 'New link',
     })
     if (ok) loadInvite(true)
@@ -107,9 +107,9 @@ export function ManagersSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Co-hosts</SheetTitle>
+          <SheetTitle>Managers</SheetTitle>
           <SheetDescription>
-            A co-host can approve buy-ins and enter cash-outs for this game. To swap one, remove them and send
+            A manager can approve buy-ins and enter cash-outs for this game. To swap one, remove them and send
             the link to someone else.
           </SheetDescription>
         </SheetHeader>
@@ -130,15 +130,15 @@ export function ManagersSheet({
             ))}
           </ListGroup>
         ) : (
-          <p className="mt-4 text-center text-sm text-muted">No co-host yet.</p>
+          <p className="mt-4 text-center text-sm text-muted">No manager yet.</p>
         )}
 
         {!closed && (
           <div className="mt-5">
-            <h3 className="type-label-caption mb-2 text-muted">Invite a co-host</h3>
+            <h3 className="type-label-caption mb-2 text-muted">Invite a manager</h3>
             {token ? (
               <>
-                <InviteQrCard eyebrow="Co-host link" title={gameName} url={url} />
+                <InviteQrCard eyebrow="Manager link" title={gameName} url={url} />
                 <div className="mt-3 flex gap-2">
                   <Button variant="secondary" block onClick={copy}>
                     <Copy className="mr-2 h-4 w-4" /> Copy
