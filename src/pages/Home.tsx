@@ -20,6 +20,7 @@ import { SettlementRow } from '../components/ui/settlement-row'
 import { LineChart } from '../components/ui/line-chart'
 import { GroupSettingsSheet } from '../components/ui/group-settings-sheet'
 import { getMyGroup } from '../lib/groupAuth'
+import { OnboardingCard } from '../components/ui/onboarding-card'
 import { ownGames, ownNet, type OwnGame } from '../lib/myBook'
 import { OwnGameSheet } from '../components/ui/own-game-sheet'
 import { Plus, Bell, BellOff, Trash2, Settings } from 'lucide-react'
@@ -427,6 +428,16 @@ export function Home() {
           Log out
         </button>
       </header>
+
+      <OnboardingCard
+        id="home"
+        className="mt-5"
+        title="How Straddle works"
+        items={[
+          { label: 'Host', text: 'start a game, add players, count chips at cash-out, then settle.' },
+          { label: 'Player', text: 'your card shows your nights and who you settle with. Add your own games too.' },
+        ]}
+      />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as 'host' | 'player' | 'admin')} className="mt-5">
         {showTabSwitcher && (

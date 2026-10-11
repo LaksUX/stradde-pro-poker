@@ -19,6 +19,7 @@ import {
   type OwnGame,
 } from '../lib/myBook'
 import { OwnGameSheet } from '../components/ui/own-game-sheet'
+import { OnboardingCard } from '../components/ui/onboarding-card'
 import { toast } from '../lib/toast'
 import { cn } from 'cn'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
@@ -239,6 +240,17 @@ export function PlayerCard() {
       )}
 
       <InstallPrompt label={book.card?.group ?? 'your card'} />
+
+      <OnboardingCard
+        id="card"
+        className="mt-3"
+        title="Your private card"
+        items={[
+          { label: 'Nights', text: 'what you played and who you settle with.' },
+          { label: 'Settle', text: 'mark a line when it is paid. Both sides must agree.' },
+          { label: 'Yours', text: 'add your own record, notes and other games. They stay on this phone.' },
+        ]}
+      />
 
       <h2 className="type-label-caption mt-6 mb-2 text-muted">Nights</h2>
       {nights.length === 0 ? (
