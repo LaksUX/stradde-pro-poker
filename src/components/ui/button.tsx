@@ -12,7 +12,7 @@ const buttonVariants = cva(
         ghost: "bg-surface-strong/60 text-ink border border-hairline hover:bg-surface-strong",
         destructive: "bg-canvas text-error border border-error/40 hover:bg-error/10",
         outline: "border border-hairline bg-surface-strong/60 text-ink hover:bg-surface-strong",
-        link: "rounded-full bg-primary/10 text-primary hover:bg-primary/15",
+        link: "rounded-full bg-surface-strong text-ink hover:bg-surface-strong/70",
       },
       size: {
         default: "h-12 px-6 text-[16px]",

@@ -687,10 +687,10 @@ export function LiveGame() {
           opening mid-game sees what's waiting on them first. */}
       {pending.length > 0 && (
         <div className="mt-3">
-          <h2 className="type-label-caption mb-2 text-primary">
+          <h2 className="type-label-caption mb-2 text-ink">
             Pending requests ({pending.length})
           </h2>
-          <ListGroup className="border-primary/40">
+          <ListGroup>
             {pending.map((r) => (
               <div key={r.id}>
                 <ListRow
@@ -712,7 +712,7 @@ export function LiveGame() {
                   <Button variant="default" block className="h-10" onClick={() => confirmRequest(r)}>
                     Confirm
                   </Button>
-                  <Button variant="destructive" block className="h-10" onClick={() => declineRequest(r.id)}>
+                  <Button variant="secondary" block className="h-10" onClick={() => declineRequest(r.id)}>
                     Decline
                   </Button>
                 </div>
@@ -748,7 +748,7 @@ export function LiveGame() {
                 {cashedOutPlayers.length} player{cashedOutPlayers.length === 1 ? '' : 's'}
               </p>
               {requestedBanks > 0 && (
-                <p className="mt-0.5 text-[12.5px] text-primary">
+                <p className="mt-0.5 text-[12.5px] text-body">
                   +{formatChips(requestedBanks, ratio)} requested
                 </p>
               )}
@@ -906,7 +906,7 @@ export function LiveGame() {
 
         {cashedOutPlayers.length > 0 && (
           <>
-            <h2 className="type-label-caption mb-2 mt-4 text-muted">
+            <h2 className="type-label-caption mb-2 mt-8 text-muted">
               Cashed out ({cashedOutPlayers.length}){ratio === '1:2' ? ' · results × ½' : ''}
             </h2>
             <ListGroup>
@@ -1029,7 +1029,7 @@ export function LiveGame() {
                         {sheetDelta}
                       </p>
                     </div>
-                    <div className="rounded-lg border border-primary/40 bg-primary/10 px-2 py-2.5">
+                    <div className="rounded-lg border border-hairline bg-canvas px-2 py-2.5">
                       <p className="text-[12.5px] text-muted">Overall</p>
                       <p className="type-figure-md mt-0.5 text-ink">{sliderValue}</p>
                     </div>

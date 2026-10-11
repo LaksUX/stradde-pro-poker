@@ -85,7 +85,7 @@ function SubTabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
       data-slot="sub-tabs-trigger"
       className={cn(
         "-mb-px border-b-2 border-transparent pb-2.5 text-sm font-semibold text-muted transition-colors outline-none",
-        "hover:text-ink data-[active]:border-primary data-[active]:text-ink",
+        "hover:text-ink data-[active]:border-ink data-[active]:text-ink",
         "focus-visible:ring-2 focus-visible:ring-ring/40",
         className
       )}

@@ -359,7 +359,7 @@ export function MyGame() {
       </div>
 
       {myPlayer.cashout == null && pendingRequest && (
-        <Item variant="outline" className="mt-3 items-start border-primary/40 bg-canvas">
+        <Item variant="outline" className="mt-3 items-start border-hairline bg-canvas">
           <ItemContent>
             <ItemTitle className="text-sm font-normal">
               Requested {pendingRequest.count} buy-in{pendingRequest.count > 1 ? 's' : ''} — waiting on
@@ -371,7 +371,7 @@ export function MyGame() {
       )}
 
       {myPlayer.cashout == null && myPlayer.cashout_requested != null && (
-        <Item variant="outline" className="mt-3 items-start border-primary/40 bg-canvas">
+        <Item variant="outline" className="mt-3 items-start border-hairline bg-canvas">
           <ItemContent>
             <ItemTitle className="text-sm font-normal">
               Requested a cash-out of {formatChips(myPlayer.cashout_requested, ratio)} — waiting on the host.
