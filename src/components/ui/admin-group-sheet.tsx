@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { confirmDialog } from '../../lib/confirmDialog'
 import { toast } from '../../lib/toast'
@@ -25,12 +26,17 @@ export function AdminGroupSheet({
   const [pin, setPin] = useState('')
   const [target, setTarget] = useState('')
   const [busy, setBusy] = useState(false)
+  const navigate = useNavigate()
+  const [gameName, setGameName] = useState('')
+  const [ratio, setRatio] = useState<'1:1' | '1:2'>('1:1')
 
   useEffect(() => {
     if (!host) return
     setName(host.group_name ?? '')
     setPin('')
     setTarget('')
+    setGameName('')
+    setRatio('1:1')
   }, [host])
 
   if (!host) return null
@@ -55,6 +61,28 @@ export function AdminGroupSheet({
     toast.success('Group updated')
     onChanged()
     onClose()
+  }
+
+  async function addGame() {
+    if (!gameName.trim()) {
+      toast.error('Name the game first')
+      return
+    }
+    setBusy(true)
+    const { data, error } = await supabase.rpc('admin_create_game', {
+      p_host: host!.host_id,
+      p_name: gameName,
+      p_chip_ratio: ratio,
+    })
+    setBusy(false)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    toast.success('Game started')
+    onChanged()
+    onClose()
+    navigate(`/games/${data as string}/live`)
   }
 
   async function merge() {
@@ -107,6 +135,35 @@ export function AdminGroupSheet({
         <Button block className="mt-4" disabled={busy || !host.group_id} onClick={save}>
           Save changes
         </Button>
+
+        <div className="mt-6 border-t border-hairline-soft pt-4">
+          <p className="type-label-caption text-muted">Add a game to this group</p>
+          <div className="mt-3 flex flex-col gap-1.5">
+            <Label htmlFor="adm-game-name">Game name</Label>
+            <Input
+              id="adm-game-name"
+              className="h-12"
+              placeholder="Friday night"
+              value={gameName}
+              onChange={(e) => setGameName(e.target.value)}
+            />
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-1 rounded-full bg-surface-strong/70 p-1">
+            {(['1:1', '1:2'] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setRatio(r)}
+                className={`rounded-full py-2 text-sm font-semibold ${ratio === r ? 'bg-canvas text-ink shadow-sm' : 'text-muted'}`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+          <Button variant="secondary" block className="mt-3" disabled={busy} onClick={addGame}>
+            Start game
+          </Button>
+        </div>
 
         {others.length > 0 && (
           <div className="mt-6 border-t border-hairline-soft pt-4">
