@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Copy, Share2 } from 'lucide-react'
+import { PLAN } from '../../lib/plan'
 import { changeGroupPin, createGroupForCurrentHost, getMyGroup } from '../../lib/groupAuth'
 import { getOrCreateOwnEntity } from '../../lib/entities'
 import { supabase } from '../../lib/supabase'
@@ -36,6 +37,7 @@ export function GroupSettingsSheet({
   const { profile } = useAuth()
   const [isClub, setIsClub] = useState(false)
   const [invited, setInvited] = useState<InvitedHost[]>([])
+  const [usage, setUsage] = useState<{ games: number; managers: number } | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -43,6 +45,26 @@ export function GroupSettingsSheet({
     myInvitedHosts()
       .then(setInvited)
       .catch(() => {})
+    if (profile) {
+      const monthStart = new Date()
+      monthStart.setDate(1)
+      monthStart.setHours(0, 0, 0, 0)
+      Promise.all([
+        supabase
+          .from('games')
+          .select('id', { count: 'exact', head: true })
+          .eq('host_id', profile.id)
+          .gte('scheduled_for', monthStart.toISOString()),
+        supabase.from('game_managers').select('profile_id, games!inner(host_id)').eq('games.host_id', profile.id),
+      ])
+        .then(([g, m]) =>
+          setUsage({
+            games: g.count ?? 0,
+            managers: new Set(((m.data ?? []) as any[]).map((r) => r.profile_id)).size,
+          })
+        )
+        .catch(() => {})
+    }
     getMyGroup()
       .then(setGroup)
       .catch(() => setGroup(null))
@@ -201,6 +223,28 @@ export function GroupSettingsSheet({
               </span>
               <Switch checked={isClub} onCheckedChange={toggleClub} />
             </label>
+
+            <div className="mt-5 rounded-md border border-hairline p-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-ink">Your plan</p>
+                <span className="rounded-full bg-surface-strong px-2.5 py-0.5 text-xs font-semibold text-ink">
+                  {PLAN.name}
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-muted">{PLAN.note}</p>
+              {usage && (
+                <ul className="mt-2 space-y-1 text-xs text-muted">
+                  <li>
+                    Games this month: <span className="font-semibold text-ink">{usage.games}</span> (Free plan:{' '}
+                    {PLAN.free.gamesPerMonth})
+                  </li>
+                  <li>
+                    Managers: <span className="font-semibold text-ink">{usage.managers}</span> (Free plan:{' '}
+                    {PLAN.free.managers})
+                  </li>
+                </ul>
+              )}
+            </div>
 
             <div className="mt-5 rounded-md border border-hairline p-3">
               <p className="text-sm font-semibold text-ink">Invite a host</p>
