@@ -545,7 +545,16 @@ export function Home() {
                   </ListGroup>
                 )}
 
-                <h3 className="type-label-caption mb-2 mt-8 text-muted">Games outside Straddle</h3>
+                <div className="mb-2 mt-8 flex items-center justify-between">
+                  <h3 className="type-label-caption text-muted">Games outside Straddle</h3>
+                  <button
+                    type="button"
+                    onClick={() => setEditingOwn('new')}
+                    className="cta-soft !px-3 !py-1 text-xs font-semibold text-muted hover:text-ink"
+                  >
+                    <Plus className="mr-1 h-3.5 w-3.5" /> Add a game I played
+                  </button>
+                </div>
                 {own.length > 0 && (
                   <ListGroup>
                     {own.map((g) => (
@@ -573,9 +582,6 @@ export function Home() {
                     ))}
                   </ListGroup>
                 )}
-                <Button variant="secondary" block className="mt-3" onClick={() => setEditingOwn('new')}>
-                  <Plus className="mr-2 h-4 w-4" /> Add a game I played
-                </Button>
                 <p className="mt-2 text-center text-xs text-muted">
                   For places that do not use Straddle. Only you see it.
                 </p>
