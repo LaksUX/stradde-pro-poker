@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useIsGameHost } from '../hooks/useIsGameHost'
-import { netValue, toChips, type ChipRatio } from '../lib/chips'
+import { formatChips, netValue, toChips, type ChipRatio } from '../lib/chips'
 import { PageSpinner } from '../components/ui/spinner'
 import { ListGroup, ListRow } from '../components/ui/list-row'
 import { Badge } from '../components/ui/badge'
@@ -44,7 +44,7 @@ export function GameDetail() {
   const { isHost: canManage, loading: hostCheckLoading } = useIsGameHost(gameId, game?.host_id)
   const [players, setPlayers] = useState<PlayerRow[]>([])
   const [transfers, setTransfers] = useState<
-    { from: string; to: string; amount: number; state: SettleState }[]
+    { from: string; to: string; amount: number; state: SettleState; detail: string }[]
   >([])
   const [venueTrend, setVenueTrend] = useState<number[]>([])
   const [venueLabels, setVenueLabels] = useState<string[]>([])
@@ -83,16 +83,31 @@ export function GameDetail() {
       {
         const { data: ts } = await supabase
           .from('settlement_transfers')
-          .select('from_player_id, to_player_id, amount, payer_marked_at, payee_marked_at, disputed_at')
+          .select(
+            'from_player_id, to_player_id, amount, payer_marked_at, payee_marked_at, disputed_at, disputed_by, payer_method, payee_method'
+          )
           .eq('game_id', gameId)
         const byId = new Map((rows ?? []).map((r: any) => [r.id, r.profiles?.full_name ?? '—']))
         setTransfers(
-          (ts ?? []).map((t) => ({
-            from: byId.get(t.from_player_id) ?? '—',
-            to: byId.get(t.to_player_id) ?? '—',
-            amount: t.amount,
-            state: settleState(t),
-          }))
+          (ts ?? []).map((t: any) => {
+            const from = byId.get(t.from_player_id) ?? '—'
+            const to = byId.get(t.to_player_id) ?? '—'
+            const way = (m: string | null) => (m === 'in_person' ? 'in person' : m === 'transferred' ? 'transferred' : '')
+            const state = settleState(t)
+            let detail = 'Not marked yet'
+            if (state === 'settled') {
+              const a = way(t.payer_method)
+              const b = way(t.payee_method)
+              detail = a && b && a !== b ? `Settled · ${from}: ${a}, ${to}: ${b}` : `Settled · ${a || b}`
+            } else if (state === 'disputed') {
+              detail = `Flagged by ${t.disputed_by === 'payee' ? to : from}`
+            } else if (state === 'marked') {
+              detail = t.payer_marked_at
+                ? `${from} marked it (${way(t.payer_method)}) · waiting for ${to}`
+                : `${to} marked it (${way(t.payee_method)}) · waiting for ${from}`
+            }
+            return { from, to, amount: t.amount, state, detail }
+          })
         )
       }
 
@@ -155,13 +170,18 @@ export function GameDetail() {
         <StatCard title="Players" value={players.length} />
       </div>
 
-      <ListGroup className="mt-4">
+      <h2 className="type-label-caption mb-2 mt-8 text-muted">
+        Players{ratio === '1:2' ? ' · results × ½' : ''}
+      </h2>
+      <ListGroup>
         {players.map((p) => (
           <ListRow
             key={p.id}
             avatar={<NamedAvatar name={p.full_name} className="h-12 w-12" />}
             title={p.full_name}
-            subtitle={`${p.buyins} buy-in${p.buyins === 1 ? '' : 's'}`}
+            subtitle={`${p.buyins} buy-in${p.buyins === 1 ? '' : 's'} · in ${formatChips(p.buyins * game.stake, ratio)}${
+              p.cashout == null ? '' : ` · out ${formatChips(p.cashout, ratio)}`
+            }`}
             trailing={
               p.cashout == null ? (
                 <span className="type-figure-md text-muted">In play</span>
@@ -198,6 +218,7 @@ export function GameDetail() {
                     <span>{t.to}</span>
                   </span>
                 }
+                subtitle={t.detail}
                 trailing={
                   <>
                     <ChipsFigure amount={t.amount} ratio={ratio} />
