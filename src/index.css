@@ -28,9 +28,10 @@
   --color-hairline-soft: #e3e8ef;
   --color-border-strong: #b4becf;
 
-  --color-primary: #e5383b; /* Red */
-  --color-primary-active: #c92a2d;
-  --color-primary-disabled: #f1b5b6;
+  --color-primary: #11151b; /* Black: every main action */
+  --color-primary-active: #000000;
+  --color-primary-disabled: #c7ccd4;
+  --color-brand: #e5383b; /* The red of the logo and the app icon */
   --color-on-primary: #ffffff;
 
   --color-error: #b42318;
