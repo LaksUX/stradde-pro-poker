@@ -778,6 +778,16 @@ export function Home() {
                     {adminGames.map((g) => (
                       <ListRow
                         key={g.id}
+                        className="cursor-pointer"
+                        onClick={() =>
+                          navigate(
+                            g.status === 'live'
+                              ? `/games/${g.id}/live`
+                              : g.status === 'scheduled'
+                                ? `/games/${g.id}/scheduled`
+                                : `/games/${g.id}`
+                          )
+                        }
                         title={g.name}
                         subtitle={
                           <span className="block">
