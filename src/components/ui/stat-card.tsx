@@ -52,7 +52,7 @@ function StatCard({
       role="group"
       aria-label={`${typeof title === "string" ? title : "Stat"}: ${value.toLocaleString("en-US")}${suffix ?? ""}`}
       className={cn(
-        "summary-dark flex flex-col items-center gap-2 rounded-lg p-5 text-center",
+        "hero-card flex flex-col items-center gap-2 rounded-lg p-5 text-center",
         className
       )}
       {...props}

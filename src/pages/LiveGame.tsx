@@ -722,7 +722,7 @@ export function LiveGame() {
         </div>
       )}
 
-      <Card className="summary-dark mt-3">
+      <Card className="hero-card mt-3">
         <CardContent>
           {/* The night in three beats: what came in, what has gone out, what is
               still on the table. Rake stays quiet on the second row. */}
