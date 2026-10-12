@@ -6,7 +6,7 @@
 //   /api/card-manifest?t=<card token>&n=<display name>
 export default function handler(req, res) {
   const q = req.query || {}
-  const token = String(q.t || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 128)
+  const token = String(q.t || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 128)
   // Reflected only inside JSON string values, with control characters removed.
   const name = String(q.n || 'Straddle').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 40) || 'Straddle'
 
