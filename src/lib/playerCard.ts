@@ -104,7 +104,7 @@ export function cardMessage(opts: {
     month: 'short',
   })
   const who = `${opts.playerCount} player${opts.playerCount === 1 ? '' : 's'}`
-  return `Hi ${first},\n${opts.gameName} · ${day} · ${who}\nYour private card, with your night and settlement:\n${opts.url}`
+  return `Hi ${first},\n${opts.gameName} · ${day} · ${who}\nYour private card, with your nights:\n${opts.url}`
 }
 
 // So a player who opens the bare site address (or loses the chat link) lands
