@@ -1,12 +1,22 @@
 import { useEffect, useState } from 'react'
 import { Copy, Download } from 'lucide-react'
-import { promptInstall, useInstallMode } from '../../lib/install'
+import { promptInstall, useInstallMode, type InstallMode } from '../../lib/install'
 import { toast } from '../../lib/toast'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from './sheet'
 import { Button } from './button'
 
 const DISMISS_KEY = 'straddle:install-dismissed'
 const MAX_AUTO_PROMPTS = 3
+
+// Browsers without a one-tap install need the player to do the last step
+// themselves; the card page is the page that gets saved.
+function steps(mode: InstallMode): string[] {
+  if (mode === 'ios')
+    return ['Tap the Share button at the bottom of Safari', 'Choose "Add to Home Screen"', 'Tap Add. Your card opens from your home screen.']
+  if (mode === 'inapp')
+    return ['Tap Copy card link below', 'Open it in Safari (iPhone) or Chrome (Android)', 'Then add it to your home screen from the browser menu']
+  return ['Tap the ⋮ menu at the top right of your browser', 'Choose "Install app" or "Add to Home screen"', 'Tap Install. Your card opens from your home screen.']
+}
 
 function dismissCount(): number {
   try {
@@ -58,12 +68,10 @@ export function InstallPrompt({ label }: { label: string }) {
     }
   }
 
-  const shortcut = `${window.location.host}/wpa`
-
-  async function copyShortcut() {
+  async function copyLink() {
     try {
-      await navigator.clipboard.writeText(shortcut)
-      toast.success('Shortcut copied')
+      await navigator.clipboard.writeText(window.location.href)
+      toast.success('Link copied')
     } catch {
       toast.error('Could not copy')
     }
@@ -102,16 +110,22 @@ export function InstallPrompt({ label }: { label: string }) {
           )}
 
           {mode !== 'native' && (
-            <div className="mt-5 rounded-xl bg-surface-soft p-4">
-              <p className="text-xs text-muted">Your shortcut</p>
-              <div className="mt-1 flex items-center justify-between gap-3">
-                <span className="truncate text-lg font-bold text-ink">{shortcut}</span>
-                <Button variant="secondary" onClick={copyShortcut}>
-                  <Copy className="mr-1.5 h-4 w-4" /> Copy
-                </Button>
-              </div>
-              <p className="mt-2 text-xs text-muted">Type it in your browser any time to open your card.</p>
-            </div>
+            <ol className="mt-5 space-y-3 rounded-xl bg-surface-soft p-4 text-sm text-ink">
+              {steps(mode).map((t, i) => (
+                <li key={i} className="flex gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary">
+                    {i + 1}
+                  </span>
+                  <span className="pt-0.5">{t}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+
+          {mode === 'inapp' && (
+            <Button variant="secondary" block className="mt-3" onClick={copyLink}>
+              <Copy className="mr-1.5 h-4 w-4" /> Copy card link
+            </Button>
           )}
 
           <button
