@@ -98,13 +98,7 @@ export function cardMessage(opts: {
   url: string
 }): string {
   const first = opts.playerName.trim().split(/\s+/)[0] || 'there'
-  const day = new Date(opts.gameDate).toLocaleDateString(undefined, {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  })
-  const who = `${opts.playerCount} player${opts.playerCount === 1 ? '' : 's'}`
-  return `Hi ${first},\n${opts.gameName} · ${day} · ${who}\nYour private card, with your nights:\n${opts.url}`
+  return `Hi ${first}, here's your ${opts.gameName} card:\n${opts.url}`
 }
 
 // So a player who opens the bare site address (or loses the chat link) lands
