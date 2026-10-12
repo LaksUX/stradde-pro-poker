@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/c/:t",
+      "destination": "/api/card-page?t=:t"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
