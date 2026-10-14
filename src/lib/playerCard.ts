@@ -164,3 +164,51 @@ export function checkRecord(night: CardNight, rec: MyRecord | undefined): Record
   if (entryDiff === 0 && valueDiff === 0) return { state: 'match' }
   return { state: 'differs', hostEntries, hostValue, entryDiff, valueDiff }
 }
+
+export type Rsvp = 'pending' | 'in' | 'maybe' | 'out'
+
+export type CardUpcoming = {
+  game_id: string
+  name: string
+  place: string | null
+  at: string
+  response: Rsvp
+  arrive: string | null
+  leave_by: string | null
+  note: string | null
+  going: number
+}
+
+export async function fetchUpcoming(token: string): Promise<CardUpcoming[]> {
+  const { data, error } = await supabase.rpc('get_card_upcoming', { p_token: token })
+  if (error) throw error
+  return (data as CardUpcoming[] | null) ?? []
+}
+
+export async function sendRsvp(
+  token: string,
+  gameId: string,
+  response: Exclude<Rsvp, 'pending'>,
+  arrive: string | null,
+  leaveBy: string | null,
+  note: string | null
+): Promise<void> {
+  const { error } = await supabase.rpc('set_rsvp', {
+    p_token: token,
+    p_game_id: gameId,
+    p_response: response,
+    p_arrive: arrive,
+    p_leave_by: leaveBy,
+    p_note: note,
+  })
+  if (error) throw error
+}
+
+// "21:30" -> "9:30 PM" in the viewer's locale.
+export function showTime(hhmm: string | null): string {
+  if (!hhmm) return ''
+  const [h, m] = hhmm.split(':').map(Number)
+  const d = new Date()
+  d.setHours(h || 0, m || 0, 0, 0)
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+}
