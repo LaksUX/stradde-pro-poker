@@ -18,6 +18,7 @@ import {
   rememberCard,
   type OwnGame,
 } from '../lib/myBook'
+import { RsvpSheet } from '../components/ui/rsvp-sheet'
 import { OwnGameSheet } from '../components/ui/own-game-sheet'
 import { OnboardingCard } from '../components/ui/onboarding-card'
 import { toast } from '../lib/toast'
@@ -25,6 +26,9 @@ import { cn } from 'cn'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet'
 import {
   fetchCard,
+  fetchUpcoming,
+  showTime,
+  type CardUpcoming,
   rememberLastCard,
   loadBook,
   checkRecord,
@@ -88,6 +92,8 @@ export function PlayerCard() {
   const [status, setStatus] = useState<'loading' | 'ready' | 'invalid' | 'offline'>(
     book.card ? 'ready' : 'loading'
   )
+  const [upcoming, setUpcoming] = useState<CardUpcoming[]>([])
+  const [rsvpGame, setRsvpGame] = useState<CardUpcoming | null>(null)
   const [noteNight, setNoteNight] = useState<string | null>(null)
   // Games the player records themselves, and the other places they play.
   const [own, setOwn] = useState<OwnGame[]>(() => ownGames())
@@ -99,6 +105,11 @@ export function PlayerCard() {
     ? `${book.card.group ?? 'Game night'} · ${book.card.name ?? 'Me'}`
     : 'Your card'
   useCardManifest(token, title)
+
+  function loadUpcoming() {
+    if (token) fetchUpcoming(token).then(setUpcoming).catch(() => {})
+  }
+  useEffect(loadUpcoming, [token])
 
   useEffect(() => {
     if (!token) return
@@ -226,6 +237,61 @@ export function PlayerCard() {
           { label: 'Yours', text: 'add your own record, notes and other games. They stay on this phone.' },
         ]}
       />
+
+      {upcoming.length > 0 && (
+        <>
+          <h2 className="type-label-caption mt-8 mb-2 text-muted">Upcoming</h2>
+          <div className="overflow-hidden rounded-xl border border-hairline bg-canvas">
+            {upcoming.map((u) => (
+              <button
+                key={u.game_id}
+                type="button"
+                onClick={() => setRsvpGame(u)}
+                className="flex w-full items-center gap-3 border-b border-hairline p-4 text-left last:border-b-0"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-ink">{u.name}</span>
+                  <span className="block truncate text-xs text-muted">
+                    {new Date(u.at).toLocaleString(undefined, {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}
+                    {u.place ? ` · ${u.place}` : ''}
+                  </span>
+                  {u.response !== 'pending' && u.response !== 'out' && (u.arrive || u.leave_by) && (
+                    <span className="block text-xs text-muted">
+                      {u.arrive ? `Arriving ${showTime(u.arrive)}` : ''}
+                      {u.arrive && u.leave_by ? ' · ' : ''}
+                      {u.leave_by ? `Leaving ${showTime(u.leave_by)}` : ''}
+                    </span>
+                  )}
+                </span>
+                <span
+                  className={
+                    u.response === 'pending'
+                      ? 'rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-on-primary'
+                      : 'rounded-full bg-surface-strong px-3 py-1.5 text-xs font-semibold text-ink'
+                  }
+                >
+                  {u.response === 'pending'
+                    ? 'RSVP'
+                    : u.response === 'in'
+                      ? "You're in"
+                      : u.response === 'maybe'
+                        ? 'Maybe'
+                        : "Can't make it"}
+                </span>
+              </button>
+            ))}
+          </div>
+          {token && (
+            <RsvpSheet token={token} game={rsvpGame} onClose={() => setRsvpGame(null)} onSaved={loadUpcoming} />
+          )}
+        </>
+      )}
 
       <h2 className="type-label-caption mt-8 mb-2 text-muted">Nights</h2>
       {nights.length === 0 ? (
