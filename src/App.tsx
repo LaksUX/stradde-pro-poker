@@ -14,6 +14,9 @@ import { ManagerJoin } from './pages/ManagerJoin'
 import { HostJoin } from './pages/HostJoin'
 import { WpaShortcut } from './pages/WpaShortcut'
 import { lastCardToken } from './lib/playerCard'
+import { ClubEntry } from './pages/club/ClubEntry'
+import { ClubHome } from './pages/club/ClubHome'
+import { ClubTable } from './pages/club/ClubTable'
 import { LiveGame } from './pages/LiveGame'
 import { Settlement } from './pages/Settlement'
 import { GameDetail } from './pages/GameDetail'
@@ -59,6 +62,9 @@ export default function App() {
         <Route path="/m/:token" element={<ManagerJoin />} />
         <Route path="/book" element={<Navigate to="/" replace />} />
         <Route path="/h/:token" element={<HostJoin />} />
+        <Route path="/club" element={<ClubEntry />} />
+        <Route path="/club/home" element={<ClubHome />} />
+        <Route path="/club/tables/:tableId" element={<ClubTable />} />
         <Route path="/wpa" element={<WpaShortcut />} />
 
         {/* Everything below is "inside the app" — signed-in screens that
